@@ -15,6 +15,28 @@
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
 		2EDDB5BFDB738EF56C8F1A2F /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 794B6728F8AE373B5F6862F8 /* StatisticsView.swift */; };
 		78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA6D2394987B7B159269517 /* SettingsView.swift */; };
+		1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = FDA976353F815393EF917200 /* GoogleSignIn */; };
+		8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */; };
+		76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */; };
+		8DA0F4F86D994BB6BD8C4885 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C79742243835DC0370C6F78 /* KeychainService.swift */; };
+		CEB820D33F1D6C3BFD06BFF6 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */; };
+		546EA496568AB165FEE92A39 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE7ECB87862084848E2504A /* AuthModels.swift */; };
+		75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */; };
+		B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC3 /* LoginView.swift */; };
+		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
+		DF61CC24C4B6B8C848CF7531 /* ComfortMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */; };
+		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
+		B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */; };
+		ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48F6DDAC8977311FEEA3765 /* MoodModels.swift */; };
+		52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8296BF009909079BC325B648 /* MoodService.swift */; };
+		0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */; };
+		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
+		DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441617D9A1D63082D4432F0C /* DateKey.swift */; };
+		76ECCF2EF2222FA3CD2C7379 /* EntryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156BA80323127255242AD216 /* EntryType.swift */; };
+		A434A2EBA7FA9B4AABF06E27 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */; };
+		DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */; };
+		CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400923908367E8D00165474D /* CoffeeEntryForm.swift */; };
+		A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D915F1380B35DFCE086458 /* DayEntrySheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +45,27 @@
 		2F284356300A4D1000CE1C47 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		9D4A2E6B1F0A4B7CB6C1E3D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInConfig.swift; sourceTree = "<group>"; };
+		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		4CE7ECB87862084848E2504A /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		88F7EE3749D826B753973FC3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		59B5AB45E929438E760BA513 /* CatPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhoto.swift; sourceTree = "<group>"; };
+		BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortMessages.swift; sourceTree = "<group>"; };
+		32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixabayService.swift; sourceTree = "<group>"; };
+		85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
+		8296BF009909079BC325B648 /* MoodService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodService.swift; sourceTree = "<group>"; };
+		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
+		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
+		441617D9A1D63082D4432F0C /* DateKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateKey.swift; sourceTree = "<group>"; };
+		156BA80323127255242AD216 /* EntryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryType.swift; sourceTree = "<group>"; };
+		75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
+		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
+		400923908367E8D00165474D /* CoffeeEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeEntryForm.swift; sourceTree = "<group>"; };
+		77D915F1380B35DFCE086458 /* DayEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEntrySheet.swift; sourceTree = "<group>"; };
 		27C6AF9A7770E01E42D3583C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A1766680CA806EB1906FDC82 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		794B6728F8AE373B5F6862F8 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
@@ -34,6 +77,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */,
+				8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,6 +89,9 @@
 			isa = PBXGroup;
 			children = (
 				A1766680CA806EB1906FDC82 /* CalendarView.swift */,
+				77D915F1380B35DFCE086458 /* DayEntrySheet.swift */,
+				C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */,
+				400923908367E8D00165474D /* CoffeeEntryForm.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -69,6 +117,7 @@
 			isa = PBXGroup;
 			children = (
 				2F28435F300A596100CE1C47 /* AGENTS.md */,
+				9D4A2E6B1F0A4B7CB6C1E3D2 /* Info.plist */,
 				2F284352300A4D1000CE1C47 /* Products */,
 				118C62350D3C33550004146F /* App */,
 				72F6BCCCF7D2C5FA5E4F1473 /* Views */,
@@ -100,6 +149,9 @@
 		6400BEDFF375F4DDD5E023A3 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */,
+				85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */,
+				75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -107,6 +159,7 @@
 		72F6BCCCF7D2C5FA5E4F1473 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				097D3954A995F2D9F199CADE /* Login */,
 				517A17634B4DCE20C3815264 /* Home */,
 				0C2138312FCC84015851A26B /* Calendar */,
 				150797E360A4676EC3AA3172 /* Statistics */,
@@ -115,9 +168,24 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		097D3954A995F2D9F199CADE /* Login */ = {
+			isa = PBXGroup;
+			children = (
+				88F7EE3749D826B753973FC3 /* LoginView.swift */,
+			);
+			path = Login;
+			sourceTree = "<group>";
+		};
 		8CE86D4F5CD682548D6E23EB /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */,
+				3C79742243835DC0370C6F78 /* KeychainService.swift */,
+				51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */,
+				32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */,
+				8296BF009909079BC325B648 /* MoodService.swift */,
+				0933E651496C8E1E00026E6A /* CoffeeService.swift */,
+				441617D9A1D63082D4432F0C /* DateKey.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -147,6 +215,12 @@
 		F284FA692084B9E317AC5A00 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4CE7ECB87862084848E2504A /* AuthModels.swift */,
+				59B5AB45E929438E760BA513 /* CatPhoto.swift */,
+				BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */,
+				E48F6DDAC8977311FEEA3765 /* MoodModels.swift */,
+				2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */,
+				156BA80323127255242AD216 /* EntryType.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -168,6 +242,8 @@
 			);
 			name = MindProfiler;
 			packageProductDependencies = (
+				FDA976353F815393EF917200 /* GoogleSignIn */,
+				B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */,
 			);
 			productName = MindProfiler;
 			productReference = 2F284351300A4D1000CE1C47 /* MindProfiler.app */;
@@ -197,6 +273,9 @@
 			);
 			mainGroup = 2F284348300A4D1000CE1C47;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				508C7328CF4C77CB7FA42997 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2F284352300A4D1000CE1C47 /* Products */;
 			projectDirPath = "";
@@ -230,6 +309,26 @@
 				F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */,
 				2EDDB5BFDB738EF56C8F1A2F /* StatisticsView.swift in Sources */,
 				78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */,
+				76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */,
+				8DA0F4F86D994BB6BD8C4885 /* KeychainService.swift in Sources */,
+				CEB820D33F1D6C3BFD06BFF6 /* APIClient.swift in Sources */,
+				546EA496568AB165FEE92A39 /* AuthModels.swift in Sources */,
+				75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */,
+				B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */,
+				BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */,
+				DF61CC24C4B6B8C848CF7531 /* ComfortMessages.swift in Sources */,
+				756383A51162B80D589630D8 /* PixabayService.swift in Sources */,
+				B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */,
+				ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */,
+				52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */,
+				0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */,
+				FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */,
+				DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */,
+				76ECCF2EF2222FA3CD2C7379 /* EntryType.swift in Sources */,
+				A434A2EBA7FA9B4AABF06E27 /* CalendarViewModel.swift in Sources */,
+				DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */,
+				CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */,
+				A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -363,12 +462,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -394,12 +488,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -439,6 +528,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		508C7328CF4C77CB7FA42997 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FDA976353F815393EF917200 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 508C7328CF4C77CB7FA42997 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 508C7328CF4C77CB7FA42997 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2F284349300A4D1000CE1C47 /* Project object */;
 }
