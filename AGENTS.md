@@ -15,3 +15,24 @@
 - async/await 사용
 - MVVM 유지
 - 재사용 가능한 View 우선
+
+## 폴더 구조
+MindProfiler
+├── App
+│   ├── MindProfilerApp.swift
+│   └── RootTabView.swift
+│
+├── Views
+│   ├── Home
+│   ├── Calendar
+│   ├── Statistics
+│   └── Settings
+│
+├── ViewModels
+├── Models
+├── Services
+├── Components
+├── Resources
+│
+├── Assets.xcassets
+└── Info.plist
