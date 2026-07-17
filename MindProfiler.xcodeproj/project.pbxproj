@@ -11,6 +11,10 @@
 		2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F284356300A4D1000CE1C47 /* RootTabView.swift */; };
 		2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F284358300A4D1100CE1C47 /* Assets.xcassets */; };
 		2F284360300A596100CE1C47 /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2F28435F300A596100CE1C47 /* AGENTS.md */; };
+		0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C6AF9A7770E01E42D3583C /* HomeView.swift */; };
+		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
+		2EDDB5BFDB738EF56C8F1A2F /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 794B6728F8AE373B5F6862F8 /* StatisticsView.swift */; };
+		78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA6D2394987B7B159269517 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +23,10 @@
 		2F284356300A4D1000CE1C47 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		27C6AF9A7770E01E42D3583C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A1766680CA806EB1906FDC82 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		794B6728F8AE373B5F6862F8 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		2CA6D2394987B7B159269517 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -35,6 +43,7 @@
 		0C2138312FCC84015851A26B /* Calendar */ = {
 			isa = PBXGroup;
 			children = (
+				A1766680CA806EB1906FDC82 /* CalendarView.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -51,6 +60,7 @@
 		150797E360A4676EC3AA3172 /* Statistics */ = {
 			isa = PBXGroup;
 			children = (
+				794B6728F8AE373B5F6862F8 /* StatisticsView.swift */,
 			);
 			path = Statistics;
 			sourceTree = "<group>";
@@ -82,6 +92,7 @@
 		517A17634B4DCE20C3815264 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				27C6AF9A7770E01E42D3583C /* HomeView.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -121,6 +132,7 @@
 		C85D194E457D64C0284A6769 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				2CA6D2394987B7B159269517 /* SettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -214,6 +226,10 @@
 			files = (
 				2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */,
 				2F284355300A4D1000CE1C47 /* MindProfilerApp.swift in Sources */,
+				0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */,
+				F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */,
+				2EDDB5BFDB738EF56C8F1A2F /* StatisticsView.swift in Sources */,
+				78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
