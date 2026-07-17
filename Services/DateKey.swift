@@ -16,4 +16,19 @@ enum DateKey {
         }
         return ISO8601DateFormatter().date(from: string)
     }
+
+    static func combine(date: Date, time: Date) -> Date {
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
+
+        var merged = DateComponents()
+        merged.year = dateComponents.year
+        merged.month = dateComponents.month
+        merged.day = dateComponents.day
+        merged.hour = timeComponents.hour
+        merged.minute = timeComponents.minute
+
+        return calendar.date(from: merged) ?? date
+    }
 }

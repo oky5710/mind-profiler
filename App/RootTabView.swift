@@ -18,9 +18,9 @@ struct RootTabView: View {
                     Label("통계", systemImage: "chart.line.uptrend.xyaxis")
                 }
 
-            SettingsView()
+            HRVAnalysisView()
                 .tabItem {
-                    Label("설정", systemImage: "gearshape")
+                    Label("오늘의 패턴", systemImage: "waveform.path.ecg")
                 }
         }
     }

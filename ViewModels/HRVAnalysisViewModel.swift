@@ -2,13 +2,25 @@ import Foundation
 
 @MainActor
 @Observable
-final class StatisticsViewModel {
+final class HRVAnalysisViewModel {
+    struct ExamPoint: Identifiable {
+        let date: Date
+        let sdnn: Double
+        var id: Date { date }
+    }
+
+    private(set) var examPoints: [ExamPoint] = []
     private(set) var moodSeries: [DailyValue] = []
     private(set) var coffeeSeries: [DailyValue] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
+    private(set) var wearableHRVSeries: [DailyValue] = []
+    private(set) var isHealthKitAuthorized = false
+    private(set) var healthKitErrorMessage: String?
+
     private var hasLoaded = false
+    private var hasCheckedHealthKit = false
 
     func loadIfNeeded() async {
         guard !hasLoaded else { return }
@@ -21,9 +33,17 @@ final class StatisticsViewModel {
         errorMessage = nil
 
         do {
+            async let exams = ExamService.allExams()
             async let moods = MoodService.allMoods()
             async let coffees = CoffeeService.allCoffees()
-            let (moodList, coffeeList) = try await (moods, coffees)
+            let (examList, moodList, coffeeList) = try await (exams, moods, coffees)
+
+            examPoints = examList
+                .compactMap { entry -> ExamPoint? in
+                    guard let date = DateKey.parseISODate(entry.examinedAt) else { return nil }
+                    return ExamPoint(date: date, sdnn: entry.sdnn)
+                }
+                .sorted { $0.date < $1.date }
 
             moodSeries = moodList
                 .compactMap { entry -> DailyValue? in
@@ -45,5 +65,19 @@ final class StatisticsViewModel {
         }
 
         isLoading = false
+    }
+
+    func loadWearableHRVIfNeeded() async {
+        guard !hasCheckedHealthKit else { return }
+        hasCheckedHealthKit = true
+
+        do {
+            try await HealthKitService.requestAuthorization()
+            let samples = try await HealthKitService.fetchHRVSamples()
+            wearableHRVSeries = samples.map { DailyValue(date: $0.date, value: $0.value) }
+            isHealthKitAuthorized = true
+        } catch {
+            healthKitErrorMessage = error.localizedDescription
+        }
     }
 }

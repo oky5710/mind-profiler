@@ -60,7 +60,7 @@ struct CoffeeEntryForm: View {
         errorMessage = nil
 
         let finalType = useCustomType ? customType : selectedType
-        let combined = Self.combine(date: date, time: time)
+        let combined = DateKey.combine(date: date, time: time)
 
         do {
             try await CoffeeService.logCoffee(
@@ -73,20 +73,5 @@ struct CoffeeEntryForm: View {
             errorMessage = error.localizedDescription
         }
         isSaving = false
-    }
-
-    private static func combine(date: Date, time: Date) -> Date {
-        let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-
-        var merged = DateComponents()
-        merged.year = dateComponents.year
-        merged.month = dateComponents.month
-        merged.day = dateComponents.day
-        merged.hour = timeComponents.hour
-        merged.minute = timeComponents.minute
-
-        return calendar.date(from: merged) ?? date
     }
 }

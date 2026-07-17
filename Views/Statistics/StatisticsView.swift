@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 struct StatisticsView: View {
@@ -23,8 +22,8 @@ struct StatisticsView: View {
                             .foregroundStyle(.red)
                     }
 
-                    chartSection(title: "기분", data: viewModel.moodSeries, color: moodColor, yDomain: 0...5)
-                    chartSection(title: "커피", data: viewModel.coffeeSeries, color: coffeeColor, yDomain: nil)
+                    BarChartCard(title: "기분", data: viewModel.moodSeries, color: moodColor, yDomain: 0...5)
+                    BarChartCard(title: "커피", data: viewModel.coffeeSeries, color: coffeeColor, yDomain: nil)
                 }
                 .padding()
             }
@@ -36,35 +35,6 @@ struct StatisticsView: View {
         }
         .refreshable {
             await viewModel.reload()
-        }
-    }
-
-    @ViewBuilder
-    private func chartSection(
-        title: String,
-        data: [StatisticsViewModel.DailyValue],
-        color: Color,
-        yDomain: ClosedRange<Double>?
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline)
-
-            if data.isEmpty {
-                Text("기록된 데이터가 없어요")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 120)
-            } else {
-                Chart(data) { point in
-                    BarMark(
-                        x: .value("날짜", point.date, unit: .day),
-                        y: .value(title, point.value)
-                    )
-                    .foregroundStyle(color)
-                }
-                .frame(height: 160)
-                .chartYScale(domain: yDomain ?? 0...max(1, data.map(\.value).max() ?? 1))
-            }
         }
     }
 }
