@@ -37,6 +37,7 @@
 		DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */; };
 		CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400923908367E8D00165474D /* CoffeeEntryForm.swift */; };
 		A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D915F1380B35DFCE086458 /* DayEntrySheet.swift */; };
+		CE1FAF21A2763F03330F5ECF /* StatisticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F482D03E3A0E274577E42F6 /* StatisticsViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +67,7 @@
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		400923908367E8D00165474D /* CoffeeEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeEntryForm.swift; sourceTree = "<group>"; };
 		77D915F1380B35DFCE086458 /* DayEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEntrySheet.swift; sourceTree = "<group>"; };
+		6F482D03E3A0E274577E42F6 /* StatisticsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsViewModel.swift; sourceTree = "<group>"; };
 		27C6AF9A7770E01E42D3583C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A1766680CA806EB1906FDC82 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		794B6728F8AE373B5F6862F8 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 				DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */,
 				85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */,
 				75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */,
+				6F482D03E3A0E274577E42F6 /* StatisticsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -329,6 +332,7 @@
 				DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */,
 				CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */,
 				A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */,
+				CE1FAF21A2763F03330F5ECF /* StatisticsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
