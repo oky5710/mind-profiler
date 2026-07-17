@@ -11,7 +11,7 @@ import SwiftUI
 struct MindProfilerApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
         }
     }
 }

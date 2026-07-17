@@ -6,17 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2F284355300A4D1000CE1C47 /* MindProfilerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F284354300A4D1000CE1C47 /* MindProfilerApp.swift */; };
+		2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F284356300A4D1000CE1C47 /* RootTabView.swift */; };
+		2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F284358300A4D1100CE1C47 /* Assets.xcassets */; };
+		2F284360300A596100CE1C47 /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2F28435F300A596100CE1C47 /* AGENTS.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2F284351300A4D1000CE1C47 /* MindProfiler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindProfiler.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2F284354300A4D1000CE1C47 /* MindProfilerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindProfilerApp.swift; sourceTree = "<group>"; };
+		2F284356300A4D1000CE1C47 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		2F284353300A4D1000CE1C47 /* MindProfiler */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MindProfiler;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2F28434E300A4D1000CE1C47 /* Frameworks */ = {
@@ -29,11 +32,42 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C2138312FCC84015851A26B /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Calendar;
+			sourceTree = "<group>";
+		};
+		118C62350D3C33550004146F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				2F284354300A4D1000CE1C47 /* MindProfilerApp.swift */,
+				2F284356300A4D1000CE1C47 /* RootTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		150797E360A4676EC3AA3172 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
 		2F284348300A4D1000CE1C47 = {
 			isa = PBXGroup;
 			children = (
-				2F284353300A4D1000CE1C47 /* MindProfiler */,
+				2F28435F300A596100CE1C47 /* AGENTS.md */,
 				2F284352300A4D1000CE1C47 /* Products */,
+				118C62350D3C33550004146F /* App */,
+				72F6BCCCF7D2C5FA5E4F1473 /* Views */,
+				6400BEDFF375F4DDD5E023A3 /* ViewModels */,
+				F284FA692084B9E317AC5A00 /* Models */,
+				8CE86D4F5CD682548D6E23EB /* Services */,
+				C5860D139D3B0008D12CBAE9 /* Components */,
+				EC88DF084C96613A6AE20F51 /* Resources */,
+				2F284358300A4D1100CE1C47 /* Assets.xcassets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -43,6 +77,66 @@
 				2F284351300A4D1000CE1C47 /* MindProfiler.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		517A17634B4DCE20C3815264 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		6400BEDFF375F4DDD5E023A3 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		72F6BCCCF7D2C5FA5E4F1473 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				517A17634B4DCE20C3815264 /* Home */,
+				0C2138312FCC84015851A26B /* Calendar */,
+				150797E360A4676EC3AA3172 /* Statistics */,
+				C85D194E457D64C0284A6769 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8CE86D4F5CD682548D6E23EB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		C5860D139D3B0008D12CBAE9 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		C85D194E457D64C0284A6769 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		EC88DF084C96613A6AE20F51 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		F284FA692084B9E317AC5A00 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -59,9 +153,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				2F284353300A4D1000CE1C47 /* MindProfiler */,
 			);
 			name = MindProfiler;
 			packageProductDependencies = (
@@ -109,6 +200,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F284360300A596100CE1C47 /* AGENTS.md in Resources */,
+				2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +212,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */,
+				2F284355300A4D1000CE1C47 /* MindProfilerApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
