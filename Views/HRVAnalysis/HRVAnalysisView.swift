@@ -71,13 +71,13 @@ struct HRVAnalysisView: View {
         !viewModel.sleepRanges.isEmpty || !viewModel.exerciseRanges.isEmpty
     }
 
-    // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반.
+    // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
     private var lineChartHeight: CGFloat {
         UIScreen.main.bounds.height * 0.4
     }
 
     private var ganttChartHeight: CGFloat {
-        lineChartHeight / 2
+        lineChartHeight / 2 * 0.7
     }
 
     var body: some View {
