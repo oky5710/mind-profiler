@@ -8,6 +8,11 @@
 - **Services** — 외부 세계(백엔드 API, HealthKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit 등을 직접 다루지 않음.
 - **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `BarChartCard`).
 
+View 파일 하나가 너무 커지면(대략 500줄 이상) `extension`으로 여러 파일에 나눠 담는다 — 새 타입/프로토콜을
+만들지 않고 관심사별로만 파일을 쪼갠다 (예: `HRVAnalysisView.swift`의 상태/구성 vs
+`HRVAnalysisView+Axes.swift`의 축·스크롤 오버레이 vs `HRVAnalysisView+Charts.swift`의 차트 정의).
+이렇게 나눈 멤버는 `private`가 아니라 기본 접근 수준(internal)으로 둬야 다른 파일의 extension에서 볼 수 있다.
+
 ## 데이터 흐름
 
 ```
@@ -24,8 +29,9 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 ## HealthKit
 
-- 네이티브 전환의 핵심 이유. mind-record 웹은 iOS 단축어로 HealthKit 데이터를 간접적으로만 받았지만, 이 앱은 `HealthKitService`로 HRV/수면/운동 데이터를 **직접** 읽는다.
-- HealthKit 데이터는 백엔드에 저장하지 않고, 매번 기기에서 읽어와 화면에서만 사용한다 (검사 SDNN/기분/커피 등 사용자가 직접 입력하는 기록만 백엔드에 저장).
+- 네이티브 전환의 핵심 이유. mind-record 웹은 iOS 단축어로 HealthKit 데이터를 간접적으로만 받았지만, 이 앱은 `HealthKitService`로 HRV(SDNN)/수면/운동 데이터를 **직접** 읽는다.
+- rMSSD는 HealthKit이 직접 주지 않아, SDNN 측정마다 같이 기록되는 원시 박동 시리즈(`HKHeartbeatSeriesSample`)에서 `HealthKitService`가 직접 계산한다 — 자세한 내용은 [features.md](features.md)의 rMSSD 항목 참고.
+- HealthKit 데이터는 백엔드에 저장하지 않고, 매번 기기에서 읽어와 화면에서만 사용한다 (검사 기록(SDNN·rMSSD 등)·기분·커피 등 사용자가 직접 입력하는 기록만 백엔드에 저장).
 
 ## 화면 ↔ 코드 매핑
 
@@ -34,6 +40,6 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 | 진입 화면 | `Views/Home/HomeView.swift` | `HomeViewModel` |
 | 달력보기 | `Views/Calendar/CalendarView.swift` | `CalendarViewModel` |
 | 나의 Trend(통계) | `Views/Statistics/StatisticsView.swift` | `StatisticsViewModel` |
-| 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` | `HRVAnalysisViewModel` |
+| 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
 
 아직 포팅되지 않은 화면/기능은 [features.md](features.md) 참고.
