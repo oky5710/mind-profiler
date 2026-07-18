@@ -412,22 +412,56 @@ struct HRVAnalysisView: View {
 
     // 라인 차트와 간트 차트가 같은 hrvScrollPosition/visibleDomain을 쓰더라도, 각자 알아서
     // "automatic" 눈금을 고르면 서로 다른 위치에 눈금이 생길 수 있어 명시적으로 동일한 눈금 배열을 계산해서 공유함.
+    // 그리드 눈금은 "정시"에만 찍혀야 한다 — 일별은 자정(00시)에만, 시간별은 분이 00일 때만.
+    // hrvScrollPosition 자체는 "지금부터 visibleDomain 이전" 같은 임의 시각이라 그대로 stride를 더하면
+    // 14:23, 18:23 처럼 어중간한 시각에 눈금이 찍히므로, 시작점을 가장 가까운 깨끗한 경계로 올림한다.
     private var xAxisTickDates: [Date] {
-        let strideSeconds: TimeInterval
-        switch chartMode {
-        case .hourly: strideSeconds = 4 * 60 * 60
-        case .daily: strideSeconds = 3 * 24 * 60 * 60
-        case .monthly: strideSeconds = 7 * 24 * 60 * 60
-        }
-
+        let calendar = Calendar.current
         let end = hrvScrollPosition.addingTimeInterval(chartMode.visibleDomain)
-        var dates: [Date] = []
-        var current = hrvScrollPosition
-        while current <= end {
-            dates.append(current)
-            current = current.addingTimeInterval(strideSeconds)
+
+        switch chartMode {
+        case .hourly:
+            let strideHours = 4
+            var components = calendar.dateComponents([.year, .month, .day, .hour], from: hrvScrollPosition)
+            components.minute = 0
+            components.second = 0
+            guard var current = calendar.date(from: components) else { return [] }
+            if current < hrvScrollPosition {
+                current = calendar.date(byAdding: .hour, value: 1, to: current) ?? current
+            }
+            while calendar.component(.hour, from: current) % strideHours != 0 {
+                guard let next = calendar.date(byAdding: .hour, value: 1, to: current) else { break }
+                current = next
+            }
+
+            var dates: [Date] = []
+            while current <= end {
+                dates.append(current)
+                guard let next = calendar.date(byAdding: .hour, value: strideHours, to: current) else { break }
+                current = next
+            }
+            return dates
+
+        case .daily:
+            let strideDays = 3
+            var current = calendar.startOfDay(for: hrvScrollPosition)
+            if current < hrvScrollPosition {
+                current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
+            }
+
+            var dates: [Date] = []
+            while current <= end {
+                dates.append(current)
+                guard let next = calendar.date(byAdding: .day, value: strideDays, to: current) else { break }
+                current = next
+            }
+            return dates
+
+        case .monthly:
+            // baseLineChart/ganttChart는 monthly 모드에서 쓰이지 않으므로(monthlyChart가 별도 처리) 실제로는
+            // 호출되지 않지만, switch 전체 커버를 위해 남겨둔다.
+            return []
         }
-        return dates
     }
 
     private func xAxisLabel(for date: Date) -> some View {
