@@ -157,7 +157,7 @@ struct HRVAnalysisView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
-                    lineChart
+                    baseLineChart
                     if hasGanttData {
                         ganttChart
                     }
@@ -226,8 +226,15 @@ struct HRVAnalysisView: View {
         }
     }
 
-    private func chartOverlay(proxy: ChartProxy, visibleDomain: TimeInterval, yAxisTickValues: [Double]) -> some View {
+    private func chartOverlay(
+        proxy: ChartProxy,
+        visibleDomain: TimeInterval,
+        yAxisTickValues: [Double],
+        xAxisTickDates: [Date],
+        xAxisLabel: @escaping (Date) -> AnyView
+    ) -> some View {
         ZStack {
+            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
         }
@@ -300,40 +307,50 @@ struct HRVAnalysisView: View {
         .font(.system(size: 9))
     }
 
-    @AxisContentBuilder
-    private var sharedXAxisMarks: some AxisContent {
-        AxisMarks(values: xAxisTickDates) { value in
-            if let date = value.as(Date.self) {
-                AxisValueLabel { xAxisLabel(for: date) }
-                AxisGridLine()
-                    .foregroundStyle(.gray.opacity(0.25))
-                AxisTick()
-                    .foregroundStyle(.gray.opacity(0.85))
-            }
-        }
-    }
-
     // 월별 모드는 한 달 단위 막대라서 다른 모드의 촘촘한 시간 눈금 대신, 30일 이상 간격은
     // "M월"만 표기하는 규칙(ui-style.md 날짜 표기 규칙)에 맞춰 달마다 하나씩 눈금을 찍는다.
-    @AxisContentBuilder
-    private var monthlyAxisMarks: some AxisContent {
-        AxisMarks(values: .stride(by: .month)) { value in
-            if let date = value.as(Date.self) {
-                AxisValueLabel {
-                    Text(Self.monthFormatter.string(from: date))
-                        .bold()
-                        .font(.system(size: 9))
-                }
-                AxisGridLine()
-                    .foregroundStyle(.gray.opacity(0.25))
-                AxisTick()
-                    .foregroundStyle(.gray.opacity(0.85))
-            }
+    private var monthlyTickDates: [Date] {
+        let calendar = Calendar.current
+        let end = hrvScrollPosition.addingTimeInterval(chartMode.visibleDomain)
+        var dates: [Date] = []
+        var current = calendar.dateInterval(of: .month, for: hrvScrollPosition)?.start ?? hrvScrollPosition
+        while current <= end {
+            dates.append(current)
+            guard let next = calendar.date(byAdding: .month, value: 1, to: current) else { break }
+            current = next
         }
+        return dates
     }
 
-    private var lineChart: some View {
-        baseLineChart.chartXAxis { sharedXAxisMarks }
+    private func monthlyAxisLabel(for date: Date) -> some View {
+        Text(Self.monthFormatter.string(from: date))
+            .bold()
+            .font(.system(size: 9))
+    }
+
+    // x축 라벨도 y축과 같은 이유(ui-style.md)로 레이아웃 공간을 차지하지 않고 차트 안에 고정 위치로 띄운다.
+    private func xAxisOverlay(proxy: ChartProxy, tickDates: [Date], label: @escaping (Date) -> AnyView) -> some View {
+        GeometryReader { geo in
+            if let plotFrame = proxy.plotFrame {
+                let plotRect = geo[plotFrame]
+                ZStack(alignment: .topLeading) {
+                    ForEach(tickDates, id: \.self) { date in
+                        if let x = proxy.position(forX: date) {
+                            Path { path in
+                                path.move(to: CGPoint(x: plotRect.minX + x, y: plotRect.minY))
+                                path.addLine(to: CGPoint(x: plotRect.minX + x, y: plotRect.maxY))
+                            }
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+
+                            label(date)
+                                .padding(.horizontal, 3)
+                                .background(Color(.systemBackground).opacity(0.85))
+                                .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private var baseLineChart: some View {
@@ -380,9 +397,16 @@ struct HRVAnalysisView: View {
         .frame(height: lineChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
-            chartOverlay(proxy: proxy, visibleDomain: visibleDomain, yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound))
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) }
+            )
         }
     }
 
@@ -413,10 +437,16 @@ struct HRVAnalysisView: View {
         .frame(height: ganttChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...1)
+        .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .chartXAxis { sharedXAxisMarks }
         .chartOverlay { proxy in
-            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: [],
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) }
+            )
         }
     }
 
@@ -458,10 +488,16 @@ struct HRVAnalysisView: View {
         .frame(height: lineChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
-        .chartXAxis { monthlyAxisMarks }
+        .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
-            chartOverlay(proxy: proxy, visibleDomain: visibleDomain, yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound))
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
+                xAxisTickDates: monthlyTickDates,
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+            )
         }
     }
 }
