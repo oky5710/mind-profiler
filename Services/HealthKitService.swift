@@ -23,21 +23,28 @@ enum HealthKitService {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthKitError.notAvailable
         }
-        guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
-            throw HealthKitError.notAvailable
-        }
 
+        // HealthKit 제약: HKSeriesType.heartbeat() 읽기 권한은 반드시 SDNN 권한과 같이 요청해야 한다
+        // ("Authorization for HKQuantityTypeIdentifierHeartRateVariabilitySDNN should also be requested
+        // when requesting authorization to read HKDataTypeIdentifierHeartbeatSeries" — 안 하면 즉시 크래시).
+        // SDNN 값 자체도 rMSSD와 비교해서 보여주는 참고용 회색 라인(시간별 전용)으로 다시 쓴다.
         try await store.requestAuthorization(
             toShare: [],
-            read: [hrvType, HKObjectType.workoutType(), HKCategoryType(.sleepAnalysis), HKSeriesType.heartbeat()]
+            read: [
+                HKObjectType.workoutType(),
+                HKCategoryType(.sleepAnalysis),
+                HKSeriesType.heartbeat(),
+                HKQuantityType(.heartRateVariabilitySDNN),
+            ]
         )
     }
 
-    static func fetchHRVSamples() async throws -> [(date: Date, value: Double)] {
-        guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
-            throw HealthKitError.notAvailable
-        }
-        return try await fetchQuantitySamples(type: hrvType, unit: .secondUnit(with: .milli))
+    // rMSSD보다 덜 중요한 참고값이라 화면에서는 옅게(회색 반투명) 보여주기만 한다.
+    static func fetchSDNNSamples() async throws -> [(date: Date, value: Double)] {
+        try await fetchQuantitySamples(
+            type: HKQuantityType(.heartRateVariabilitySDNN),
+            unit: .secondUnit(with: .milli)
+        )
     }
 
     // HealthKit은 SDNN만 직접 주고 rMSSD는 없음 — 애플워치가 SDNN을 잴 때 같이 남기는 원시 박동

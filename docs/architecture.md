@@ -29,8 +29,11 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 ## HealthKit
 
-- 네이티브 전환의 핵심 이유. mind-record 웹은 iOS 단축어로 HealthKit 데이터를 간접적으로만 받았지만, 이 앱은 `HealthKitService`로 HRV(SDNN)/수면/운동 데이터를 **직접** 읽는다.
+- 네이티브 전환의 핵심 이유. mind-record 웹은 iOS 단축어로 HealthKit 데이터를 간접적으로만 받았지만, 이 앱은 `HealthKitService`로 HRV(SDNN)/수면/운동/원시 박동 데이터를 **직접** 읽는다.
 - rMSSD는 HealthKit이 직접 주지 않아, SDNN 측정마다 같이 기록되는 원시 박동 시리즈(`HKHeartbeatSeriesSample`)에서 `HealthKitService`가 직접 계산한다 — 자세한 내용은 [features.md](features.md)의 rMSSD 항목 참고.
+- HRV(SDNN)는 HealthKit 제약상 `HKSeriesType.heartbeat()`(원시 박동) 읽기 권한과 반드시 같이 요청해야 해서
+  (안 하면 앱이 즉시 크래시) 읽기는 하지만, 화면에서는 rMSSD와의 값 차이를 참고만 하도록 옅게(시간별 모드,
+  검정 50% 불투명도) 보여주기만 한다.
 - HealthKit 데이터는 백엔드에 저장하지 않고, 매번 기기에서 읽어와 화면에서만 사용한다 (검사 기록(SDNN·rMSSD 등)·기분·커피 등 사용자가 직접 입력하는 기록만 백엔드에 저장).
 
 ## 화면 ↔ 코드 매핑

@@ -25,7 +25,7 @@ enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, sleep, exercise, median
+    case rmssd, examRmssd, sleep, exercise, median, sdnn
     var id: String { rawValue }
 
     var label: String {
@@ -35,6 +35,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sleep: "수면"
         case .exercise: "운동"
         case .median: "최근 30일 중앙값"
+        case .sdnn: "SDNN (참고용, 시간별)"
         }
     }
 
@@ -45,6 +46,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sleep: "square.fill"
         case .exercise: "square.fill"
         case .median: "minus"
+        case .sdnn: "minus"
         }
     }
 }
@@ -63,8 +65,9 @@ struct HRVAnalysisView: View {
     // UIKit(UIScreen) 없이 화면 높이를 구하기 위해 GeometryReader로 실측한다 (AGENTS.md: UIKit 사용 금지).
     // 처음 그려질 때는 아직 측정 전이라 흔한 화면 높이로 잠깐 대체했다가, onAppear에서 바로 갱신된다.
     @State var availableHeight: CGFloat = 850
+    // 월별 막대 너비 = bandwidth(월 하나가 차지하는 폭)의 50%, 10~30px로 clamp. 실측 전 기본값.
+    @State var monthlyBarWidth: CGFloat = 20
 
-    let hrvLineColor = Theme.hrvLine
     let rmssdColor = Theme.rmssd
     let examRmssdColor = Theme.examRmssd
     let exerciseColor = Theme.exercise
@@ -122,6 +125,18 @@ struct HRVAnalysisView: View {
         lineChartHeight / 2 * 0.7
     }
 
+    // 시간별/일별은 "지금"까지만 스크롤 가능하지만, 월별은 이번 달이 아직 안 끝났어도 이번 달 데이터가
+    // 잘리지 않고 보여야 하므로 이번 달의 마지막 날까지 스크롤할 수 있어야 한다.
+    func latestVisibleEnd(for mode: HRVChartMode) -> Date {
+        switch mode {
+        case .hourly, .daily:
+            return Date()
+        case .monthly:
+            let now = Date()
+            return Calendar.current.dateInterval(of: .month, for: now)?.end ?? now
+        }
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
@@ -151,7 +166,7 @@ struct HRVAnalysisView: View {
             recomputeRange()
         }
         .onChange(of: chartMode) { _, newMode in
-            hrvScrollPosition = Date().addingTimeInterval(-newMode.visibleDomain)
+            hrvScrollPosition = latestVisibleEnd(for: newMode).addingTimeInterval(-newMode.visibleDomain)
             tooltipPoint = nil
             recomputeRange()
         }
@@ -164,10 +179,15 @@ struct HRVAnalysisView: View {
     private func recomputeRange() {
         var values = viewModel.examPoints.map(\.rmssd)
         switch chartMode {
-        case .hourly, .daily:
+        case .hourly:
+            values += currentRMSSDPoints.map(\.value)
+            if !hiddenSeries.contains(.sdnn) {
+                values += viewModel.wearableSDNNPointsHourly.map(\.value)
+            }
+        case .daily:
             values += currentRMSSDPoints.map(\.value)
         case .monthly:
-            values += viewModel.wearableHRVMonthlyStats.flatMap { [$0.min, $0.max] }
+            values += viewModel.wearableRMSSDMonthlyStats.flatMap { [$0.min, $0.max] }
         }
         cachedRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
     }
@@ -218,7 +238,7 @@ struct HRVAnalysisView: View {
             if (viewModel.isLoading || viewModel.isLoadingHealthKit) && !hasAnyLineChartData {
                 HeartLoader(height: lineChartHeight)
             } else if chartMode == .monthly {
-                if viewModel.wearableHRVMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
+                if viewModel.wearableRMSSDMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
                     Text("표시할 HRV 데이터가 없어요")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -295,6 +315,7 @@ struct HRVAnalysisView: View {
         case .sleep: sleepColor
         case .exercise: exerciseColor
         case .median: .gray
+        case .sdnn: .black.opacity(0.5)
         }
     }
 }

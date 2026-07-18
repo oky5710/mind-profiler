@@ -39,6 +39,20 @@ extension HRVAnalysisView {
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
+            // SDNN은 rMSSD와의 값 차이를 참고만 하려는 용도라, 시간별 모드에서만 눈에 덜 띄게
+            // (검정 50% 불투명도 + 더 굵은 선) 뒤쪽에 깔아서 그린다 — rMSSD 라인이 항상 위에 보인다.
+            if chartMode == .hourly, !hiddenSeries.contains(.sdnn) {
+                ForEach(viewModel.wearableSDNNPointsHourly) { point in
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("SDNN", point.value),
+                        series: .value("구간", "sdnn-\(point.segment)")
+                    )
+                    .foregroundStyle(.black.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 3))
+                }
+            }
+
             if !hiddenSeries.contains(.rmssd) {
                 ForEach(currentRMSSDPoints) { point in
                     LineMark(
@@ -167,24 +181,26 @@ extension HRVAnalysisView {
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
-            ForEach(viewModel.wearableHRVMonthlyStats) { stat in
+            ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
                 RectangleMark(
                     x: .value("월", stat.monthStart, unit: .month),
                     yStart: .value("최소", stat.min),
                     yEnd: .value("최대", stat.max),
-                    width: .ratio(0.4)
+                    width: .fixed(monthlyBarWidth)
                 )
-                .foregroundStyle(hrvLineColor.opacity(0.35))
+                .foregroundStyle(rmssdColor.opacity(0.35))
                 .cornerRadius(6)
 
-                let halfThickness = max((stat.max - stat.min) * 0.015, 0.5)
+                // 두께를 그 달 자체의 최소~최대 범위로 계산하면 달마다 변동폭이 달라서 두께가
+                // 들쭉날쭉해진다 — 전체 y축 범위 기준으로 고정해서 모든 달이 같은 두께가 되게 한다.
+                let halfThickness = max(yAxisUpperBound * 0.01, 0.5)
                 RectangleMark(
                     x: .value("월", stat.monthStart, unit: .month),
                     yStart: .value("중앙값 아래", stat.median - halfThickness),
                     yEnd: .value("중앙값 위", stat.median + halfThickness),
-                    width: .ratio(0.4)
+                    width: .fixed(monthlyBarWidth)
                 )
-                .foregroundStyle(hrvLineColor)
+                .foregroundStyle(rmssdColor)
             }
 
             if !hiddenSeries.contains(.examRmssd) {
@@ -212,5 +228,22 @@ extension HRVAnalysisView {
                 xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
             )
         }
+        .background {
+            // 막대 너비 = bandwidth(달 하나가 차지하는 폭)의 50%, 10~30px로 clamp.
+            // plot 폭은 축을 숨겨서 프레임 전체와 같으므로, 컨테이너 폭을 그대로 plot 폭으로 쓴다.
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { updateMonthlyBarWidth(plotWidth: geo.size.width) }
+                    .onChange(of: geo.size.width) { _, newWidth in
+                        updateMonthlyBarWidth(plotWidth: newWidth)
+                    }
+            }
+        }
+    }
+
+    private func updateMonthlyBarWidth(plotWidth: CGFloat) {
+        let bandCount = max(monthlyTickDates.count, 1)
+        let bandwidth = plotWidth / CGFloat(bandCount)
+        monthlyBarWidth = min(max(bandwidth * 0.5, 10), 30)
     }
 }

@@ -40,11 +40,13 @@ final class HRVAnalysisViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    // 시간별/일별 HRV 라인은 화면에서 뺐고(rMSSD로 대체), 월별 막대 집계에만 원시 HRV 샘플을 계속 쓴다.
-    private(set) var wearableHRVMonthlyStats: [MonthlyHRVStat] = []
     // rMSSD는 HealthKit이 직접 주지 않아 원시 박동 시리즈에서 계산함 (HealthKitService.fetchRMSSDSamples 참고).
+    // 시간별/일별 라인, 월별 막대 집계 모두 이 rMSSD 기준으로 통일한다.
+    private(set) var wearableRMSSDMonthlyStats: [MonthlyHRVStat] = []
     private(set) var wearableRMSSDPointsHourly: [HRVPoint] = []
     private(set) var wearableRMSSDPointsDaily: [HRVPoint] = []
+    // SDNN은 rMSSD보다 덜 중요한 참고값이라 시간별 모드에서만 옅게 같이 보여준다.
+    private(set) var wearableSDNNPointsHourly: [HRVPoint] = []
     // 최근 30일 rMSSD 중앙값 — 라인 차트에 점선으로 표시.
     private(set) var recentThirtyDayRMSSDMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
@@ -91,14 +93,11 @@ final class HRVAnalysisViewModel {
         do {
             try await HealthKitService.requestAuthorization()
 
-            async let hrv = HealthKitService.fetchHRVSamples()
             async let workouts = HealthKitService.fetchWorkoutRanges()
             async let sleep = HealthKitService.fetchSleepRanges()
             async let rmssd = HealthKitService.fetchRMSSDSamples()
-            let (hrvSamples, workoutRanges, sleepSamples, rmssdSamples) = try await (hrv, workouts, sleep, rmssd)
-
-            let rawSamples = hrvSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
-            wearableHRVMonthlyStats = Self.monthlyStats(rawSamples)
+            async let sdnn = HealthKitService.fetchSDNNSamples()
+            let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples) = try await (workouts, sleep, rmssd, sdnn)
 
             let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
@@ -106,6 +105,9 @@ final class HRVAnalysisViewModel {
                 Self.dailyMedian(rawRMSSDSamples),
                 gapThreshold: Self.hrvGapThresholdDaily
             )
+            let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
+            wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
+            wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
             let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
             let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : Self.median(recentRMSSDValues)

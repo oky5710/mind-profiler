@@ -104,7 +104,7 @@ extension HRVAnalysisView {
                                 let timePerPixel = visibleDomain / Double(plotWidth)
                                 let deltaSeconds = -Double(value.translation.width) * timePerPixel
                                 let proposed = anchor.addingTimeInterval(deltaSeconds)
-                                let maxStart = Date().addingTimeInterval(-visibleDomain)
+                                let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-visibleDomain)
                                 hrvScrollPosition = min(proposed, maxStart)
 
                                 if !tooltipPoints.isEmpty {
