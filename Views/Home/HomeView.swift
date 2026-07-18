@@ -27,6 +27,14 @@ struct HomeView: View {
                     spawnHearts(at: location)
                 }
 
+                Text("Track your mind.\nFind the patterns.")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .shadow(radius: 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .allowsHitTesting(false)
+
                 VStack(spacing: 12) {
                     Spacer()
 
