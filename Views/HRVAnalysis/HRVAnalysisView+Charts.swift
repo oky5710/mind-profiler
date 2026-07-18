@@ -1,0 +1,218 @@
+import Charts
+import SwiftUI
+
+// 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
+extension HRVAnalysisView {
+    // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
+    // 그 결과 두 차트 사이 간격(레이아웃상 유지하고 싶은 여백) 부분에서 그리드 선이 끊겨 보이므로,
+    // 그 간격만큼을 이어주는 짧은 선을 배경에 덧그려서 세로 그리드가 끊기지 않고 이어진 것처럼 보이게 한다.
+    var lineAndGanttChartsStack: some View {
+        VStack(spacing: 8) {
+            baseLineChart
+            if hasGanttData {
+                ganttChart
+            }
+        }
+        .background(alignment: .topLeading) {
+            if hasGanttData {
+                GeometryReader { geo in
+                    ForEach(xAxisTickDates, id: \.self) { date in
+                        let fraction = date.timeIntervalSince(hrvScrollPosition) / chartMode.visibleDomain
+                        let x = geo.size.width * fraction
+                        Path { path in
+                            path.move(to: CGPoint(x: x, y: lineChartHeight))
+                            path.addLine(to: CGPoint(x: x, y: lineChartHeight + 8))
+                        }
+                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                    }
+                }
+            }
+        }
+    }
+
+    var baseLineChart: some View {
+        let range = cachedRange
+        let visibleDomain = chartMode.visibleDomain
+        let visibleStart = hrvScrollPosition
+        let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
+        // currentRMSSDPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
+        // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
+        let showRMSSDPointMarkers = currentRMSSDPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
+        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+
+        return Chart {
+            if !hiddenSeries.contains(.rmssd) {
+                ForEach(currentRMSSDPoints) { point in
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("rMSSD", point.value),
+                        series: .value("구간", "rmssd-\(point.segment)")
+                    )
+                    .foregroundStyle(rmssdColor)
+
+                    if showRMSSDPointMarkers {
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value)
+                        )
+                        .symbolSize(80)
+                        .foregroundStyle(rmssdColor)
+
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value)
+                        )
+                        .symbolSize(32)
+                        .foregroundStyle(.white)
+                    }
+                }
+            }
+
+            if !hiddenSeries.contains(.examRmssd) {
+                ForEach(viewModel.examPoints) { point in
+                    PointMark(
+                        x: .value("검사일", point.date),
+                        y: .value("검사 rMSSD", point.rmssd)
+                    )
+                    .symbol(.triangle)
+                    .foregroundStyle(examRmssdColor)
+                }
+            }
+
+            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayRMSSDMedian {
+                RuleMark(y: .value("최근 30일 중앙값", median))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+        }
+        .frame(height: lineChartHeight)
+        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                tooltipPoints: currentRMSSDPoints
+            )
+        }
+    }
+
+    private static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
+
+    private func formattedDuration(_ interval: TimeInterval) -> String {
+        let totalMinutes = Int(interval) / 60
+        return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
+    }
+
+    var ganttChart: some View {
+        let visibleDomain = chartMode.visibleDomain
+
+        return Chart {
+            if !hiddenSeries.contains(.sleep) {
+                ForEach(viewModel.sleepRanges) { interval in
+                    let duration = interval.end.timeIntervalSince(interval.start)
+                    let isShort = duration < Self.shortSleepThreshold
+
+                    RectangleMark(
+                        xStart: .value("수면 시작", interval.start),
+                        xEnd: .value("수면 끝", interval.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
+                    .annotation(position: .overlay) {
+                        if isShort {
+                            Text(formattedDuration(duration))
+                                .font(.system(size: 8))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+            }
+
+            if !hiddenSeries.contains(.exercise) {
+                ForEach(viewModel.exerciseRanges) { interval in
+                    RectangleMark(
+                        xStart: .value("운동 시작", interval.start),
+                        xEnd: .value("운동 끝", interval.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle(exerciseColor.opacity(0.7))
+                }
+            }
+        }
+        .frame(height: ganttChartHeight)
+        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...1)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: [],
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) }
+            )
+        }
+    }
+
+    var monthlyChart: some View {
+        let range = cachedRange
+        let visibleDomain = chartMode.visibleDomain
+        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+
+        return Chart {
+            ForEach(viewModel.wearableHRVMonthlyStats) { stat in
+                RectangleMark(
+                    x: .value("월", stat.monthStart, unit: .month),
+                    yStart: .value("최소", stat.min),
+                    yEnd: .value("최대", stat.max),
+                    width: .ratio(0.4)
+                )
+                .foregroundStyle(hrvLineColor.opacity(0.35))
+                .cornerRadius(6)
+
+                let halfThickness = max((stat.max - stat.min) * 0.015, 0.5)
+                RectangleMark(
+                    x: .value("월", stat.monthStart, unit: .month),
+                    yStart: .value("중앙값 아래", stat.median - halfThickness),
+                    yEnd: .value("중앙값 위", stat.median + halfThickness),
+                    width: .ratio(0.4)
+                )
+                .foregroundStyle(hrvLineColor)
+            }
+
+            if !hiddenSeries.contains(.examRmssd) {
+                ForEach(viewModel.examPoints) { point in
+                    PointMark(
+                        x: .value("검사일", point.date),
+                        y: .value("검사 rMSSD", point.rmssd)
+                    )
+                    .symbol(.triangle)
+                    .foregroundStyle(examRmssdColor)
+                }
+            }
+        }
+        .frame(height: lineChartHeight)
+        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
+                xAxisTickDates: monthlyTickDates,
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+            )
+        }
+    }
+}

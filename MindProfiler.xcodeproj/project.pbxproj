@@ -42,6 +42,8 @@
 		A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D915F1380B35DFCE086458 /* DayEntrySheet.swift */; };
 		ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48F6DDAC8977311FEEA3765 /* MoodModels.swift */; };
 		ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */; };
+		298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */; };
+		899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */; };
 		B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */; };
 		B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC3 /* LoginView.swift */; };
 		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
@@ -100,6 +102,8 @@
 		A1F448D53B0E674CEA76B276 /* MindProfiler.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MindProfiler.entitlements; sourceTree = "<group>"; };
 		A260AC61F3C8A7585B32E365 /* ExamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamService.swift; sourceTree = "<group>"; };
 		A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisView.swift; sourceTree = "<group>"; };
+		0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Axes.swift"; sourceTree = "<group>"; };
+		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
 		BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortMessages.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
@@ -127,6 +131,8 @@
 			isa = PBXGroup;
 			children = (
 				A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */,
+				0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */,
+				D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */,
 			);
 			path = HRVAnalysis;
 			sourceTree = "<group>";
@@ -426,6 +432,8 @@
 				27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */,
 				CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */,
 				ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */,
+				298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */,
+				899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */,
 				DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
