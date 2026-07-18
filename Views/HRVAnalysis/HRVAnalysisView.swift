@@ -185,6 +185,44 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // y축 라벨이 차트 레이아웃 공간을 차지하지 않고 고정된 위치에 떠 있어야 한다는 규칙(ui-style.md) 때문에,
+    // 기본 제공되는 leading y축(라벨 너비만큼 플롯 영역을 줄임) 대신 y축은 숨기고 직접 오버레이로 그린다.
+    private func yAxisTicks(upperBound: Double) -> [Double] {
+        Array(stride(from: 0.0, through: upperBound, by: 50))
+    }
+
+    private func yAxisOverlay(proxy: ChartProxy, tickValues: [Double]) -> some View {
+        GeometryReader { geo in
+            if let plotFrame = proxy.plotFrame {
+                let plotRect = geo[plotFrame]
+                ZStack(alignment: .topLeading) {
+                    ForEach(tickValues, id: \.self) { value in
+                        if let y = proxy.position(forY: value) {
+                            Path { path in
+                                path.move(to: CGPoint(x: plotRect.minX, y: plotRect.minY + y))
+                                path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.minY + y))
+                            }
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+
+                            Text(String(format: "%.0f", value))
+                                .font(.system(size: 9))
+                                .padding(.horizontal, 3)
+                                .background(Color(.systemBackground).opacity(0.85))
+                                .position(x: plotRect.minX + 16, y: plotRect.minY + y)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func chartOverlay(proxy: ChartProxy, visibleDomain: TimeInterval, yAxisTickValues: [Double]) -> some View {
+        ZStack {
+            yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
+            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+        }
+    }
+
     // MARK: - 직접 구현한 드래그 스크롤
     // Swift Charts 내장 chartScrollableAxes가 이 환경에서 잘 반응하지 않아,
     // 드래그 위치를 직접 계산해서 hrvScrollPosition(보이는 구간의 시작 시각)을 갱신함.
@@ -332,16 +370,9 @@ struct HRVAnalysisView: View {
         .frame(height: 200)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
-        .chartYAxis {
-            AxisMarks(values: .stride(by: 50)) { _ in
-                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
-                AxisTick().foregroundStyle(.gray.opacity(0.85))
-                AxisValueLabel()
-                    .font(.system(size: 9))
-            }
-        }
+        .chartYAxis(.hidden)
         .chartOverlay { proxy in
-            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+            chartOverlay(proxy: proxy, visibleDomain: visibleDomain, yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound))
         }
     }
 
@@ -418,16 +449,9 @@ struct HRVAnalysisView: View {
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis { monthlyAxisMarks }
-        .chartYAxis {
-            AxisMarks(values: .stride(by: 50)) { _ in
-                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
-                AxisTick().foregroundStyle(.gray.opacity(0.85))
-                AxisValueLabel()
-                    .font(.system(size: 9))
-            }
-        }
+        .chartYAxis(.hidden)
         .chartOverlay { proxy in
-            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+            chartOverlay(proxy: proxy, visibleDomain: visibleDomain, yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound))
         }
     }
 }
