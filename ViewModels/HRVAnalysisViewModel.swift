@@ -33,6 +33,8 @@ final class HRVAnalysisViewModel {
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
     private static let hrvGapThresholdHourly: TimeInterval = 3 * 60 * 60
     private static let hrvGapThresholdDaily: TimeInterval = 1.5 * 24 * 60 * 60
+    // 자다가 잠깐 깨는 것까지 별도 수면으로 쪼개지 않도록, 1시간 이내로 떨어진 수면 구간은 하나로 합친다.
+    private static let sleepMergeGapThreshold: TimeInterval = 60 * 60
 
     private(set) var examPoints: [ExamPoint] = []
     private(set) var isLoading = false
@@ -103,11 +105,28 @@ final class HRVAnalysisViewModel {
             let recentValues = rawSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayMedian = recentValues.isEmpty ? nil : Self.median(recentValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
-            sleepRanges = sleepSamples.map { RangeInterval(start: $0.start, end: $0.end) }
+            sleepRanges = Self.mergeCloseRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
+                .map { RangeInterval(start: $0.start, end: $0.end) }
             isHealthKitAuthorized = true
         } catch {
             healthKitErrorMessage = error.localizedDescription
         }
+    }
+
+    private static func mergeCloseRanges(
+        _ ranges: [(start: Date, end: Date)],
+        maxGap: TimeInterval
+    ) -> [(start: Date, end: Date)] {
+        let sorted = ranges.sorted { $0.start < $1.start }
+        var merged: [(start: Date, end: Date)] = []
+        for range in sorted {
+            if let last = merged.last, range.start.timeIntervalSince(last.end) <= maxGap {
+                merged[merged.count - 1].end = max(last.end, range.end)
+            } else {
+                merged.append(range)
+            }
+        }
+        return merged
     }
 
     private static func segmentByGap(_ samples: [(Date, Double)], gapThreshold: TimeInterval) -> [HRVPoint] {
