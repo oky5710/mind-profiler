@@ -334,13 +334,20 @@ struct HRVAnalysisView: View {
             if let plotFrame = proxy.plotFrame {
                 let plotRect = geo[plotFrame]
                 ZStack(alignment: .topLeading) {
+                    // 차트 하단을 가로지르는 x축 기준선 (틱마다 그리는 세로 그리드와는 별개).
+                    Path { path in
+                        path.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+                        path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+                    }
+                    .stroke(Color(white: 0.35), lineWidth: 1)
+
                     ForEach(tickDates, id: \.self) { date in
                         if let x = proxy.position(forX: date) {
                             Path { path in
                                 path.move(to: CGPoint(x: plotRect.minX + x, y: plotRect.minY))
                                 path.addLine(to: CGPoint(x: plotRect.minX + x, y: plotRect.maxY))
                             }
-                            .stroke(Color(white: 0.35), lineWidth: 1)
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
                             label(date)
                                 .padding(.horizontal, 3)
