@@ -132,6 +132,12 @@ struct HRVAnalysisView: View {
                 Spacer()
             }
             .padding()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
+                // 탭했을 때만 걸린다.
+                tooltipPoint = nil
+            }
             .navigationTitle("오늘의 패턴")
             .navigationBarTitleDisplayMode(.inline)
         }
