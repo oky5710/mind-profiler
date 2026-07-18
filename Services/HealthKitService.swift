@@ -70,6 +70,9 @@ enum HealthKitService {
     // 30~200bpm(300~2000ms) 밖의 간격은 센서 오검출(놓친 박동/중복 검출)로 보고 버린다.
     // rMSSD는 간격 차이를 제곱해서 평균 내기 때문에, 이런 이상치 하나만 껴 있어도 값이 크게 튄다.
     private static let plausibleIntervalRangeMs: ClosedRange<Double> = 300...2000
+    // 절대 범위 안에 있어도 직전 간격보다 20% 넘게 튀면(HRV 아티팩트 교정에서 흔히 쓰는 기준) 그 변화는
+    // 진짜 HRV가 아니라 오검출일 가능성이 커서 제외한다. 다만 뒤 박동들은 새 기준(interval)으로 계속 비교한다.
+    private static let maxRelativeIntervalChange = 0.2
 
     // rMSSD는 "연속된 박동 간격(RR interval)들의 차이"를 제곱해서 평균 낸 값의 제곱근이다 —
     // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다. 시리즈 중간에 워치를
@@ -96,7 +99,9 @@ enum HealthKitService {
 
             if let previousInterval {
                 let diff = interval - previousInterval
-                squaredDiffs.append(diff * diff)
+                if abs(diff) / previousInterval <= maxRelativeIntervalChange {
+                    squaredDiffs.append(diff * diff)
+                }
             }
             previousInterval = interval
         }
