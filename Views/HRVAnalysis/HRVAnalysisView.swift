@@ -1,6 +1,5 @@
 import Charts
 import SwiftUI
-import UIKit
 
 enum HRVChartMode: String, CaseIterable {
     case hourly = "시간별"
@@ -61,6 +60,9 @@ struct HRVAnalysisView: View {
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
     @State var cachedRange: (min: Double, max: Double) = (0, 100)
+    // UIKit(UIScreen) 없이 화면 높이를 구하기 위해 GeometryReader로 실측한다 (AGENTS.md: UIKit 사용 금지).
+    // 처음 그려질 때는 아직 측정 전이라 흔한 화면 높이로 잠깐 대체했다가, onAppear에서 바로 갱신된다.
+    @State var availableHeight: CGFloat = 850
 
     let hrvLineColor = Theme.hrvLine
     let rmssdColor = Theme.rmssd
@@ -117,7 +119,7 @@ struct HRVAnalysisView: View {
 
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
     var lineChartHeight: CGFloat {
-        UIScreen.main.bounds.height * 0.4
+        availableHeight * 0.4
     }
 
     var ganttChartHeight: CGFloat {
@@ -126,16 +128,20 @@ struct HRVAnalysisView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 24) {
-                hrvChart
-                Spacer()
-            }
-            .padding()
-            .contentShape(Rectangle())
-            .onTapGesture {
-                // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
-                // 탭했을 때만 걸린다.
-                tooltipPoint = nil
+            GeometryReader { geo in
+                VStack(alignment: .leading, spacing: 24) {
+                    hrvChart
+                    Spacer()
+                }
+                .padding()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
+                    // 탭했을 때만 걸린다.
+                    tooltipPoint = nil
+                }
+                .onAppear { availableHeight = geo.size.height }
+                .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
             }
             .navigationTitle("오늘의 패턴")
             .navigationBarTitleDisplayMode(.inline)

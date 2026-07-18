@@ -11,7 +11,9 @@
 
 ## Rules
 - UI는 SwiftUI만 사용
-- UIKit 사용 금지
+- UIKit 사용 금지 — 단, SwiftUI에 대응 API가 없어 서드파티 SDK 연동에 꼭 필요한 경우는 예외
+  (예: `AuthViewModel`이 Google Sign-In SDK에 표시용 `UIViewController`를 넘겨줘야 해서 사용).
+  화면 크기처럼 SwiftUI로 구할 수 있는 값(`GeometryReader` 등)에 UIKit(`UIScreen` 등)을 쓰지 않는다.
 - async/await 사용
 - MVVM 유지
 - 재사용 가능한 View 우선
