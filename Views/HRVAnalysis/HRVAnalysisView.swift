@@ -145,6 +145,7 @@ struct HRVAnalysisView: View {
         }
         .onChange(of: chartMode) { _, newMode in
             hrvScrollPosition = Date().addingTimeInterval(-newMode.visibleDomain)
+            tooltipPoint = nil
             recomputeRange()
         }
         .refreshable {
@@ -182,11 +183,6 @@ struct HRVAnalysisView: View {
             .padding(.bottom, 20)
 
             hrvChartBody
-                .overlay(alignment: .top) {
-                    if let point = tooltipPoint {
-                        tooltipLabel(for: point)
-                    }
-                }
         }
     }
 
@@ -201,7 +197,7 @@ struct HRVAnalysisView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 8))
-        .padding(.top, 4)
+        .fixedSize()
     }
 
     private var hrvChartBody: some View {
@@ -348,7 +344,11 @@ struct HRVAnalysisView: View {
         visibleDomain: TimeInterval,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
     ) -> some View {
-        GeometryReader { geo in
+        // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
+        // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
+        let estimatedTooltipHalfWidth: CGFloat = 45
+
+        return GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 if !tooltipPoints.isEmpty,
                    let point = tooltipPoint,
@@ -360,6 +360,13 @@ struct HRVAnalysisView: View {
                         path.addLine(to: CGPoint(x: plotRect.minX + x, y: plotRect.maxY))
                     }
                     .stroke(Color.primary.opacity(0.5), lineWidth: 1)
+
+                    let clampedLocalX = min(
+                        max(x, estimatedTooltipHalfWidth),
+                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                    )
+                    tooltipLabel(for: point)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
                 Rectangle()
@@ -394,7 +401,7 @@ struct HRVAnalysisView: View {
                             }
                             .onEnded { _ in
                                 dragAnchorPosition = nil
-                                tooltipPoint = nil
+                                // 툴팁은 손을 떼도 유지 — 다른 위치를 다시 탭하기 전까지는 사라지지 않는다.
                             }
                     )
             }
