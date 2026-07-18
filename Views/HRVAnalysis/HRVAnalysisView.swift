@@ -128,7 +128,7 @@ struct HRVAnalysisView: View {
     }
 
     private var hrvChart: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("HRV 추이").font(.headline)
                 Spacer()
@@ -142,7 +142,14 @@ struct HRVAnalysisView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 220)
             }
+            .padding(.bottom, 20)
 
+            hrvChartBody
+        }
+    }
+
+    private var hrvChartBody: some View {
+        VStack(alignment: .leading, spacing: 8) {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
