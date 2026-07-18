@@ -5,7 +5,7 @@ import Foundation
 final class HRVAnalysisViewModel {
     struct ExamPoint: Identifiable {
         let date: Date
-        let sdnn: Double
+        let rmssd: Double
         var id: Date { date }
     }
 
@@ -72,7 +72,7 @@ final class HRVAnalysisViewModel {
             examPoints = examList
                 .compactMap { entry -> ExamPoint? in
                     guard let date = DateKey.parseISODate(entry.examinedAt) else { return nil }
-                    return ExamPoint(date: date, sdnn: entry.sdnn)
+                    return ExamPoint(date: date, rmssd: entry.rmssd)
                 }
                 .sorted { $0.date < $1.date }
         } catch {

@@ -22,6 +22,6 @@ struct ExamRequest: Encodable {
 
 struct ExamEntry: Decodable {
     let examinedAt: String
-    let sdnn: Double
+    let rmssd: Double
     let result: String
 }
