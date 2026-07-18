@@ -309,6 +309,7 @@ struct HRVAnalysisView: View {
 
                             Text(String(format: "%.0f", value))
                                 .font(.system(size: 9))
+                                .tracking(1)
                                 .padding(.horizontal, 3)
                                 .background(Color(.systemBackground).opacity(0.85))
                                 .position(x: plotRect.minX + 16, y: plotRect.minY + y)
@@ -442,6 +443,7 @@ struct HRVAnalysisView: View {
             }
         }
         .font(.system(size: 9))
+        .tracking(1)
     }
 
     // 월별 모드는 한 달 단위 막대라서 다른 모드의 촘촘한 시간 눈금 대신, 30일 이상 간격은
@@ -463,6 +465,7 @@ struct HRVAnalysisView: View {
         Text(Self.monthFormatter.string(from: date))
             .bold()
             .font(.system(size: 9))
+            .tracking(1)
     }
 
     // x축 라벨도 y축과 같은 이유(ui-style.md)로 레이아웃 공간을 차지하지 않고 차트 안에 고정 위치로 띄운다.
