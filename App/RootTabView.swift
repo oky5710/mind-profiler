@@ -22,6 +22,11 @@ struct RootTabView: View {
                 .tabItem {
                     Label("오늘의 패턴", systemImage: "waveform.path.ecg")
                 }
+
+            SettingsView()
+                .tabItem {
+                    Label("설정", systemImage: "gearshape")
+                }
         }
     }
 }

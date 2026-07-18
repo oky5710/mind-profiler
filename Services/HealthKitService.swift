@@ -47,6 +47,32 @@ enum HealthKitService {
         )
     }
 
+    // 같은 HRV 측정에서 나온 SDNN 샘플과 원시 박동 시리즈(rMSSD 계산용)는 시작 시각이 거의 동일하다
+    // (몇 초 이내) — 그 시각으로 짝지어서 같은 측정의 SDNN·rMSSD 쌍을 만든다. 두 지표의 상관관계
+    // 분석(Settings 화면의 "SDNN vs rMSSD 분석")에 쓴다.
+    private static let pairingTolerance: TimeInterval = 5
+
+    static func fetchSDNNRMSSDPairs() async throws -> [(date: Date, sdnn: Double, rmssd: Double)] {
+        async let sdnnSamples = fetchSDNNSamples()
+        async let rmssdSamples = fetchRMSSDSamples()
+        let (sdnn, rmssd) = try await (sdnnSamples, rmssdSamples)
+
+        let sortedSDNN = sdnn.sorted { $0.date < $1.date }
+        var pairs: [(date: Date, sdnn: Double, rmssd: Double)] = []
+        var sdnnIndex = 0
+
+        for point in rmssd.sorted(by: { $0.date < $1.date }) {
+            while sdnnIndex < sortedSDNN.count, sortedSDNN[sdnnIndex].date < point.date.addingTimeInterval(-pairingTolerance) {
+                sdnnIndex += 1
+            }
+            guard sdnnIndex < sortedSDNN.count else { break }
+            if abs(sortedSDNN[sdnnIndex].date.timeIntervalSince(point.date)) <= pairingTolerance {
+                pairs.append((date: point.date, sdnn: sortedSDNN[sdnnIndex].value, rmssd: point.value))
+            }
+        }
+        return pairs
+    }
+
     // HealthKit은 SDNN만 직접 주고 rMSSD는 없음 — 애플워치가 SDNN을 잴 때 같이 남기는 원시 박동
     // 시리즈(HKHeartbeatSeriesSample)에서 박동 간 간격을 직접 계산해서 구한다.
     static func fetchRMSSDSamples() async throws -> [(date: Date, value: Double)] {

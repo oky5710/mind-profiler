@@ -48,6 +48,7 @@
 		B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC3 /* LoginView.swift */; };
 		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
 		CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */; };
+		1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */; };
 		CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400923908367E8D00165474D /* CoffeeEntryForm.swift */; };
 		CE1FAF21A2763F03330F5ECF /* StatisticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F482D03E3A0E274577E42F6 /* StatisticsViewModel.swift */; };
 		CEB820D33F1D6C3BFD06BFF6 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */; };
@@ -104,6 +105,7 @@
 		0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Axes.swift"; sourceTree = "<group>"; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
+		400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVCorrelationViewModel.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -237,6 +239,7 @@
 				75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */,
 				6F482D03E3A0E274577E42F6 /* StatisticsViewModel.swift */,
 				B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */,
+				400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -427,6 +430,7 @@
 				85C4223F22492C762B79054C /* Theme.swift in Sources */,
 				27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */,
 				CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */,
+				1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */,
 				ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */,
 				298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */,
 				899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */,

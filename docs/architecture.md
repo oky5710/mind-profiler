@@ -44,5 +44,6 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 | 달력보기 | `Views/Calendar/CalendarView.swift` | `CalendarViewModel` |
 | 나의 Trend(통계) | `Views/Statistics/StatisticsView.swift` | `StatisticsViewModel` |
 | 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
+| 설정 (SDNN vs rMSSD 분석) | `Views/Settings/SettingsView.swift` | `HRVCorrelationViewModel` |
 
 아직 포팅되지 않은 화면/기능은 [features.md](features.md) 참고.

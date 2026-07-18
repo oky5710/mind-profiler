@@ -39,7 +39,8 @@
   선으로 표시).
 - **SDNN 참고 라인 (시간별 전용)**: rMSSD와 값이 얼마나 다른지 비교해볼 수 있도록, 시간별 모드에서만
   HealthKit의 SDNN(`heartRateVariabilitySDNN`)도 같이 그린다 — 중요도가 낮은 참고값이라 검정 50%
-  불투명도 + 조금 더 굵은 선(3pt)으로 눈에 덜 띄게 하고, rMSSD 라인 뒤쪽에 깔아서 그린다. HealthKit
+  불투명도로만 눈에 덜 띄게 하고(두께는 rMSSD와 동일 — 더 굵게 하면 오히려 더 튀어 보임),
+  rMSSD 라인 뒤쪽에 깔아서 그린다. HealthKit
   제약상 원시 박동 시리즈(`HKSeriesType.heartbeat()`) 읽기 권한은 반드시 SDNN 권한과 같이 요청해야
   해서(안 하면 앱이 크래시) 어차피 읽어야 하는 값이기도 하다.
 - **rMSSD**: HealthKit은 SDNN만 제공하고 rMSSD는 없어서, 애플워치가 SDNN 측정마다 같이 남기는
@@ -96,8 +97,13 @@
 - **이벤트 기록** (약 변경/대인관계/업무 스트레스/병원 진료/기타).
 - **운동 기록 입력 폼** (HealthKit에서 읽어오는 것과 별개로, 캘린더에서 수동 입력하는 기능).
 - **구글 캘린더 연동** (읽기 전용 일정 조회 자체가 없음 — 위 "Gantt 레인 확장"의 전제 조건).
-- `Views/Settings/SettingsView.swift`는 초기 스캐폴딩 이후 `RootTabView`에서 빠졌고 현재 어디서도
-  참조되지 않는 미사용 파일 — 정리하거나 실제 설정 화면으로 채울지 결정 필요.
+
+### 설정 (`Views/Settings`)
+- **SDNN vs rMSSD 분석**: 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍을 찾아 평균 SDNN·평균 rMSSD·
+  SDNN/rMSSD 비율·Pearson 상관계수를 계산해서 보여준다 (`HealthKitService.fetchSDNNRMSSDPairs`,
+  `HRVCorrelationViewModel`). 짝(쌍) 데이터를 CSV(`date,sdnn_ms,rmssd_ms`)로 내보내 `ShareLink`로
+  공유(AirDrop/Files/메시지 등)할 수도 있다 — 앱이 SDNN(HealthKit 제공)과 rMSSD(원시 박동에서 직접
+  계산)를 둘 다 갖고 있어서만 가능한, mind-record 웹에는 없던 분석.
 
 ## 백엔드 의존성
 
