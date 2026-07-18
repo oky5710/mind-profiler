@@ -179,7 +179,7 @@ struct HRVAnalysisView: View {
     private var hrvChart: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("HRV 추이").font(.headline)
+                Text("HRV Trend").font(.system(size: 13.6, weight: .semibold))
                 Spacer()
                 Picker("보기 단위", selection: $chartMode) {
                     ForEach(HRVChartMode.allCases, id: \.self) { mode in
