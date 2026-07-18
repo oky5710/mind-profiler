@@ -237,6 +237,13 @@ struct HRVAnalysisView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
+                    // 검사·수면·운동 등 다른 데이터는 있는데 rMSSD 계산용 원시 박동 시리즈만 없는 경우가
+                    // 있다 (기기/OS/측정 상황에 따라 다름) — 차트가 빈 채로만 나오면 오류처럼 보이므로 안내.
+                    if !viewModel.isLoadingHealthKit && currentRMSSDPoints.isEmpty {
+                        Text("이 기간에는 rMSSD를 계산할 원시 박동 데이터가 없어요")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     lineAndGanttChartsStack
                 }
             }
