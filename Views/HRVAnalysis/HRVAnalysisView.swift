@@ -26,7 +26,7 @@ private enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 private enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, sdnn, sleep, exercise
+    case rmssd, sdnn, sleep, exercise, median
     var id: String { rawValue }
 
     var label: String {
@@ -35,6 +35,7 @@ private enum HRVSeries: String, CaseIterable, Identifiable {
         case .sdnn: "검사 SDNN"
         case .sleep: "수면"
         case .exercise: "운동"
+        case .median: "최근 30일 중앙값"
         }
     }
 
@@ -44,6 +45,7 @@ private enum HRVSeries: String, CaseIterable, Identifiable {
         case .sdnn: "triangle.fill"
         case .sleep: "square.fill"
         case .exercise: "square.fill"
+        case .median: "minus"
         }
     }
 }
@@ -286,6 +288,7 @@ struct HRVAnalysisView: View {
         case .sdnn: sdnnColor
         case .sleep: sleepColor
         case .exercise: exerciseColor
+        case .median: .gray
         }
     }
 
@@ -594,6 +597,12 @@ struct HRVAnalysisView: View {
                     .symbol(.triangle)
                     .foregroundStyle(sdnnColor)
                 }
+            }
+
+            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayRMSSDMedian {
+                RuleMark(y: .value("최근 30일 중앙값", median))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
         }
         .frame(height: lineChartHeight)

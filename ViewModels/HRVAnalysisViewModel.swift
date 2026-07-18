@@ -45,6 +45,8 @@ final class HRVAnalysisViewModel {
     // rMSSD는 HealthKit이 직접 주지 않아 원시 박동 시리즈에서 계산함 (HealthKitService.fetchRMSSDSamples 참고).
     private(set) var wearableRMSSDPointsHourly: [HRVPoint] = []
     private(set) var wearableRMSSDPointsDaily: [HRVPoint] = []
+    // 최근 30일 rMSSD 중앙값 — 라인 차트에 점선으로 표시.
+    private(set) var recentThirtyDayRMSSDMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
     private(set) var sleepRanges: [RangeInterval] = []
     private(set) var isHealthKitAuthorized = false
@@ -104,6 +106,9 @@ final class HRVAnalysisViewModel {
                 Self.dailyMedian(rawRMSSDSamples),
                 gapThreshold: Self.hrvGapThresholdDaily
             )
+            let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+            let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
+            recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : Self.median(recentRMSSDValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
             sleepRanges = Self.mergeCloseRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
                 .map { RangeInterval(start: $0.start, end: $0.end) }
