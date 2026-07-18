@@ -514,8 +514,12 @@ struct HRVAnalysisView: View {
 
     private var baseLineChart: some View {
         let range = cachedRange
-        let showPointMarkers = currentHRVPoints.count <= 300
         let visibleDomain = chartMode.visibleDomain
+        let visibleStart = hrvScrollPosition
+        let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
+        // currentHRVPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
+        // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
+        let showPointMarkers = currentHRVPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
         let outlierThreshold = viewModel.recentThirtyDayMedian.map { $0 * 0.25 }
         let showOutliers = !hiddenSeries.contains(.outlier)
