@@ -3,7 +3,7 @@ import SwiftUI
 struct HeartLoader: View {
     var height: CGFloat = 200
 
-    private let heartColor = Color(red: 0.9765, green: 0.3098, blue: 0.3882) // #F94F63
+    private let heartColor = Theme.heart
     private let period: TimeInterval = 0.8
 
     var body: some View {

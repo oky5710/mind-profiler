@@ -3,9 +3,6 @@ import SwiftUI
 struct StatisticsView: View {
     @State private var viewModel = StatisticsViewModel()
 
-    private let moodColor = Color(red: 0.9569, green: 0.2471, blue: 0.3686) // #f43f5e
-    private let coffeeColor = Color(red: 0.5725, green: 0.2510, blue: 0.0549) // #92400e
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -22,8 +19,8 @@ struct StatisticsView: View {
                             .foregroundStyle(.red)
                     }
 
-                    BarChartCard(title: "기분", data: viewModel.moodSeries, color: moodColor, yDomain: 0...5)
-                    BarChartCard(title: "커피", data: viewModel.coffeeSeries, color: coffeeColor, yDomain: nil)
+                    BarChartCard(title: "기분", data: viewModel.moodSeries, color: Theme.mood, yDomain: 0...5)
+                    BarChartCard(title: "커피", data: viewModel.coffeeSeries, color: Theme.coffee, yDomain: nil)
                 }
                 .padding()
             }

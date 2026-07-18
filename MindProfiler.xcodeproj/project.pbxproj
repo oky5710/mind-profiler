@@ -19,6 +19,7 @@
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
 		4382F2832AA2F43F73193CE7 /* BarChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D905DBDEF8F79C569C2996 /* BarChartCard.swift */; };
 		554F663B81BFC26EA2C4A043 /* HeartLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D63CA734994647CAA7014D /* HeartLoader.swift */; };
+		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
 		4700209C461D0BB22C7E8AF6 /* DailyValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983D87F35A4B0F9CE144B7C4 /* DailyValue.swift */; };
 		4CEF353801D9275A38CFCF8E /* ExamModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661F32A272362CA8CF1CA9C9 /* ExamModels.swift */; };
 		52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8296BF009909079BC325B648 /* MoodService.swift */; };
@@ -55,6 +56,7 @@
 		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
 		13D905DBDEF8F79C569C2996 /* BarChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChartCard.swift; sourceTree = "<group>"; };
 		21D63CA734994647CAA7014D /* HeartLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartLoader.swift; sourceTree = "<group>"; };
+		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		156BA80323127255242AD216 /* EntryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryType.swift; sourceTree = "<group>"; };
 		27C6AF9A7770E01E42D3583C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		2CA6D2394987B7B159269517 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 			children = (
 				13D905DBDEF8F79C569C2996 /* BarChartCard.swift */,
 				21D63CA734994647CAA7014D /* HeartLoader.swift */,
+				CC8EB2D685ED1EB34689D7FE /* Theme.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -391,6 +394,7 @@
 				A47997059D6D806917A223D5 /* ExamService.swift in Sources */,
 				4382F2832AA2F43F73193CE7 /* BarChartCard.swift in Sources */,
 				554F663B81BFC26EA2C4A043 /* HeartLoader.swift in Sources */,
+				85C4223F22492C762B79054C /* Theme.swift in Sources */,
 				27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */,
 				CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */,
 				ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */,
