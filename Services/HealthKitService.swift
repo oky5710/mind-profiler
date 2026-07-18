@@ -12,6 +12,13 @@ enum HealthKitError: Error, LocalizedError {
 enum HealthKitService {
     private static let store = HKHealthStore()
 
+    private static let asleepValues: Set<Int> = [
+        HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+        HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+        HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+        HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+    ]
+
     static func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthKitError.notAvailable
@@ -19,22 +26,77 @@ enum HealthKitService {
         guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
             throw HealthKitError.notAvailable
         }
-        try await store.requestAuthorization(toShare: [], read: [hrvType])
+
+        try await store.requestAuthorization(
+            toShare: [],
+            read: [hrvType, HKObjectType.workoutType(), HKCategoryType(.sleepAnalysis)]
+        )
     }
 
-    static func fetchHRVSamples(daysBack: Int = 180) async throws -> [(date: Date, value: Double)] {
+    static func fetchHRVSamples() async throws -> [(date: Date, value: Double)] {
         guard let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
             throw HealthKitError.notAvailable
         }
+        return try await fetchQuantitySamples(type: hrvType, unit: .secondUnit(with: .milli))
+    }
 
-        let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date())
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+    static func fetchWorkoutRanges() async throws -> [(start: Date, end: Date)] {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
-                sampleType: hrvType,
-                predicate: predicate,
+                sampleType: .workoutType(),
+                predicate: nil,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let ranges = (samples as? [HKWorkout] ?? []).map { workout in
+                    (start: workout.startDate, end: workout.endDate)
+                }
+                continuation.resume(returning: ranges)
+            }
+            store.execute(query)
+        }
+    }
+
+    static func fetchSleepRanges() async throws -> [(start: Date, end: Date)] {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: nil,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let ranges = (samples as? [HKCategorySample] ?? [])
+                    .filter { asleepValues.contains($0.value) }
+                    .map { (start: $0.startDate, end: $0.endDate) }
+                continuation.resume(returning: ranges)
+            }
+            store.execute(query)
+        }
+    }
+
+    private static func fetchQuantitySamples(
+        type: HKQuantityType,
+        unit: HKUnit
+    ) async throws -> [(date: Date, value: Double)] {
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: nil,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sort]
             ) { _, samples, error in
@@ -43,7 +105,7 @@ enum HealthKitService {
                     return
                 }
                 let points = (samples as? [HKQuantitySample] ?? []).map { sample in
-                    (date: sample.startDate, value: sample.quantity.doubleValue(for: .secondUnit(with: .milli)))
+                    (date: sample.startDate, value: sample.quantity.doubleValue(for: unit))
                 }
                 continuation.resume(returning: points)
             }

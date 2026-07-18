@@ -24,7 +24,7 @@ private nonisolated struct EmptyBody: Encodable {}
 actor APIClient {
     static let shared = APIClient()
 
-    private let baseURL = URL(string: "http://localhost:3001")!
+    private let baseURL = URL(string: "https://mind-profiler-backend.onrender.com")!
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
