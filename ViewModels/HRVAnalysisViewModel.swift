@@ -43,6 +43,9 @@ final class HRVAnalysisViewModel {
     private(set) var wearableHRVPointsHourly: [HRVPoint] = []
     private(set) var wearableHRVPointsDaily: [HRVPoint] = []
     private(set) var wearableHRVMonthlyStats: [MonthlyHRVStat] = []
+    // rMSSD는 HealthKit이 직접 주지 않아 원시 박동 시리즈에서 계산함 (HealthKitService.fetchRMSSDSamples 참고).
+    private(set) var wearableRMSSDPointsHourly: [HRVPoint] = []
+    private(set) var wearableRMSSDPointsDaily: [HRVPoint] = []
     // 최근 30일 HRV 중앙값 — 이상치 강조(중앙값의 25% 미만) 및 중앙값 점선 표시에 사용.
     private(set) var recentThirtyDayMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
@@ -92,7 +95,8 @@ final class HRVAnalysisViewModel {
             async let hrv = HealthKitService.fetchHRVSamples()
             async let workouts = HealthKitService.fetchWorkoutRanges()
             async let sleep = HealthKitService.fetchSleepRanges()
-            let (hrvSamples, workoutRanges, sleepSamples) = try await (hrv, workouts, sleep)
+            async let rmssd = HealthKitService.fetchRMSSDSamples()
+            let (hrvSamples, workoutRanges, sleepSamples, rmssdSamples) = try await (hrv, workouts, sleep, rmssd)
 
             let rawSamples = hrvSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableHRVPointsHourly = Self.segmentByGap(rawSamples, gapThreshold: Self.hrvGapThresholdHourly)
@@ -101,6 +105,13 @@ final class HRVAnalysisViewModel {
                 gapThreshold: Self.hrvGapThresholdDaily
             )
             wearableHRVMonthlyStats = Self.monthlyStats(rawSamples)
+
+            let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
+            wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
+            wearableRMSSDPointsDaily = Self.segmentByGap(
+                Self.dailyMedian(rawRMSSDSamples),
+                gapThreshold: Self.hrvGapThresholdDaily
+            )
             let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
             let recentValues = rawSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayMedian = recentValues.isEmpty ? nil : Self.median(recentValues)

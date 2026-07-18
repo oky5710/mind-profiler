@@ -26,12 +26,13 @@ private enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 private enum HRVSeries: String, CaseIterable, Identifiable {
-    case hrv, sdnn, sleep, exercise, median, outlier
+    case hrv, rmssd, sdnn, sleep, exercise, median, outlier
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .hrv: "HRV (애플워치)"
+        case .rmssd: "rMSSD (계산값)"
         case .sdnn: "검사 SDNN"
         case .sleep: "수면"
         case .exercise: "운동"
@@ -43,6 +44,7 @@ private enum HRVSeries: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .hrv: "circle.fill"
+        case .rmssd: "circle.fill"
         case .sdnn: "triangle.fill"
         case .sleep: "square.fill"
         case .exercise: "square.fill"
@@ -65,6 +67,7 @@ struct HRVAnalysisView: View {
     @State private var cachedRange: (min: Double, max: Double) = (0, 100)
 
     private let hrvLineColor = Theme.hrvLine
+    private let rmssdColor = Theme.rmssd
     private let sdnnColor = Theme.sdnn
     private let exerciseColor = Theme.exercise
     private let sleepColor = Theme.sleep
@@ -105,8 +108,17 @@ struct HRVAnalysisView: View {
         }
     }
 
+    private var currentRMSSDPoints: [HRVAnalysisViewModel.HRVPoint] {
+        switch chartMode {
+        case .hourly: viewModel.wearableRMSSDPointsHourly
+        case .daily: viewModel.wearableRMSSDPointsDaily
+        case .monthly: []
+        }
+    }
+
     private var hasAnyLineChartData: Bool {
         !currentHRVPoints.isEmpty
+            || !currentRMSSDPoints.isEmpty
             || !viewModel.examPoints.isEmpty
             || !viewModel.sleepRanges.isEmpty
             || !viewModel.exerciseRanges.isEmpty
@@ -165,6 +177,7 @@ struct HRVAnalysisView: View {
         switch chartMode {
         case .hourly, .daily:
             values += currentHRVPoints.map(\.value)
+            values += currentRMSSDPoints.map(\.value)
         case .monthly:
             values += viewModel.wearableHRVMonthlyStats.flatMap { [$0.min, $0.max] }
         }
@@ -286,6 +299,7 @@ struct HRVAnalysisView: View {
     private func seriesColor(_ series: HRVSeries) -> Color {
         switch series {
         case .hrv: hrvLineColor
+        case .rmssd: rmssdColor
         case .sdnn: sdnnColor
         case .sleep: sleepColor
         case .exercise: exerciseColor
@@ -526,6 +540,7 @@ struct HRVAnalysisView: View {
         // currentHRVPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
         // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
         let showPointMarkers = currentHRVPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
+        let showRMSSDPointMarkers = currentRMSSDPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
         let outlierThreshold = viewModel.recentThirtyDayMedian.map { $0 * 0.25 }
         let showOutliers = !hiddenSeries.contains(.outlier)
@@ -553,6 +568,33 @@ struct HRVAnalysisView: View {
                         PointMark(
                             x: .value("시간", point.date),
                             y: .value("HRV", point.value)
+                        )
+                        .symbolSize(32)
+                        .foregroundStyle(.white)
+                    }
+                }
+            }
+
+            if !hiddenSeries.contains(.rmssd) {
+                ForEach(currentRMSSDPoints) { point in
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("rMSSD", point.value),
+                        series: .value("구간", point.segment)
+                    )
+                    .foregroundStyle(rmssdColor)
+
+                    if showRMSSDPointMarkers {
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value)
+                        )
+                        .symbolSize(80)
+                        .foregroundStyle(rmssdColor)
+
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value)
                         )
                         .symbolSize(32)
                         .foregroundStyle(.white)

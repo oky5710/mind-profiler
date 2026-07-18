@@ -18,6 +18,7 @@
 | `Theme.mood` | `#f59e0b` | 기분 막대그래프 |
 | `Theme.coffee` | `#92400e` | 커피 막대그래프 |
 | `Theme.hrvLine` | `#3b82f6` | HRV(심박변이) 라인 차트 |
+| `Theme.rmssd` | `#8b5cf6` | rMSSD 라인 차트 (HealthKit 원시 박동에서 계산) |
 | `Theme.sdnn` | `#22c55e` | 검사 SDNN 포인트(세모 마커) |
 | `Theme.exercise` | `#16a34a` | 운동 Gantt 레인 |
 | `Theme.sleep` | `#6366f1` | 수면 Gantt 레인 |

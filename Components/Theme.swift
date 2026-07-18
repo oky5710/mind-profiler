@@ -8,4 +8,5 @@ enum Theme {
     static let sdnn = Color(red: 0.1333, green: 0.7725, blue: 0.3686) // #22c55e
     static let exercise = Color(red: 0.0863, green: 0.6392, blue: 0.2902) // #16a34a
     static let sleep = Color(red: 0.3882, green: 0.4000, blue: 0.9451) // #6366f1
+    static let rmssd = Color(red: 0.5451, green: 0.3608, blue: 0.9647) // #8b5cf6
 }

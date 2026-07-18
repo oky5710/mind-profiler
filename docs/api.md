@@ -35,6 +35,7 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 
 ## HealthKit (백엔드 API 아님)
 
-HRV 원시 샘플/수면/운동 범위는 백엔드를 거치지 않고 기기에서 `HealthKitService`가 직접
-`HKHealthStore`로 읽는다 — 서버에 저장하지 않으므로 API 목록에는 없다. 자세한 내용은
-[architecture.md](architecture.md)의 HealthKit 섹션 참고.
+HRV 원시 샘플/수면/운동 범위/원시 박동 시리즈는 백엔드를 거치지 않고 기기에서 `HealthKitService`가
+직접 `HKHealthStore`로 읽는다 — 서버에 저장하지 않으므로 API 목록에는 없다. 읽는 타입:
+HRV(SDNN), 운동, 수면, 그리고 rMSSD 계산용 원시 박동 시리즈(`HKSeriesType.heartbeat()`, iOS 13+).
+자세한 내용은 [architecture.md](architecture.md)의 HealthKit 섹션 참고.
