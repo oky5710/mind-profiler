@@ -24,12 +24,11 @@ struct HRVAnalysisView: View {
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
     @State private var cachedRange: (min: Double, max: Double) = (0, 100)
-    @State private var cachedBand: (low: Double, high: Double) = (-24, -9)
 
-    private let hrvLineColor = Color(red: 0.2314, green: 0.5098, blue: 0.9647) // #3b82f6
-    private let sdnnColor = Color(red: 0.1333, green: 0.7725, blue: 0.3686) // #22c55e
-    private let exerciseColor = Color(red: 0.0863, green: 0.6392, blue: 0.2902) // #16a34a
-    private let sleepColor = Color(red: 0.3882, green: 0.4000, blue: 0.9451) // #6366f1
+    private let hrvLineColor = Theme.hrvLine
+    private let sdnnColor = Theme.sdnn
+    private let exerciseColor = Theme.exercise
+    private let sleepColor = Theme.sleep
 
     private static let hourMinuteFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -60,6 +59,10 @@ struct HRVAnalysisView: View {
             || !viewModel.exerciseRanges.isEmpty
     }
 
+    private var hasGanttData: Bool {
+        !viewModel.sleepRanges.isEmpty || !viewModel.exerciseRanges.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
@@ -78,30 +81,25 @@ struct HRVAnalysisView: View {
         }
         .task {
             await viewModel.loadIfNeeded()
-            recomputeRangeAndBand()
+            recomputeRange()
         }
         .task {
             await viewModel.loadWearableHRVIfNeeded()
-            recomputeRangeAndBand()
+            recomputeRange()
         }
         .onChange(of: chartMode) { _, newMode in
             hrvScrollPosition = Date().addingTimeInterval(-newMode.visibleDomain)
-            recomputeRangeAndBand()
+            recomputeRange()
         }
         .refreshable {
             await viewModel.reload()
-            recomputeRangeAndBand()
+            recomputeRange()
         }
     }
 
-    private func recomputeRangeAndBand() {
+    private func recomputeRange() {
         let values = currentHRVPoints.map(\.value) + viewModel.examPoints.map(\.sdnn)
-        let range = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
-        cachedRange = range
-
-        let bandHeight = max((range.max - range.min) * 0.3, 6) // 간트 레인 높이 2배
-        let low = range.min - bandHeight * 1.6
-        cachedBand = (low, low + bandHeight)
+        cachedRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
     }
 
     private var hrvChart: some View {
@@ -137,6 +135,9 @@ struct HRVAnalysisView: View {
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
                     lineChart
+                    if hasGanttData {
+                        ganttChart
+                    }
                 }
             }
 
@@ -174,6 +175,7 @@ struct HRVAnalysisView: View {
     // MARK: - 직접 구현한 드래그 스크롤
     // Swift Charts 내장 chartScrollableAxes가 이 환경에서 잘 반응하지 않아,
     // 드래그 위치를 직접 계산해서 hrvScrollPosition(보이는 구간의 시작 시각)을 갱신함.
+    // HRV 차트/간트 차트가 같은 hrvScrollPosition을 공유해서 같이 움직임.
     private func dragToScrollOverlay(proxy: ChartProxy, visibleDomain: TimeInterval) -> some View {
         GeometryReader { geo in
             Rectangle()
@@ -190,7 +192,9 @@ struct HRVAnalysisView: View {
                             guard plotWidth > 0, let anchor = dragAnchorPosition else { return }
                             let timePerPixel = visibleDomain / Double(plotWidth)
                             let deltaSeconds = -Double(value.translation.width) * timePerPixel
-                            hrvScrollPosition = anchor.addingTimeInterval(deltaSeconds)
+                            let proposed = anchor.addingTimeInterval(deltaSeconds)
+                            let maxStart = Date().addingTimeInterval(-visibleDomain)
+                            hrvScrollPosition = min(proposed, maxStart)
                         }
                         .onEnded { _ in
                             dragAnchorPosition = nil
@@ -199,61 +203,66 @@ struct HRVAnalysisView: View {
         }
     }
 
-    @ViewBuilder
-    private var lineChart: some View {
-        if chartMode == .hourly {
-            baseLineChart
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .hour, count: 4)) { value in
-                        if let date = value.as(Date.self) {
-                            let isDayStart = Calendar.current.component(.hour, from: date) == 0
-                            AxisValueLabel {
-                                Group {
-                                    if isDayStart {
-                                        Text(Self.monthDayFormatter.string(from: date)).bold()
-                                    } else {
-                                        Text(Self.hourMinuteFormatter.string(from: date))
-                                    }
-                                }
-                                .font(.system(size: 9))
-                            }
-                            AxisGridLine()
-                            AxisTick()
-                        }
-                    }
-                }
-        } else {
-            baseLineChart
+    // 라인 차트와 간트 차트가 같은 hrvScrollPosition/visibleDomain을 쓰더라도, 각자 알아서
+    // "automatic" 눈금을 고르면 서로 다른 위치에 눈금이 생길 수 있어 명시적으로 동일한 눈금 배열을 계산해서 공유함.
+    private var xAxisTickDates: [Date] {
+        let strideSeconds: TimeInterval
+        switch chartMode {
+        case .hourly: strideSeconds = 4 * 60 * 60
+        case .daily: strideSeconds = 3 * 24 * 60 * 60
+        case .monthly: strideSeconds = 7 * 24 * 60 * 60
         }
+
+        let end = hrvScrollPosition.addingTimeInterval(chartMode.visibleDomain)
+        var dates: [Date] = []
+        var current = hrvScrollPosition
+        while current <= end {
+            dates.append(current)
+            current = current.addingTimeInterval(strideSeconds)
+        }
+        return dates
+    }
+
+    private func xAxisLabel(for date: Date) -> some View {
+        Group {
+            switch chartMode {
+            case .hourly:
+                if Calendar.current.component(.hour, from: date) == 0 {
+                    Text(Self.monthDayFormatter.string(from: date)).bold()
+                } else {
+                    Text(Self.hourMinuteFormatter.string(from: date))
+                }
+            case .daily, .monthly:
+                Text(Self.monthDayFormatter.string(from: date))
+            }
+        }
+        .font(.system(size: 9))
+    }
+
+    @AxisContentBuilder
+    private var sharedXAxisMarks: some AxisContent {
+        AxisMarks(values: xAxisTickDates) { value in
+            if let date = value.as(Date.self) {
+                AxisValueLabel { xAxisLabel(for: date) }
+                AxisGridLine()
+                    .foregroundStyle(.gray.opacity(0.25))
+                AxisTick()
+                    .foregroundStyle(.gray.opacity(0.85))
+            }
+        }
+    }
+
+    private var lineChart: some View {
+        baseLineChart.chartXAxis { sharedXAxisMarks }
     }
 
     private var baseLineChart: some View {
         let range = cachedRange
-        let band = cachedBand
         let showPointMarkers = currentHRVPoints.count <= 300
         let visibleDomain = chartMode.visibleDomain
+        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
-            ForEach(viewModel.sleepRanges) { interval in
-                RectangleMark(
-                    xStart: .value("수면 시작", interval.start),
-                    xEnd: .value("수면 끝", interval.end),
-                    yStart: .value("아래", band.low),
-                    yEnd: .value("위", band.high)
-                )
-                .foregroundStyle(sleepColor.opacity(0.6))
-            }
-
-            ForEach(viewModel.exerciseRanges) { interval in
-                RectangleMark(
-                    xStart: .value("운동 시작", interval.start),
-                    xEnd: .value("운동 끝", interval.end),
-                    yStart: .value("아래", band.low),
-                    yEnd: .value("위", band.high)
-                )
-                .foregroundStyle(exerciseColor.opacity(0.6))
-            }
-
             ForEach(currentHRVPoints) { point in
                 LineMark(
                     x: .value("시간", point.date),
@@ -290,15 +299,49 @@ struct HRVAnalysisView: View {
         }
         .frame(height: 200)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
-        .chartYScale(domain: band.low...(range.max + (range.max - range.min) * 0.1 + 1))
+        .chartYScale(domain: 0...yAxisUpperBound)
         .chartYAxis {
-            let mid = (range.min + range.max) / 2
-            AxisMarks(values: [range.min, mid, range.max]) { _ in
+            AxisMarks(values: .stride(by: 50)) { _ in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel()
+                    .font(.system(size: 9))
             }
         }
+        .chartOverlay { proxy in
+            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+        }
+    }
+
+    private var ganttChart: some View {
+        let visibleDomain = chartMode.visibleDomain
+
+        return Chart {
+            ForEach(viewModel.sleepRanges) { interval in
+                RectangleMark(
+                    xStart: .value("수면 시작", interval.start),
+                    xEnd: .value("수면 끝", interval.end),
+                    yStart: .value("아래", 0),
+                    yEnd: .value("위", 1)
+                )
+                .foregroundStyle(sleepColor.opacity(0.7))
+            }
+
+            ForEach(viewModel.exerciseRanges) { interval in
+                RectangleMark(
+                    xStart: .value("운동 시작", interval.start),
+                    xEnd: .value("운동 끝", interval.end),
+                    yStart: .value("아래", 0),
+                    yEnd: .value("위", 1)
+                )
+                .foregroundStyle(exerciseColor.opacity(0.7))
+            }
+        }
+        .frame(height: 36)
+        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...1)
+        .chartYAxis(.hidden)
+        .chartXAxis { sharedXAxisMarks }
         .chartOverlay { proxy in
             dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
         }
@@ -339,6 +382,13 @@ struct HRVAnalysisView: View {
         }
         .frame(height: 200)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYAxis {
+            AxisMarks { _ in
+                AxisValueLabel().font(.system(size: 9))
+                AxisGridLine()
+                AxisTick()
+            }
+        }
         .chartOverlay { proxy in
             dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
         }
