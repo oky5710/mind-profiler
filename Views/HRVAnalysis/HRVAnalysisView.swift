@@ -44,6 +44,13 @@ struct HRVAnalysisView: View {
         return formatter
     }()
 
+    private static let monthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M월"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter
+    }()
+
     private var currentHRVPoints: [HRVAnalysisViewModel.HRVPoint] {
         switch chartMode {
         case .hourly: viewModel.wearableHRVPointsHourly
@@ -66,12 +73,6 @@ struct HRVAnalysisView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
-
                 hrvChart
                 Spacer()
             }
@@ -98,7 +99,13 @@ struct HRVAnalysisView: View {
     }
 
     private func recomputeRange() {
-        let values = currentHRVPoints.map(\.value) + viewModel.examPoints.map(\.sdnn)
+        var values = viewModel.examPoints.map(\.sdnn)
+        switch chartMode {
+        case .hourly, .daily:
+            values += currentHRVPoints.map(\.value)
+        case .monthly:
+            values += viewModel.wearableHRVMonthlyStats.flatMap { [$0.min, $0.max] }
+        }
         cachedRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
     }
 
@@ -114,6 +121,12 @@ struct HRVAnalysisView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 220)
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
             }
 
             if (viewModel.isLoading || viewModel.isLoadingHealthKit) && !hasAnyLineChartData {
@@ -252,6 +265,25 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // 월별 모드는 한 달 단위 막대라서 다른 모드의 촘촘한 시간 눈금 대신, 30일 이상 간격은
+    // "M월"만 표기하는 규칙(ui-style.md 날짜 표기 규칙)에 맞춰 달마다 하나씩 눈금을 찍는다.
+    @AxisContentBuilder
+    private var monthlyAxisMarks: some AxisContent {
+        AxisMarks(values: .stride(by: .month)) { value in
+            if let date = value.as(Date.self) {
+                AxisValueLabel {
+                    Text(Self.monthFormatter.string(from: date))
+                        .bold()
+                        .font(.system(size: 9))
+                }
+                AxisGridLine()
+                    .foregroundStyle(.gray.opacity(0.25))
+                AxisTick()
+                    .foregroundStyle(.gray.opacity(0.85))
+            }
+        }
+    }
+
     private var lineChart: some View {
         baseLineChart.chartXAxis { sharedXAxisMarks }
     }
@@ -302,8 +334,8 @@ struct HRVAnalysisView: View {
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartYAxis {
             AxisMarks(values: .stride(by: 50)) { _ in
-                AxisGridLine()
-                AxisTick()
+                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+                AxisTick().foregroundStyle(.gray.opacity(0.85))
                 AxisValueLabel()
                     .font(.system(size: 9))
             }
@@ -348,7 +380,9 @@ struct HRVAnalysisView: View {
     }
 
     private var monthlyChart: some View {
+        let range = cachedRange
         let visibleDomain = chartMode.visibleDomain
+        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
             ForEach(viewModel.wearableHRVMonthlyStats) { stat in
@@ -382,11 +416,14 @@ struct HRVAnalysisView: View {
         }
         .frame(height: 200)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis { monthlyAxisMarks }
         .chartYAxis {
-            AxisMarks { _ in
-                AxisValueLabel().font(.system(size: 9))
-                AxisGridLine()
-                AxisTick()
+            AxisMarks(values: .stride(by: 50)) { _ in
+                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+                AxisTick().foregroundStyle(.gray.opacity(0.85))
+                AxisValueLabel()
+                    .font(.system(size: 9))
             }
         }
         .chartOverlay { proxy in
