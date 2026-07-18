@@ -340,7 +340,7 @@ struct HRVAnalysisView: View {
                                 path.move(to: CGPoint(x: plotRect.minX + x, y: plotRect.minY))
                                 path.addLine(to: CGPoint(x: plotRect.minX + x, y: plotRect.maxY))
                             }
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
 
                             label(date)
                                 .padding(.horizontal, 3)
