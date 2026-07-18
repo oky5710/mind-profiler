@@ -547,14 +547,14 @@ struct HRVAnalysisView: View {
                             x: .value("시간", point.date),
                             y: .value("HRV", point.value)
                         )
-                        .symbolSize(40)
+                        .symbolSize(80)
                         .foregroundStyle(isOutlier ? .red : hrvLineColor)
 
                         PointMark(
                             x: .value("시간", point.date),
                             y: .value("HRV", point.value)
                         )
-                        .symbolSize(16)
+                        .symbolSize(32)
                         .foregroundStyle(.white)
                     }
                 }
