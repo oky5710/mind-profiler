@@ -41,6 +41,8 @@ final class HRVAnalysisViewModel {
     private(set) var wearableHRVPointsHourly: [HRVPoint] = []
     private(set) var wearableHRVPointsDaily: [HRVPoint] = []
     private(set) var wearableHRVMonthlyStats: [MonthlyHRVStat] = []
+    // 최근 30일 HRV 중앙값 — 이상치 강조(중앙값의 25% 미만) 및 중앙값 점선 표시에 사용.
+    private(set) var recentThirtyDayMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
     private(set) var sleepRanges: [RangeInterval] = []
     private(set) var isHealthKitAuthorized = false
@@ -97,6 +99,9 @@ final class HRVAnalysisViewModel {
                 gapThreshold: Self.hrvGapThresholdDaily
             )
             wearableHRVMonthlyStats = Self.monthlyStats(rawSamples)
+            let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+            let recentValues = rawSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
+            recentThirtyDayMedian = recentValues.isEmpty ? nil : Self.median(recentValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
             sleepRanges = sleepSamples.map { RangeInterval(start: $0.start, end: $0.end) }
             isHealthKitAuthorized = true

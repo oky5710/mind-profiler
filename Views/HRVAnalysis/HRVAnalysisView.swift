@@ -24,11 +24,40 @@ private enum HRVChartMode: String, CaseIterable {
     }
 }
 
+// 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
+private enum HRVSeries: String, CaseIterable, Identifiable {
+    case hrv, sdnn, sleep, exercise, median, outlier
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .hrv: "HRV (애플워치)"
+        case .sdnn: "검사 SDNN"
+        case .sleep: "수면"
+        case .exercise: "운동"
+        case .median: "최근 30일 중앙값"
+        case .outlier: "이상치 (중앙값의 25% 미만)"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .hrv: "circle.fill"
+        case .sdnn: "triangle.fill"
+        case .sleep: "square.fill"
+        case .exercise: "square.fill"
+        case .median: "minus"
+        case .outlier: "circle.fill"
+        }
+    }
+}
+
 struct HRVAnalysisView: View {
     @State private var viewModel = HRVAnalysisViewModel()
     @State private var chartMode: HRVChartMode = .hourly
     @State private var hrvScrollPosition = Date().addingTimeInterval(-HRVChartMode.hourly.visibleDomain)
     @State private var dragAnchorPosition: Date?
+    @State private var hiddenSeries: Set<HRVSeries> = []
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -193,10 +222,15 @@ struct HRVAnalysisView: View {
 
     private var legend: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
-            legendRow(color: hrvLineColor, symbol: "circle.fill", label: "HRV (애플워치)")
-            legendRow(color: sdnnColor, symbol: "triangle.fill", label: "검사 SDNN")
-            legendRow(color: sleepColor, symbol: "square.fill", label: "수면")
-            legendRow(color: exerciseColor, symbol: "square.fill", label: "운동")
+            ForEach(HRVSeries.allCases) { series in
+                Button {
+                    toggleSeries(series)
+                } label: {
+                    legendRow(color: seriesColor(series), symbol: series.symbol, label: series.label)
+                        .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.top, 4)
     }
@@ -209,6 +243,25 @@ struct HRVAnalysisView: View {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private func toggleSeries(_ series: HRVSeries) {
+        if hiddenSeries.contains(series) {
+            hiddenSeries.remove(series)
+        } else {
+            hiddenSeries.insert(series)
+        }
+    }
+
+    private func seriesColor(_ series: HRVSeries) -> Color {
+        switch series {
+        case .hrv: hrvLineColor
+        case .sdnn: sdnnColor
+        case .sleep: sleepColor
+        case .exercise: exerciseColor
+        case .median: .gray
+        case .outlier: .red
         }
     }
 
@@ -382,40 +435,54 @@ struct HRVAnalysisView: View {
         let showPointMarkers = currentHRVPoints.count <= 300
         let visibleDomain = chartMode.visibleDomain
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+        let outlierThreshold = viewModel.recentThirtyDayMedian.map { $0 * 0.25 }
+        let showOutliers = !hiddenSeries.contains(.outlier)
 
         return Chart {
-            ForEach(currentHRVPoints) { point in
-                LineMark(
-                    x: .value("시간", point.date),
-                    y: .value("HRV", point.value),
-                    series: .value("구간", point.segment)
-                )
-                .foregroundStyle(hrvLineColor)
+            if !hiddenSeries.contains(.hrv) {
+                ForEach(currentHRVPoints) { point in
+                    let isOutlier = showOutliers && (outlierThreshold.map { point.value < $0 } ?? false)
 
-                if showPointMarkers {
-                    PointMark(
+                    LineMark(
                         x: .value("시간", point.date),
-                        y: .value("HRV", point.value)
+                        y: .value("HRV", point.value),
+                        series: .value("구간", point.segment)
                     )
-                    .symbolSize(40)
                     .foregroundStyle(hrvLineColor)
 
-                    PointMark(
-                        x: .value("시간", point.date),
-                        y: .value("HRV", point.value)
-                    )
-                    .symbolSize(16)
-                    .foregroundStyle(.white)
+                    if showPointMarkers {
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("HRV", point.value)
+                        )
+                        .symbolSize(40)
+                        .foregroundStyle(isOutlier ? .red : hrvLineColor)
+
+                        PointMark(
+                            x: .value("시간", point.date),
+                            y: .value("HRV", point.value)
+                        )
+                        .symbolSize(16)
+                        .foregroundStyle(.white)
+                    }
                 }
             }
 
-            ForEach(viewModel.examPoints) { point in
-                PointMark(
-                    x: .value("검사일", point.date),
-                    y: .value("SDNN", point.sdnn)
-                )
-                .symbol(.triangle)
-                .foregroundStyle(sdnnColor)
+            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayMedian {
+                RuleMark(y: .value("최근 30일 중앙값", median))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+
+            if !hiddenSeries.contains(.sdnn) {
+                ForEach(viewModel.examPoints) { point in
+                    PointMark(
+                        x: .value("검사일", point.date),
+                        y: .value("SDNN", point.sdnn)
+                    )
+                    .symbol(.triangle)
+                    .foregroundStyle(sdnnColor)
+                }
             }
         }
         .frame(height: lineChartHeight)
@@ -434,28 +501,49 @@ struct HRVAnalysisView: View {
         }
     }
 
+    private static let shortSleepThreshold: TimeInterval = 5 * 60 * 60
+
+    private func formattedDuration(_ interval: TimeInterval) -> String {
+        let totalMinutes = Int(interval) / 60
+        return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
+    }
+
     private var ganttChart: some View {
         let visibleDomain = chartMode.visibleDomain
 
         return Chart {
-            ForEach(viewModel.sleepRanges) { interval in
-                RectangleMark(
-                    xStart: .value("수면 시작", interval.start),
-                    xEnd: .value("수면 끝", interval.end),
-                    yStart: .value("아래", 0),
-                    yEnd: .value("위", 1)
-                )
-                .foregroundStyle(sleepColor.opacity(0.7))
+            if !hiddenSeries.contains(.sleep) {
+                ForEach(viewModel.sleepRanges) { interval in
+                    let duration = interval.end.timeIntervalSince(interval.start)
+                    let isShort = duration < Self.shortSleepThreshold
+
+                    RectangleMark(
+                        xStart: .value("수면 시작", interval.start),
+                        xEnd: .value("수면 끝", interval.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
+                    .annotation(position: .overlay) {
+                        if isShort {
+                            Text(formattedDuration(duration))
+                                .font(.system(size: 8))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
             }
 
-            ForEach(viewModel.exerciseRanges) { interval in
-                RectangleMark(
-                    xStart: .value("운동 시작", interval.start),
-                    xEnd: .value("운동 끝", interval.end),
-                    yStart: .value("아래", 0),
-                    yEnd: .value("위", 1)
-                )
-                .foregroundStyle(exerciseColor.opacity(0.7))
+            if !hiddenSeries.contains(.exercise) {
+                ForEach(viewModel.exerciseRanges) { interval in
+                    RectangleMark(
+                        xStart: .value("운동 시작", interval.start),
+                        xEnd: .value("운동 끝", interval.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle(exerciseColor.opacity(0.7))
+                }
             }
         }
         .frame(height: ganttChartHeight)
@@ -480,33 +568,37 @@ struct HRVAnalysisView: View {
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
-            ForEach(viewModel.wearableHRVMonthlyStats) { stat in
-                RectangleMark(
-                    x: .value("월", stat.monthStart, unit: .month),
-                    yStart: .value("최소", stat.min),
-                    yEnd: .value("최대", stat.max),
-                    width: .ratio(0.4)
-                )
-                .foregroundStyle(hrvLineColor.opacity(0.35))
-                .cornerRadius(6)
+            if !hiddenSeries.contains(.hrv) {
+                ForEach(viewModel.wearableHRVMonthlyStats) { stat in
+                    RectangleMark(
+                        x: .value("월", stat.monthStart, unit: .month),
+                        yStart: .value("최소", stat.min),
+                        yEnd: .value("최대", stat.max),
+                        width: .ratio(0.4)
+                    )
+                    .foregroundStyle(hrvLineColor.opacity(0.35))
+                    .cornerRadius(6)
 
-                let halfThickness = max((stat.max - stat.min) * 0.015, 0.5)
-                RectangleMark(
-                    x: .value("월", stat.monthStart, unit: .month),
-                    yStart: .value("중앙값 아래", stat.median - halfThickness),
-                    yEnd: .value("중앙값 위", stat.median + halfThickness),
-                    width: .ratio(0.4)
-                )
-                .foregroundStyle(hrvLineColor)
+                    let halfThickness = max((stat.max - stat.min) * 0.015, 0.5)
+                    RectangleMark(
+                        x: .value("월", stat.monthStart, unit: .month),
+                        yStart: .value("중앙값 아래", stat.median - halfThickness),
+                        yEnd: .value("중앙값 위", stat.median + halfThickness),
+                        width: .ratio(0.4)
+                    )
+                    .foregroundStyle(hrvLineColor)
+                }
             }
 
-            ForEach(viewModel.examPoints) { point in
-                PointMark(
-                    x: .value("검사일", point.date),
-                    y: .value("SDNN", point.sdnn)
-                )
-                .symbol(.triangle)
-                .foregroundStyle(sdnnColor)
+            if !hiddenSeries.contains(.sdnn) {
+                ForEach(viewModel.examPoints) { point in
+                    PointMark(
+                        x: .value("검사일", point.date),
+                        y: .value("SDNN", point.sdnn)
+                    )
+                    .symbol(.triangle)
+                    .foregroundStyle(sdnnColor)
+                }
             }
         }
         .frame(height: lineChartHeight)
