@@ -67,18 +67,29 @@ enum HealthKitService {
         }
     }
 
-    // 시리즈 중간에 워치를 벗는 등 끊긴 구간(precededByGap)의 앞뒤 박동은 연속된 간격이 아니므로 계산에서 뺀다.
+    // rMSSD는 "연속된 박동 간격(RR interval)들의 차이"를 제곱해서 평균 낸 값의 제곱근이다 —
+    // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다. 시리즈 중간에 워치를
+    // 벗는 등 끊긴 구간(precededByGap)에서는 그 앞뒤 RR 간격을 이어붙이면 안 되므로 리셋한다.
     private static func rMSSD(for series: HKHeartbeatSeriesSample) async throws -> Double? {
         let descriptor = HKHeartbeatSeriesQueryDescriptor(series)
-        var previousTime: TimeInterval?
+        var previousBeatTime: TimeInterval?
+        var previousInterval: Double?
         var squaredDiffs: [Double] = []
 
         for try await beat in descriptor.results(for: store) {
-            defer { previousTime = beat.timeIntervalSinceStart }
-            if let previousTime, !beat.precededByGap {
-                let diffMs = (beat.timeIntervalSinceStart - previousTime) * 1000
-                squaredDiffs.append(diffMs * diffMs)
+            defer { previousBeatTime = beat.timeIntervalSinceStart }
+
+            guard let previousBeatTime, !beat.precededByGap else {
+                previousInterval = nil
+                continue
             }
+
+            let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
+            if let previousInterval {
+                let diff = interval - previousInterval
+                squaredDiffs.append(diff * diff)
+            }
+            previousInterval = interval
         }
 
         guard !squaredDiffs.isEmpty else { return nil }
