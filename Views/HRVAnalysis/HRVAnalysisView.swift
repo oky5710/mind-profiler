@@ -113,10 +113,6 @@ struct HRVAnalysisView: View {
             || !viewModel.exerciseRanges.isEmpty
     }
 
-    var hasGanttData: Bool {
-        !viewModel.sleepRanges.isEmpty || !viewModel.exerciseRanges.isEmpty
-    }
-
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
     var lineChartHeight: CGFloat {
         availableHeight * 0.4

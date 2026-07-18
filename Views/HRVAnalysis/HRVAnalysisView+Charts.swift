@@ -6,25 +6,23 @@ extension HRVAnalysisView {
     // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
     // 그 결과 두 차트 사이 간격(레이아웃상 유지하고 싶은 여백) 부분에서 그리드 선이 끊겨 보이므로,
     // 그 간격만큼을 이어주는 짧은 선을 배경에 덧그려서 세로 그리드가 끊기지 않고 이어진 것처럼 보이게 한다.
+    // Gantt 차트는 데이터 유무와 상관없이 항상 그린다 (x축은 라인 차트와 동일) — 그래야 수면/운동
+    // 데이터가 로딩 중간에 들어와도 차트 높이가 갑자기 늘어나면서 아래 범례가 밀려 내려가지 않는다.
     var lineAndGanttChartsStack: some View {
         VStack(spacing: 8) {
             baseLineChart
-            if hasGanttData {
-                ganttChart
-            }
+            ganttChart
         }
         .background(alignment: .topLeading) {
-            if hasGanttData {
-                GeometryReader { geo in
-                    ForEach(xAxisTickDates, id: \.self) { date in
-                        let fraction = date.timeIntervalSince(hrvScrollPosition) / chartMode.visibleDomain
-                        let x = geo.size.width * fraction
-                        Path { path in
-                            path.move(to: CGPoint(x: x, y: lineChartHeight))
-                            path.addLine(to: CGPoint(x: x, y: lineChartHeight + 8))
-                        }
-                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+            GeometryReader { geo in
+                ForEach(xAxisTickDates, id: \.self) { date in
+                    let fraction = date.timeIntervalSince(hrvScrollPosition) / chartMode.visibleDomain
+                    let x = geo.size.width * fraction
+                    Path { path in
+                        path.move(to: CGPoint(x: x, y: lineChartHeight))
+                        path.addLine(to: CGPoint(x: x, y: lineChartHeight + 8))
                     }
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
                 }
             }
         }
