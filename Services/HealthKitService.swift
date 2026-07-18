@@ -67,6 +67,10 @@ enum HealthKitService {
         }
     }
 
+    // 30~200bpm(300~2000ms) 밖의 간격은 센서 오검출(놓친 박동/중복 검출)로 보고 버린다.
+    // rMSSD는 간격 차이를 제곱해서 평균 내기 때문에, 이런 이상치 하나만 껴 있어도 값이 크게 튄다.
+    private static let plausibleIntervalRangeMs: ClosedRange<Double> = 300...2000
+
     // rMSSD는 "연속된 박동 간격(RR interval)들의 차이"를 제곱해서 평균 낸 값의 제곱근이다 —
     // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다. 시리즈 중간에 워치를
     // 벗는 등 끊긴 구간(precededByGap)에서는 그 앞뒤 RR 간격을 이어붙이면 안 되므로 리셋한다.
@@ -85,6 +89,11 @@ enum HealthKitService {
             }
 
             let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
+            guard plausibleIntervalRangeMs.contains(interval) else {
+                previousInterval = nil
+                continue
+            }
+
             if let previousInterval {
                 let diff = interval - previousInterval
                 squaredDiffs.append(diff * diff)
