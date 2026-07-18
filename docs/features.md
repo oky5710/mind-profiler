@@ -9,10 +9,13 @@
 - Google Sign-In(`GoogleSignIn` SDK) → 백엔드 `POST /auth/google`로 idToken 교환 → JWT를 Keychain에 저장.
 
 ### 진입 화면 / 홈 (`Views/Home`)
-- Pixabay 랜덤 고양이 사진 + 랜덤 위로 문구. 홈 탭에 들어올 때마다(`onAppear`) 새로 랜덤 사진을 가져온다
-  (앱 세션당 한 번만 가져오지 않음).
+- Pixabay 랜덤 고양이 사진 위에 "Track your mind. Find the patterns." 태그라인 오버레이(볼드, 흰색
+  90% 불투명도, 그림자). 홈 탭에 들어올 때마다(`onAppear`) 새로 랜덤 사진을 가져온다(앱 세션당
+  한 번만 가져오지 않음).
 - Pixabay 요청이 실패하면(네트워크 오류 등) 빈 화면/스켈레톤 대신 `Assets.xcassets`에 번들로 넣어둔
   고정 사진(`FallbackCatPhoto`)을 보여준다.
+- PRD의 "랜덤 위로 문구"(`ComfortMessages`, mind-record의 `message.ts` 120개 이식)는 태그라인으로
+  대체되어 **의도적으로 제거함** — 관련 모델 파일도 삭제.
 - 그 외 PRD의 기분/커피 간편 입력, 복용약 퀵버튼은 **아직 홈 화면엔 없음** (기분/커피는 통계에서만 조회 가능,
   입력 폼은 캘린더 쪽에 있음).
 

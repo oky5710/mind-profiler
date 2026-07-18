@@ -54,7 +54,6 @@
 		DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */; };
 		DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */; };
 		DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441617D9A1D63082D4432F0C /* DateKey.swift */; };
-		DF61CC24C4B6B8C848CF7531 /* ComfortMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
 /* End PBXBuildFile section */
@@ -105,7 +104,6 @@
 		0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Axes.swift"; sourceTree = "<group>"; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
-		BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortMessages.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -302,7 +300,6 @@
 			children = (
 				4CE7ECB87862084848E2504A /* AuthModels.swift */,
 				59B5AB45E929438E760BA513 /* CatPhoto.swift */,
-				BBAEFC12704060AC3877CF26 /* ComfortMessages.swift */,
 				E48F6DDAC8977311FEEA3765 /* MoodModels.swift */,
 				2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */,
 				156BA80323127255242AD216 /* EntryType.swift */,
@@ -409,7 +406,6 @@
 				75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */,
 				B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */,
 				BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */,
-				DF61CC24C4B6B8C848CF7531 /* ComfortMessages.swift in Sources */,
 				756383A51162B80D589630D8 /* PixabayService.swift in Sources */,
 				B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */,
 				ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */,

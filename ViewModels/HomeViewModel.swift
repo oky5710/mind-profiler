@@ -6,7 +6,6 @@ final class HomeViewModel {
     private(set) var photoURL: URL?
     private(set) var isLoading = true
     private(set) var errorMessage: String?
-    let message = ComfortMessages.all.randomElement()!
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?

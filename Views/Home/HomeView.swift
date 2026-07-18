@@ -28,10 +28,10 @@ struct HomeView: View {
                 }
 
                 Text("Track your mind.\nFind the patterns.")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
-                    .shadow(radius: 4)
+                    .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .allowsHitTesting(false)
 
@@ -68,12 +68,6 @@ struct HomeView: View {
                             .shadow(radius: 4)
                             .frame(maxWidth: 280)
                     }
-                    Text(viewModel.message)
-                        .font(.headline.bold())
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .shadow(radius: 4)
-                        .frame(maxWidth: 280)
                 }
                 .padding(.bottom, 16)
             }
