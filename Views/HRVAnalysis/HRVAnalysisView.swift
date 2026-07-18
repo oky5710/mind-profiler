@@ -1,5 +1,6 @@
 import Charts
 import SwiftUI
+import UIKit
 
 private enum HRVChartMode: String, CaseIterable {
     case hourly = "시간별"
@@ -70,6 +71,15 @@ struct HRVAnalysisView: View {
         !viewModel.sleepRanges.isEmpty || !viewModel.exerciseRanges.isEmpty
     }
 
+    // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반.
+    private var lineChartHeight: CGFloat {
+        UIScreen.main.bounds.height * 0.4
+    }
+
+    private var ganttChartHeight: CGFloat {
+        lineChartHeight / 2
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
@@ -130,7 +140,7 @@ struct HRVAnalysisView: View {
             }
 
             if (viewModel.isLoading || viewModel.isLoadingHealthKit) && !hasAnyLineChartData {
-                HeartLoader(height: 200)
+                HeartLoader(height: lineChartHeight)
             } else if chartMode == .monthly {
                 if viewModel.wearableHRVMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
                     Text("표시할 HRV 데이터가 없어요")
@@ -367,7 +377,7 @@ struct HRVAnalysisView: View {
                 .foregroundStyle(sdnnColor)
             }
         }
-        .frame(height: 200)
+        .frame(height: lineChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartYAxis(.hidden)
@@ -400,7 +410,7 @@ struct HRVAnalysisView: View {
                 .foregroundStyle(exerciseColor.opacity(0.7))
             }
         }
-        .frame(height: 36)
+        .frame(height: ganttChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...1)
         .chartYAxis(.hidden)
@@ -445,7 +455,7 @@ struct HRVAnalysisView: View {
                 .foregroundStyle(sdnnColor)
             }
         }
-        .frame(height: 200)
+        .frame(height: lineChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis { monthlyAxisMarks }
