@@ -17,6 +17,11 @@
 		2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F284358300A4D1100CE1C47 /* Assets.xcassets */; };
 		2F284360300A596100CE1C47 /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2F28435F300A596100CE1C47 /* AGENTS.md */; };
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
+		6D57DF092916206B7C46BDEF /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 228203F978C4084F09581D10 /* architecture.md */; };
+		202460BD9C82EE2421D087D9 /* design-system.md in Resources */ = {isa = PBXBuildFile; fileRef = BD8714E5A70D3B643DB60482 /* design-system.md */; };
+		4154723F090A2390BC67FF3E /* ui-style.md in Resources */ = {isa = PBXBuildFile; fileRef = FB3F76D2A4694A2F654A1B62 /* ui-style.md */; };
+		9CCDF3F0ADBA1417FEDAE8BA /* features.md in Resources */ = {isa = PBXBuildFile; fileRef = 1AD2015ED40BC9A2F87BFF8D /* features.md */; };
+		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
 		4382F2832AA2F43F73193CE7 /* BarChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D905DBDEF8F79C569C2996 /* BarChartCard.swift */; };
 		554F663B81BFC26EA2C4A043 /* HeartLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D63CA734994647CAA7014D /* HeartLoader.swift */; };
 		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
@@ -66,6 +71,11 @@
 		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		8AF23AC877DAF03E6DD07A49 /* PRD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRD.md; sourceTree = "<group>"; };
+		228203F978C4084F09581D10 /* architecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = architecture.md; sourceTree = "<group>"; };
+		BD8714E5A70D3B643DB60482 /* design-system.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "design-system.md"; sourceTree = "<group>"; };
+		FB3F76D2A4694A2F654A1B62 /* ui-style.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "ui-style.md"; sourceTree = "<group>"; };
+		1AD2015ED40BC9A2F87BFF8D /* features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = features.md; sourceTree = "<group>"; };
+		A057223BD13A5592F8E7E5E0 /* api.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = api.md; sourceTree = "<group>"; };
 		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
 		32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixabayService.swift; sourceTree = "<group>"; };
 		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
@@ -173,9 +183,22 @@
 				8CE86D4F5CD682548D6E23EB /* Services */,
 				C5860D139D3B0008D12CBAE9 /* Components */,
 				EC88DF084C96613A6AE20F51 /* Resources */,
+				D4ED9D4CCB4E586CBBCDC940 /* docs */,
 				2F284358300A4D1100CE1C47 /* Assets.xcassets */,
 				2F284361300AF2A000CE1C47 /* Recovered References */,
 			);
+			sourceTree = "<group>";
+		};
+		D4ED9D4CCB4E586CBBCDC940 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				228203F978C4084F09581D10 /* architecture.md */,
+				BD8714E5A70D3B643DB60482 /* design-system.md */,
+				FB3F76D2A4694A2F654A1B62 /* ui-style.md */,
+				1AD2015ED40BC9A2F87BFF8D /* features.md */,
+				A057223BD13A5592F8E7E5E0 /* api.md */,
+			);
+			path = docs;
 			sourceTree = "<group>";
 		};
 		2F284352300A4D1000CE1C47 /* Products */ = {
@@ -351,6 +374,11 @@
 			files = (
 				2F284360300A596100CE1C47 /* AGENTS.md in Resources */,
 				0236355296FE72A9C1A35CB5 /* PRD.md in Resources */,
+				6D57DF092916206B7C46BDEF /* architecture.md in Resources */,
+				202460BD9C82EE2421D087D9 /* design-system.md in Resources */,
+				4154723F090A2390BC67FF3E /* ui-style.md in Resources */,
+				9CCDF3F0ADBA1417FEDAE8BA /* features.md in Resources */,
+				C0AD659C6217B774BCD74C30 /* api.md in Resources */,
 				2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
