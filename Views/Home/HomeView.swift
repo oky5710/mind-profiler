@@ -78,8 +78,8 @@ struct HomeView: View {
                 .padding(.bottom, 16)
             }
         }
-        .task {
-            await viewModel.loadPhotoIfNeeded()
+        .onAppear {
+            Task { await viewModel.loadPhoto() }
         }
         .task {
             await viewModel.loadTodayMoodIfNeeded()
@@ -133,13 +133,24 @@ struct HomeView: View {
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFill()
+                case .failure:
+                    fallbackPhoto
                 default:
                     skeleton
                 }
             }
-        } else {
+        } else if viewModel.isLoading {
             skeleton
+        } else {
+            // Pixabay fetch가 실패했을 때(네트워크 오류 등) 빈 화면 대신 보여줄 번들 내장 사진.
+            fallbackPhoto
         }
+    }
+
+    private var fallbackPhoto: some View {
+        Image("FallbackCatPhoto")
+            .resizable()
+            .scaledToFill()
     }
 
     private var skeleton: some View {

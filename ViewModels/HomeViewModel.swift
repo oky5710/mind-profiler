@@ -4,7 +4,7 @@ import Foundation
 @Observable
 final class HomeViewModel {
     private(set) var photoURL: URL?
-    private(set) var isLoading = false
+    private(set) var isLoading = true
     private(set) var errorMessage: String?
     let message = ComfortMessages.all.randomElement()!
 
@@ -15,15 +15,12 @@ final class HomeViewModel {
     private(set) var todayCoffeeCount = 0
     private(set) var coffeeErrorMessage: String?
 
-    private var hasLoaded = false
     private var hasCheckedCoffee = false
 
-    func loadPhotoIfNeeded() async {
-        guard !hasLoaded else { return }
-        hasLoaded = true
-
+    func loadPhoto() async {
         isLoading = true
         errorMessage = nil
+        photoURL = nil
 
         var attempts = 0
         var lastError: Error?
