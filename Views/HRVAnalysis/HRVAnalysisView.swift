@@ -191,13 +191,17 @@ struct HRVAnalysisView: View {
     }
 
     private func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
-        Text("\(Self.tooltipDateFormatter.string(from: point.date)) · \(String(format: "%.0f", point.value))ms")
-            .font(.caption2.bold())
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.black.opacity(0.75), in: Capsule())
-            .padding(.top, 4)
+        VStack(spacing: 2) {
+            Text(Self.tooltipDateFormatter.string(from: point.date))
+                .font(.caption2)
+            Text("\(String(format: "%.0f", point.value))ms")
+                .font(.callout.bold())
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.top, 4)
     }
 
     private var hrvChartBody: some View {
@@ -345,39 +349,55 @@ struct HRVAnalysisView: View {
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
     ) -> some View {
         GeometryReader { geo in
-            Rectangle()
-                .fill(.clear)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if dragAnchorPosition == nil {
-                                dragAnchorPosition = hrvScrollPosition
-                            }
-                            guard let plotFrame = proxy.plotFrame else { return }
-                            let plotRect = geo[plotFrame]
-                            let plotWidth = plotRect.width
-                            guard plotWidth > 0, let anchor = dragAnchorPosition else { return }
-                            let timePerPixel = visibleDomain / Double(plotWidth)
-                            let deltaSeconds = -Double(value.translation.width) * timePerPixel
-                            let proposed = anchor.addingTimeInterval(deltaSeconds)
-                            let maxStart = Date().addingTimeInterval(-visibleDomain)
-                            hrvScrollPosition = min(proposed, maxStart)
+            ZStack(alignment: .topLeading) {
+                if !tooltipPoints.isEmpty,
+                   let point = tooltipPoint,
+                   let plotFrame = proxy.plotFrame,
+                   let x = proxy.position(forX: point.date) {
+                    let plotRect = geo[plotFrame]
+                    Path { path in
+                        path.move(to: CGPoint(x: plotRect.minX + x, y: plotRect.minY))
+                        path.addLine(to: CGPoint(x: plotRect.minX + x, y: plotRect.maxY))
+                    }
+                    .stroke(Color.primary.opacity(0.5), lineWidth: 1)
+                }
 
-                            if !tooltipPoints.isEmpty {
-                                let localX = value.location.x - plotRect.minX
-                                if let touchedDate: Date = proxy.value(atX: localX) {
-                                    tooltipPoint = tooltipPoints.min {
-                                        abs($0.date.timeIntervalSince(touchedDate)) < abs($1.date.timeIntervalSince(touchedDate))
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        // minimumDistance: 0 — 손가락을 움직이지 않는 단순 탭에서도 onChanged가 즉시 발생해야
+                        // 툴팁/세로선이 뜬다. 스크롤 자체는 변화량(translation)이 거의 0이라 실질적 이동은 없음.
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if dragAnchorPosition == nil {
+                                    dragAnchorPosition = hrvScrollPosition
+                                }
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let plotRect = geo[plotFrame]
+                                let plotWidth = plotRect.width
+                                guard plotWidth > 0, let anchor = dragAnchorPosition else { return }
+                                let timePerPixel = visibleDomain / Double(plotWidth)
+                                let deltaSeconds = -Double(value.translation.width) * timePerPixel
+                                let proposed = anchor.addingTimeInterval(deltaSeconds)
+                                let maxStart = Date().addingTimeInterval(-visibleDomain)
+                                hrvScrollPosition = min(proposed, maxStart)
+
+                                if !tooltipPoints.isEmpty {
+                                    let localX = value.location.x - plotRect.minX
+                                    if let touchedDate: Date = proxy.value(atX: localX) {
+                                        tooltipPoint = tooltipPoints.min {
+                                            abs($0.date.timeIntervalSince(touchedDate)) < abs($1.date.timeIntervalSince(touchedDate))
+                                        }
                                     }
                                 }
                             }
-                        }
-                        .onEnded { _ in
-                            dragAnchorPosition = nil
-                            tooltipPoint = nil
-                        }
-                )
+                            .onEnded { _ in
+                                dragAnchorPosition = nil
+                                tooltipPoint = nil
+                            }
+                    )
+            }
         }
     }
 
