@@ -58,6 +58,7 @@ struct HRVAnalysisView: View {
     @State private var hrvScrollPosition = Date().addingTimeInterval(-HRVChartMode.hourly.visibleDomain)
     @State private var dragAnchorPosition: Date?
     @State private var hiddenSeries: Set<HRVSeries> = []
+    @State private var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -86,6 +87,13 @@ struct HRVAnalysisView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "M월"
         formatter.locale = Locale(identifier: "ko_KR")
+        return formatter
+    }()
+
+    private static let tooltipDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()
 
@@ -174,7 +182,22 @@ struct HRVAnalysisView: View {
             .padding(.bottom, 20)
 
             hrvChartBody
+                .overlay(alignment: .top) {
+                    if let point = tooltipPoint {
+                        tooltipLabel(for: point)
+                    }
+                }
         }
+    }
+
+    private func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
+        Text("\(Self.tooltipDateFormatter.string(from: point.date)) · \(String(format: "%.0f", point.value))ms")
+            .font(.caption2.bold())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.75), in: Capsule())
+            .padding(.top, 4)
     }
 
     private var hrvChartBody: some View {
@@ -301,12 +324,13 @@ struct HRVAnalysisView: View {
         visibleDomain: TimeInterval,
         yAxisTickValues: [Double],
         xAxisTickDates: [Date],
-        xAxisLabel: @escaping (Date) -> AnyView
+        xAxisLabel: @escaping (Date) -> AnyView,
+        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
-            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain)
+            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain, tooltipPoints: tooltipPoints)
         }
     }
 
@@ -314,7 +338,12 @@ struct HRVAnalysisView: View {
     // Swift Charts 내장 chartScrollableAxes가 이 환경에서 잘 반응하지 않아,
     // 드래그 위치를 직접 계산해서 hrvScrollPosition(보이는 구간의 시작 시각)을 갱신함.
     // HRV 차트/간트 차트가 같은 hrvScrollPosition을 공유해서 같이 움직임.
-    private func dragToScrollOverlay(proxy: ChartProxy, visibleDomain: TimeInterval) -> some View {
+    // tooltipPoints가 있으면 같은 드래그로 가장 가까운 데이터 포인트의 값도 함께 보여준다.
+    private func dragToScrollOverlay(
+        proxy: ChartProxy,
+        visibleDomain: TimeInterval,
+        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
+    ) -> some View {
         GeometryReader { geo in
             Rectangle()
                 .fill(.clear)
@@ -326,16 +355,27 @@ struct HRVAnalysisView: View {
                                 dragAnchorPosition = hrvScrollPosition
                             }
                             guard let plotFrame = proxy.plotFrame else { return }
-                            let plotWidth = geo[plotFrame].width
+                            let plotRect = geo[plotFrame]
+                            let plotWidth = plotRect.width
                             guard plotWidth > 0, let anchor = dragAnchorPosition else { return }
                             let timePerPixel = visibleDomain / Double(plotWidth)
                             let deltaSeconds = -Double(value.translation.width) * timePerPixel
                             let proposed = anchor.addingTimeInterval(deltaSeconds)
                             let maxStart = Date().addingTimeInterval(-visibleDomain)
                             hrvScrollPosition = min(proposed, maxStart)
+
+                            if !tooltipPoints.isEmpty {
+                                let localX = value.location.x - plotRect.minX
+                                if let touchedDate: Date = proxy.value(atX: localX) {
+                                    tooltipPoint = tooltipPoints.min {
+                                        abs($0.date.timeIntervalSince(touchedDate)) < abs($1.date.timeIntervalSince(touchedDate))
+                                    }
+                                }
+                            }
                         }
                         .onEnded { _ in
                             dragAnchorPosition = nil
+                            tooltipPoint = nil
                         }
                 )
         }
@@ -403,6 +443,16 @@ struct HRVAnalysisView: View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
                 let plotRect = geo[plotFrame]
+
+                // 라벨 간격이 10px 이하로 겹칠 것 같으면 뒤쪽 라벨은 생략한다 (그리드 선은 계속 그림).
+                var lastLabelX: CGFloat?
+                let visibleLabelDates: Set<Date> = Set(tickDates.compactMap { date -> Date? in
+                    guard let x = proxy.position(forX: date) else { return nil }
+                    if let last = lastLabelX, x - last < 10 { return nil }
+                    lastLabelX = x
+                    return date
+                })
+
                 ZStack(alignment: .topLeading) {
                     // 차트 하단을 가로지르는 x축 기준선 (틱마다 그리는 세로 그리드와는 별개).
                     Path { path in
@@ -419,10 +469,12 @@ struct HRVAnalysisView: View {
                             }
                             .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
-                            label(date)
-                                .padding(.horizontal, 3)
-                                .background(Color(.systemBackground).opacity(0.85))
-                                .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
+                            if visibleLabelDates.contains(date) {
+                                label(date)
+                                    .padding(.horizontal, 3)
+                                    .background(Color(.systemBackground).opacity(0.85))
+                                    .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
+                            }
                         }
                     }
                 }
@@ -496,7 +548,8 @@ struct HRVAnalysisView: View {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
                 xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) }
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                tooltipPoints: currentHRVPoints
             )
         }
     }
