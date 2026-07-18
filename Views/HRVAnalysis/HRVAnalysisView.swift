@@ -14,6 +14,14 @@ private enum HRVChartMode: String, CaseIterable {
         case .monthly: 4 * 30 * 24 * 60 * 60
         }
     }
+
+    var iconName: String {
+        switch self {
+        case .hourly: "clock"
+        case .daily: "calendar"
+        case .monthly: "calendar.circle"
+        }
+    }
 }
 
 struct HRVAnalysisView: View {
@@ -126,7 +134,9 @@ struct HRVAnalysisView: View {
                 Spacer()
                 Picker("보기 단위", selection: $chartMode) {
                     ForEach(HRVChartMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Image(systemName: mode.iconName)
+                            .accessibilityLabel(mode.rawValue)
+                            .tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
