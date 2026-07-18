@@ -40,14 +40,11 @@ final class HRVAnalysisViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    private(set) var wearableHRVPointsHourly: [HRVPoint] = []
-    private(set) var wearableHRVPointsDaily: [HRVPoint] = []
+    // 시간별/일별 HRV 라인은 화면에서 뺐고(rMSSD로 대체), 월별 막대 집계에만 원시 HRV 샘플을 계속 쓴다.
     private(set) var wearableHRVMonthlyStats: [MonthlyHRVStat] = []
     // rMSSD는 HealthKit이 직접 주지 않아 원시 박동 시리즈에서 계산함 (HealthKitService.fetchRMSSDSamples 참고).
     private(set) var wearableRMSSDPointsHourly: [HRVPoint] = []
     private(set) var wearableRMSSDPointsDaily: [HRVPoint] = []
-    // 최근 30일 HRV 중앙값 — 이상치 강조(중앙값의 25% 미만) 및 중앙값 점선 표시에 사용.
-    private(set) var recentThirtyDayMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
     private(set) var sleepRanges: [RangeInterval] = []
     private(set) var isHealthKitAuthorized = false
@@ -99,11 +96,6 @@ final class HRVAnalysisViewModel {
             let (hrvSamples, workoutRanges, sleepSamples, rmssdSamples) = try await (hrv, workouts, sleep, rmssd)
 
             let rawSamples = hrvSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
-            wearableHRVPointsHourly = Self.segmentByGap(rawSamples, gapThreshold: Self.hrvGapThresholdHourly)
-            wearableHRVPointsDaily = Self.segmentByGap(
-                Self.dailyMedian(rawSamples),
-                gapThreshold: Self.hrvGapThresholdDaily
-            )
             wearableHRVMonthlyStats = Self.monthlyStats(rawSamples)
 
             let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
@@ -112,9 +104,6 @@ final class HRVAnalysisViewModel {
                 Self.dailyMedian(rawRMSSDSamples),
                 gapThreshold: Self.hrvGapThresholdDaily
             )
-            let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-            let recentValues = rawSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
-            recentThirtyDayMedian = recentValues.isEmpty ? nil : Self.median(recentValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
             sleepRanges = Self.mergeCloseRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
                 .map { RangeInterval(start: $0.start, end: $0.end) }
