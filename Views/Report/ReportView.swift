@@ -5,7 +5,7 @@ struct ReportView: View {
     @State private var viewModel = ReportViewModel()
     @State private var selectedSleepRange: SleepRange?
 
-    private static let dateFormatter: DateFormatter = {
+    fileprivate static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -65,17 +65,12 @@ struct ReportView: View {
         }
     }
 
-    // DatePicker는 커스텀 날짜 포맷 문자열을 직접 받지 않아서, 기본 표기가 yyyy-MM-dd인
-    // sv_SE(스웨덴) 로케일로 강제해 "2026-07-17" 형태를 얻는다 — 흔히 쓰는 우회법.
-    private static let isoLocale = Locale(identifier: "sv_SE")
-
     private var datePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석 기간").font(.system(size: 13.6, weight: .semibold))
-            DatePicker("이전 진료일", selection: $viewModel.previousVisitDate, displayedComponents: .date)
-            DatePicker("이번 진료일", selection: $viewModel.thisVisitDate, displayedComponents: .date)
+            IsoDateRow(title: "이전 진료일", date: $viewModel.previousVisitDate)
+            IsoDateRow(title: "이번 진료일", date: $viewModel.thisVisitDate)
         }
-        .environment(\.locale, Self.isoLocale)
     }
 
     private var analyzeButton: some View {
@@ -308,6 +303,47 @@ struct ReportView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+// DatePicker는 커스텀 날짜 포맷 문자열을 직접 받지 않고 로케일의 기본 형식을 따른다 — 로케일을
+// sv_SE 같은 걸로 바꿔 yyyy-MM-dd를 얻는 우회법은 한국어 UI(요일/버튼 등)까지 같이 깨진다. 그 대신
+// 표시는 직접 포맷한 텍스트로 하고, 탭하면 한국어 로케일 그래픽 피커를 시트로 띄운다.
+private struct IsoDateRow: View {
+    let title: String
+    @Binding var date: Date
+    @State private var isPresented = false
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(ReportView.dateFormatter.string(from: date))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresented) {
+            NavigationStack {
+                DatePicker(title, selection: $date, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
+                    .padding()
+                    .navigationTitle(title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("완료") { isPresented = false }
+                        }
+                    }
+            }
+            .environment(\.locale, Locale(identifier: "ko_KR"))
+            .presentationDetents([.medium])
         }
     }
 }
