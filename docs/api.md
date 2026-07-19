@@ -30,8 +30,9 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 
 ## 아직 안 씀
 
-운동/약복용/이벤트/구글 캘린더 관련 엔드포인트는 백엔드에 이미 있을 수 있지만 iOS 쪽에
+운동/약복용/이벤트 관련 엔드포인트는 백엔드에 이미 있을 수 있지만 iOS 쪽에
 `Service`가 아직 없다 — [features.md](features.md)의 "아직 없음" 항목 구현 시 여기 추가한다.
+(구글 캘린더 관련 엔드포인트는 iOS에서 안 쓴다 — 아래 EventKit 섹션 참고.)
 
 ## HealthKit (백엔드 API 아님)
 
@@ -41,3 +42,9 @@ rMSSD 계산용 원시 박동 시리즈(`HKSeriesType.heartbeat()`, iOS 13+), �
 `heartRateVariabilitySDNN`) — SDNN은 HealthKit 제약상 heartbeat series 권한과 반드시 같이
 요청해야 하고(안 하면 크래시), 화면에서는 rMSSD 참고용 옅은 라인으로만 쓴다. 자세한 내용은
 [architecture.md](architecture.md)의 HealthKit 섹션 참고.
+
+## EventKit (백엔드 API 아님, 구글 캘린더 대체)
+
+mind-record 웹의 "구글 캘린더 연동"(읽기 전용 일정 조회)에 대응하는 기능은 백엔드 API가 아니라
+`CalendarEventService`가 기기의 `EKEventStore`(EventKit)로 직접 읽는다 — 서버를 거치지 않고
+저장도 안 한다. 자세한 내용은 [architecture.md](architecture.md)의 EventKit 섹션 참고.

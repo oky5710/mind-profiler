@@ -12,19 +12,25 @@
 디자인 토큰(색상)의 단일 소스는 `Components/Theme.swift`다. 화면에서 색을 직접
 `Color(red:green:blue:)`로 하드코딩하지 않고 `Theme.xxx`를 참조한다.
 
-| 토큰 | 값 | 의미 |
-|---|---|---|
-| `Theme.heart` | `#F94F63` | 로딩 인디케이터(`HeartLoader`) 하트 색 |
-| `Theme.mood` | `#f59e0b` | 기분 막대그래프 |
-| `Theme.coffee` | `#92400e` | 커피 막대그래프 |
-| `Theme.rmssd` | `#8b5cf6` | rMSSD 라인 차트 및 월별 막대 차트 (HealthKit 원시 박동에서 계산) |
-| `Theme.examRmssd` | `#22c55e` | 검사(병원) rMSSD 포인트(세모 마커) |
-| `Theme.exercise` | `#16a34a` | 운동 Gantt 레인 |
-| `Theme.sleep` | `#6366f1` | 수면 Gantt 레인 |
+지표 색 팔레트는 **Radix UI Colors**(radix-ui.com/colors)로 통일되어 있다 — 원래 mind-record 웹에서
+이식한 Tailwind 계열 하드코딩 값이었지만, 색상 거리가 가장 가까운 Radix 스케일 단계로 전부 교체했다.
+새 지표 색이 필요하면 임의로 hex를 고르지 말고 Radix 스케일에서 고른다 (보통 "solid" 단계인 9,
+필요하면 10/11도 사용 — 아래 표의 실제 사용례 참고).
 
-같은 지표(기분/커피/HRV/수면/운동)를 나타내는 색은 mind-record 웹 버전(`app/hrv-analysis/page.tsx`,
-`app/chart`)에서 쓰던 색을 그대로 이식했다 — 웹과 네이티브에서 같은 지표는 같은 색으로 보이게 유지한다.
-단, 기분(`Theme.mood`)은 원래 웹의 빨강 계열(`#f43f5e`) 대신 앰버(`#f59e0b`)로 바꿨다 — 아래 "빨강 사용 규칙" 참고.
+| 토큰 | 값 (Radix 스케일) | 의미 |
+|---|---|---|
+| `Theme.heart` | `red-9` `#e5484d` | 로딩 인디케이터(`HeartLoader`) 하트 색 (`Theme.holiday`와 같은 값 — 동시에 화면에 안 나와서 무관) |
+| `Theme.mood` | `amber-10` `#ffba18` | 기분 막대그래프 |
+| `Theme.coffee` | `amber-11` `#ab6400` | 커피 막대그래프 |
+| `Theme.rmssd` | `violet-9` `#6e56cf` | rMSSD 라인 차트 및 월별 막대 차트 (HealthKit 원시 박동에서 계산) |
+| `Theme.examRmssd` | `green-9` `#30a46c` | 검사(병원) rMSSD 포인트(세모 마커) |
+| `Theme.exercise` | `green-10` `#2b9a66` | 운동 Gantt 레인 |
+| `Theme.sleep` | `indigo-9` `#3e63dd` | 수면 Gantt 레인 |
+| `Theme.holiday` | `red-9` `#e5484d` | 오늘의 패턴 — 종일 일정 중 공휴일(캘린더 이름에 "Holiday"/"공휴일" 포함) |
+| `Theme.vacation` | `orange-9` `#f76b15` | 오늘의 패턴 — 종일 일정 중 휴가(캘린더 이름에 "휴가"/"vacation" 포함) |
+
+일반 캘린더 일정(공휴일/휴가가 아닌 것)과 SDNN 참고 라인은 지표 전용 색이 아니라 Apple 시스템 색
+(`Theme.systemBlue`, `Theme.systemGray4`)을 쓴다 — 아래 "시스템 색상 팔레트" 참고.
 
 ### 시스템 색상 팔레트
 
@@ -39,10 +45,12 @@ SwiftUI에 없는 회색조 단계까지 라이트/다크/대비 높음 4가지 
 **빨강은 "문제/경고"를 나타낼 때만 쓴다** (예: 에러 메시지, 수면 5시간 미만 강조).
 문제를 나타내는 용도가 아니면 빨강·장미색 계열을 쓰지 않는다.
 
-- `Theme.mood`는 원래 장미색(`#f43f5e`)이었지만 "기분이 나쁘다"는 문제가 아니라 그냥 지표 색이므로
-  이 규칙에 따라 앰버(`#f59e0b`)로 교체했다.
-- `Theme.heart`(로딩 하트, `#F94F63`)는 **예외**로 그대로 둔다 — 로딩 인디케이터는 지표 색이 아니라
+- `Theme.mood`는 원래 장미색이었지만 "기분이 나쁘다"는 문제가 아니라 그냥 지표 색이므로
+  이 규칙에 따라 앰버 계열(`amber-10`)로 교체했다.
+- `Theme.heart`(로딩 하트)는 **예외**로 그대로 둔다 — 로딩 인디케이터는 지표 색이 아니라
   하트 모양 자체의 고유 색으로 취급한다.
+- `Theme.holiday`(공휴일)도 **예외**다 — "공휴일"은 문제/경고가 아니라 캘린더 관례상 빨강으로
+  표기하는 게 자연스러운 카테고리 색이라 이 규칙을 적용하지 않는다.
 - 새로 색을 추가할 때: 그 색이 "정상 상태를 나타내는 지표 색"이면 빨강 계열을 피하고, "경고/이상치"를
   나타내는 색이면 빨강 계열을 쓴다.
 
