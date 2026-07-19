@@ -98,7 +98,7 @@ struct CalendarView: View {
         return Button {
             selectedDay = SelectedDay(date: date)
         } label: {
-            VStack(spacing: 2) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("\(day)")
                     .font(.footnote.bold())
                     .foregroundStyle(color(forColumn: columnIndex))
@@ -119,7 +119,7 @@ struct CalendarView: View {
                         .font(.caption2)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 64)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
         }
         .buttonStyle(.plain)
     }
