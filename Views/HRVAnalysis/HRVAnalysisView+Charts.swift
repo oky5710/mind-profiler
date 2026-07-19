@@ -1,8 +1,34 @@
 import Charts
 import SwiftUI
 
+// 캘린더/수면 툴팁의 위쪽 끝을 x축 위치에 맞추려면(중앙이 아니라) 렌더링된 실제 높이를 먼저
+// 측정해야 한다 — position()은 항상 중앙 기준이라 높이의 절반만큼 아래로 더 내려서 보정한다.
+private struct TooltipHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
 extension HRVAnalysisView {
+    private func topAligned(
+        x: CGFloat,
+        topY: CGFloat,
+        height: CGFloat,
+        onHeightChange: @escaping (CGFloat) -> Void,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
+        content()
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: TooltipHeightKey.self, value: proxy.size.height)
+                }
+            )
+            .onPreferenceChange(TooltipHeightKey.self, perform: onHeightChange)
+            .position(x: x, y: topY + height / 2)
+    }
+
     // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
     // 그 결과 두 차트 사이 간격(레이아웃상 유지하고 싶은 여백) 부분에서 그리드 선이 끊겨 보이므로,
     // 그 간격만큼을 이어주는 짧은 선을 배경에 덧그려서 세로 그리드가 끊기지 않고 이어진 것처럼 보이게 한다.
@@ -29,17 +55,29 @@ extension HRVAnalysisView {
         // 캘린더/수면 툴팁은 간트 차트 자체(세로 폭이 좁음)가 아니라 라인+간트를 합친 이 스택 전체를
         // 덮는 오버레이에서 그린다 — 세로 공간이 훨씬 넉넉해서 내용이 길어도 잘리지 않는다. x 좌표는
         // 간트 차트의 드래그 핸들러(HRVAnalysisView+Axes.swift)가 계산해서 넘겨준다. y는 x축이 그려지는
-        // 지점(간트 차트 바로 아래)에 맞춘다.
+        // 지점(간트 차트 바로 아래)에 툴팁의 "위쪽 끝"이 오도록 맞춘다(중앙이 아님).
         .overlay(alignment: .topLeading) {
             let tooltipY = lineChartHeight + 8 + ganttChartHeight
             ZStack(alignment: .topLeading) {
                 if let x = calendarTooltipAnchorX, let event = tooltipCalendarEvent {
-                    tooltipLabel(for: event)
-                        .position(x: x, y: tooltipY)
+                    topAligned(
+                        x: x,
+                        topY: tooltipY,
+                        height: calendarTooltipHeight,
+                        onHeightChange: { calendarTooltipHeight = $0 }
+                    ) {
+                        tooltipLabel(for: event)
+                    }
                 }
                 if let x = sleepTooltipAnchorX, let sleepRange = tooltipSleepRange {
-                    tooltipLabel(for: sleepRange)
-                        .position(x: x, y: tooltipY)
+                    topAligned(
+                        x: x,
+                        topY: tooltipY,
+                        height: sleepTooltipHeight,
+                        onHeightChange: { sleepTooltipHeight = $0 }
+                    ) {
+                        tooltipLabel(for: sleepRange)
+                    }
                 }
             }
             .allowsHitTesting(false)

@@ -77,6 +77,10 @@ struct HRVAnalysisView: View {
     // lineAndGanttChartsStack 바깥쪽 오버레이(세로 공간이 넉넉함)에서 그 위치에 그린다.
     @State var calendarTooltipAnchorX: CGFloat?
     @State var sleepTooltipAnchorX: CGFloat?
+    // 툴팁의 세로 중앙이 아니라 위쪽 끝을 x축 위치에 맞추려면 실제 렌더링된 높이를 알아야 해서,
+    // TooltipHeightKey로 측정해서 여기 담아둔다.
+    @State var calendarTooltipHeight: CGFloat = 0
+    @State var sleepTooltipHeight: CGFloat = 0
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
