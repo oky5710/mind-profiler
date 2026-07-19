@@ -181,7 +181,9 @@ extension HRVAnalysisView {
 
                 // 탭해서 선택된 수면 구간은 흰 막대(전체 높이)를 뒤에 깔고 그 앞에 살짝 안쪽으로 줄인
                 // 색 막대를 그려서 테두리처럼 보이게 한다 — 차트 y축 범위(0...1)는 선택 여부와
-                // 무관하게 그대로라 간트 차트 전체 높이가 바뀌지 않는다.
+                // 무관하게 그대로라 간트 차트 전체 높이가 바뀌지 않는다. 흰 막대가 불투명이면 배경과
+                // 거의 같은 색이라 안쪽 색 막대(90% 높이)만 보여서 오히려 막대가 짧아진 것처럼
+                // 보이므로, 투명도를 줘서 뒤에 깔린 원래 전체 높이 막대가 테두리 부분에 비쳐 보이게 한다.
                 if let selected = tooltipSleepRange {
                     let isShort = selected.end.timeIntervalSince(selected.start) < Self.shortSleepThreshold
 
@@ -191,7 +193,7 @@ extension HRVAnalysisView {
                         yStart: .value("아래", 0),
                         yEnd: .value("위", 1)
                     )
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.white.opacity(0.6))
 
                     RectangleMark(
                         xStart: .value("수면 시작", selected.start),
@@ -238,7 +240,7 @@ extension HRVAnalysisView {
                         yStart: .value("아래", 0),
                         yEnd: .value("위", 1)
                     )
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.white.opacity(0.6))
 
                     RectangleMark(
                         xStart: .value("일정 시작", selected.start),
