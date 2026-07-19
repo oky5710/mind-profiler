@@ -77,15 +77,20 @@ struct SleepDetailPanel: View {
                 .frame(width: 84, height: 84)
 
                 // 도넛은 비율을 한눈에 보여주고, 옆의 색점+숫자 목록이 정확한 분 단위 값과 범례를 겸한다.
-                VStack(alignment: .leading, spacing: 3) {
+                // 단계 이름 길이가 제각각이라("코어" vs "수면(단계 미상)") 한 Text로 합치면 시간
+                // 값의 세로 정렬이 줄마다 어긋난다 — Grid로 이름/시간을 열로 나눠 시간을 맞춘다.
+                Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 3) {
                     ForEach(slices) { slice in
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(slice.color)
-                                .frame(width: 7, height: 7)
-                            Text("\(slice.label) \(SleepAnalysisService.formattedDuration(slice.duration))")
-                                .font(.caption2)
+                        GridRow {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(slice.color)
+                                    .frame(width: 7, height: 7)
+                                Text(slice.label)
+                            }
+                            Text(SleepAnalysisService.formattedDuration(slice.duration))
                         }
+                        .font(.caption2)
                     }
                 }
             }
