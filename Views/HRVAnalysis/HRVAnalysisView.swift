@@ -280,9 +280,28 @@ struct HRVAnalysisView: View {
     var selectedItemDetailPanel: some View {
         if let event = tooltipCalendarEvent {
             tooltipLabel(for: event)
+                .overlay(alignment: .topTrailing) {
+                    closeButton { tooltipCalendarEvent = nil }
+                }
         } else if let sleepRange = tooltipSleepRange {
             SleepDetailPanel(sleepRange: sleepRange)
+                .overlay(alignment: .topTrailing) {
+                    closeButton { tooltipSleepRange = nil }
+                }
         }
+    }
+
+    // lineAndGanttChartsStack이 이 패널 전체를 allowsHitTesting(false)로 덮어써서(차트 제스처를
+    // 가리지 않으려고) 닫기 버튼도 같이 탭이 안 먹는다 — 버튼에서만 다시 true로 켜서 예외로 둔다.
+    private func closeButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "xmark.circle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .font(.system(size: 20))
+                .foregroundStyle(.gray)
+        }
+        .padding(8)
+        .allowsHitTesting(true)
     }
 
     private var hrvChartBody: some View {
