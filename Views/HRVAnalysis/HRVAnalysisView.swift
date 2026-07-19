@@ -284,16 +284,28 @@ struct HRVAnalysisView: View {
     // 단계별로 보여줄 순서 — 중요도가 높은 깊은 수면/렘을 앞에 둔다.
     private static let sleepStageDisplayOrder: [HealthKitService.SleepStage] = [.deep, .rem, .core, .unspecified]
 
+    private func sleepScoreLabel(_ score: Int) -> String {
+        switch score {
+        case 80...: "좋음"
+        case 60..<80: "보통"
+        default: "나쁨"
+        }
+    }
+
     func tooltipLabel(for sleepRange: HRVAnalysisViewModel.SleepRange) -> some View {
         let totalDuration = sleepRange.end.timeIntervalSince(sleepRange.start)
         let trackedDuration = sleepRange.stageDurations.values.reduce(0, +)
         let awakeDuration = max(0, totalDuration - trackedDuration)
 
         return VStack(alignment: .leading, spacing: 2) {
+            // 애플 Health 앱이 보여주는 수면 점수는 HealthKit으로 못 받아와서, 애플이 공개한 가중치
+            // 구성(수면시간+취침 일관성+각성)을 흉내 낸 추정치라는 걸 "추정"으로 명시한다.
+            Text("추정 수면 점수 \(sleepRange.estimatedScore)점 · \(sleepScoreLabel(sleepRange.estimatedScore))")
+                .font(.subheadline.bold())
             Text(
                 "\(formattedDuration(totalDuration)) · \(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
             )
-            .font(.subheadline.bold())
+            .font(.caption2)
             ForEach(Self.sleepStageDisplayOrder, id: \.self) { stage in
                 if let duration = sleepRange.stageDurations[stage] {
                     Text("\(stage.label) \(formattedDuration(duration))")
