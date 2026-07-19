@@ -1,7 +1,9 @@
 import Foundation
 
 enum CoffeeService {
-    static let typeOptions = ["아메리카노", "라떼", "콜드브루", "디카페인", "에스프레소"]
+    // mind-record 웹 CoffeeForm.tsx의 COFFEE_TYPES와 동일한 목록/순서("직접입력" 제외 — iOS는
+    // 별도 토글로 처리).
+    static let typeOptions = ["아메리카노", "라떼", "카푸치노", "에스프레소", "콜드브루"]
 
     static func todayCount() async throws -> Int {
         let entries: [CoffeeLogEntry] = try await APIClient.shared.get("/coffee?date=\(DateKey.string(from: Date()))")

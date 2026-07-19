@@ -32,6 +32,10 @@
   durationMinutes, intensity}`를 보낸다(date는 다른 유형과 동일하게 `yyyy-MM-dd`). HealthKit에서
   자동으로 읽어오는 "오늘의 패턴"의 운동 구간과는 별개로, 사용자가 직접 기록하는 수동 입력이다.
   달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면 "🏃×N")를 표시한다.
+- **커피 종류 목록**: mind-record 웹 `CoffeeForm.tsx`의 `COFFEE_TYPES`와 동일 — 아메리카노/라떼/
+  카푸치노/에스프레소/콜드브루(`CoffeeService.typeOptions`).
+- **기분 하루 1건 제약**: 백엔드가 같은 날 중복 기록을 409로 거부한다 — mind-record 웹과 동일하게
+  "오늘 기분은 이미 입력됐어요" 문구로 안내한다(`MoodEntryForm`).
 - PRD에 있는 약복용/이벤트 유형은 **폼 미구현**.
 
 ### 보고서 (`Views/Report`)
