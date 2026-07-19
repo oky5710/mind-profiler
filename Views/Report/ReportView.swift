@@ -4,6 +4,8 @@ import SwiftUI
 struct ReportView: View {
     @State private var viewModel = ReportViewModel()
     @State private var selectedSleepRange: SleepRange?
+    // 오늘의 패턴 Gantt 차트와 같은 방식(고정 픽셀 너비)으로 선택 그림자를 그리려고 실측한다.
+    @State private var sleepBarWidth: CGFloat = 20
 
     fileprivate static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -117,9 +119,10 @@ struct ReportView: View {
                 let hours = range.end.timeIntervalSince(range.start) / 3600
                 BarMark(
                     x: .value("날짜", range.start, unit: .day),
-                    y: .value("수면 시간", hours)
+                    y: .value("수면 시간", hours),
+                    width: .fixed(sleepBarWidth)
                 )
-                .foregroundStyle(Theme.sleep.opacity(selectedSleepRange?.id == range.id ? 1 : 0.7))
+                .foregroundStyle(Theme.sleep.opacity(0.7))
                 .cornerRadius(4)
             }
             if let avgDuration = viewModel.averageSleepDuration {
@@ -137,19 +140,74 @@ struct ReportView: View {
         }
         .chartOverlay { proxy in
             GeometryReader { geo in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        guard let plotFrame = proxy.plotFrame else { return }
-                        let plotRect = geo[plotFrame]
-                        let localX = location.x - plotRect.minX
-                        guard let tappedDate: Date = proxy.value(atX: localX) else { return }
-                        selectedSleepRange = viewModel.sleepRanges.min {
-                            abs($0.start.timeIntervalSince(tappedDate)) < abs($1.start.timeIntervalSince(tappedDate))
+                ZStack {
+                    if let selectedSleepRange {
+                        selectedSleepBarShadow(selectedSleepRange, proxy: proxy, geo: geo)
+                    }
+
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture { location in
+                            guard let plotFrame = proxy.plotFrame else { return }
+                            let plotRect = geo[plotFrame]
+                            let localX = location.x - plotRect.minX
+                            guard let tappedDate: Date = proxy.value(atX: localX) else { return }
+                            selectedSleepRange = viewModel.sleepRanges.min {
+                                abs($0.start.timeIntervalSince(tappedDate)) < abs($1.start.timeIntervalSince(tappedDate))
+                            }
                         }
+                }
+            }
+        }
+        .background {
+            // 오늘의 패턴 월별 막대와 같은 방식 — plot 폭을 날짜 수만큼 나눠 막대 너비를 정하고,
+            // 같은 너비를 선택 그림자에도 그대로 써서 실제 막대와 정확히 겹치게 한다.
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { updateSleepBarWidth(plotWidth: geo.size.width) }
+                    .onChange(of: geo.size.width) { _, newWidth in
+                        updateSleepBarWidth(plotWidth: newWidth)
                     }
             }
+        }
+    }
+
+    private var sleepChartDayCount: Int {
+        let dates = viewModel.sleepRanges.map(\.start)
+        guard let minDate = dates.min(), let maxDate = dates.max() else { return 1 }
+        let days = Calendar.current.dateComponents([.day], from: minDate, to: maxDate).day ?? 0
+        return max(days + 1, 1)
+    }
+
+    private func updateSleepBarWidth(plotWidth: CGFloat) {
+        let bandwidth = plotWidth / CGFloat(sleepChartDayCount)
+        sleepBarWidth = min(max(bandwidth * 0.6, 10), 30)
+    }
+
+    // BarMark(x: .value(_, range.start, unit: .day))는 그 날 전체 구간 중앙에 그려지므로,
+    // 그림자도 같은 중앙 좌표를 써야 실제 막대와 겹친다(HRVAnalysisView+Axes.monthMidpoint와 동일한 이유).
+    private func dayMidpoint(of date: Date) -> Date {
+        guard let interval = Calendar.current.dateInterval(of: .day, for: date) else { return date }
+        return interval.start.addingTimeInterval(interval.duration / 2)
+    }
+
+    // 오늘의 패턴 Gantt 차트의 선택 그림자와 같은 스타일(그림자 색·반경·오프셋, 모서리 반경) —
+    // 차트 마크 자체는 shadow()를 지원하지 않아서 같은 위치·크기·색의 실제 도형을 겹쳐 그린다.
+    @ViewBuilder
+    private func selectedSleepBarShadow(_ range: SleepRange, proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        let hours = range.end.timeIntervalSince(range.start) / 3600
+        if let plotFrame = proxy.plotFrame,
+           let x = proxy.position(forX: dayMidpoint(of: range.start)),
+           let yTop = proxy.position(forY: hours),
+           let yBottom = proxy.position(forY: 0) {
+            let plotRect = geo[plotFrame]
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Theme.sleep.opacity(0.7))
+                .frame(width: sleepBarWidth, height: abs(yBottom - yTop))
+                .position(x: plotRect.minX + x, y: plotRect.minY + (yTop + yBottom) / 2)
+                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+                .allowsHitTesting(false)
         }
     }
 

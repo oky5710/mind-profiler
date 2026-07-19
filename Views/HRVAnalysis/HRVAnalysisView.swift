@@ -367,7 +367,13 @@ struct HRVAnalysisView: View {
     }
 
     private var legend: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
+        // 월별 rMSSD 항목은 두 줄(1Q~3Q/최소~최대)이라 다른 한 줄짜리 항목과 같은 행에 놓이면
+        // 기본 세로 가운데 정렬 때문에 첫 줄 위치가 서로 어긋난다 — 각 칸을 위쪽 정렬해서 맞춘다.
+        LazyVGrid(
+            columns: [GridItem(.flexible(), alignment: .top), GridItem(.flexible(), alignment: .top)],
+            alignment: .leading,
+            spacing: 6
+        ) {
             ForEach(HRVSeries.allCases.filter { $0.appliesTo(chartMode) }) { series in
                 Button {
                     toggleSeries(series)
