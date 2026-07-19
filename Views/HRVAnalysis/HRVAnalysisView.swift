@@ -56,15 +56,6 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         }
     }
 
-    // 월별 캔들스틱은 박스(1Q~3Q)와 심지(최소~최대)가 같은 rMSSD 범례 항목 아래 겹쳐 있어서,
-    // 무엇이 무엇인지 범례 문구에 풀어서 설명한다.
-    func label(for mode: HRVChartMode) -> String {
-        if self == .rmssd, mode == .monthly {
-            return "rMSSD — 사각형: 1Q~3Q, 세로선: 최소~최대"
-        }
-        return label
-    }
-
     // 시간별/일별/월별 모드가 서로 다른 차트 조합을 그리므로, 그 모드에서 실제로
     // 영향을 주는 지표만 범례에 노출한다 — 안 그러면 토글해도 아무 변화가 없는 항목이 보인다.
     func appliesTo(_ mode: HRVChartMode) -> Bool {
@@ -383,13 +374,8 @@ struct HRVAnalysisView: View {
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
                 } label: {
-                    legendRow(
-                        color: seriesColor(series),
-                        symbol: series.symbol,
-                        label: series.label(for: chartMode),
-                        boldValue: series == .median ? medianLegendValue : nil
-                    )
-                    .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
+                    legendContent(for: series)
+                        .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
                 }
                 .buttonStyle(.plain)
             }
@@ -397,16 +383,44 @@ struct HRVAnalysisView: View {
         .padding(.top, 4)
     }
 
+    // 월별 캔들스틱은 박스(1Q~3Q)와 심지(최소~최대)가 같은 rMSSD 항목 아래 겹쳐 있어서, 문구로 풀어
+    // 쓰는 대신 차트에 실제로 그려지는 모양 그대로(연보라 사각형/얇은 세로선) 두 줄로 보여준다.
+    @ViewBuilder
+    private func legendContent(for series: HRVSeries) -> some View {
+        if series == .rmssd, chartMode == .monthly {
+            VStack(alignment: .leading, spacing: 2) {
+                legendRow(label: "1Q~3Q") {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Theme.rmssdRange)
+                        .frame(width: 12, height: 8)
+                }
+                legendRow(label: "최소~최대") {
+                    Rectangle()
+                        .fill(rmssdColor.opacity(0.5))
+                        .frame(width: 2, height: 10)
+                }
+            }
+        } else {
+            legendRow(label: series.label, boldValue: series == .median ? medianLegendValue : nil) {
+                Image(systemName: series.symbol)
+                    .font(.system(size: 8))
+                    .foregroundStyle(seriesColor(series))
+            }
+        }
+    }
+
     private var medianLegendValue: String? {
         guard let median = viewModel.recentThirtyDayRMSSDMedian else { return nil }
         return "\(Int(median.rounded()))ms"
     }
 
-    private func legendRow(color: Color, symbol: String, label: String, boldValue: String? = nil) -> some View {
+    private func legendRow<Swatch: View>(
+        label: String,
+        boldValue: String? = nil,
+        @ViewBuilder swatch: () -> Swatch
+    ) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .font(.system(size: 8))
-                .foregroundStyle(color)
+            swatch()
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
