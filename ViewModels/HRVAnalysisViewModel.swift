@@ -40,23 +40,9 @@ final class HRVAnalysisViewModel {
         let category: CalendarEventCategory
     }
 
-    // 탭했을 때 보여줄 수면 단계 구성과 추정 수면 점수.
-    struct SleepRange: Identifiable {
-        let id = UUID()
-        let start: Date
-        let end: Date
-        let stageDurations: [HealthKitService.SleepStage: TimeInterval]
-        // 애플 Health 앱의 수면 점수는 HealthKit 공개 API로 노출되지 않아, 애플이 공개한 것과 같은
-        // 가중치 구성(수면시간 50 + 취침시간 일관성 30 + 각성 20)으로 흉내 낸 추정치일 뿐이다 —
-        // 애플의 정확한 채점 곡선은 비공개라 실제 Health 앱 점수와는 다를 수 있다.
-        let estimatedScore: Int
-    }
-
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
     private static let hrvGapThresholdHourly: TimeInterval = 3 * 60 * 60
     private static let hrvGapThresholdDaily: TimeInterval = 1.5 * 24 * 60 * 60
-    // 자다가 잠깐 깨는 것까지 별도 수면으로 쪼개지 않도록, 1시간 이내로 떨어진 수면 구간은 하나로 합친다.
-    private static let sleepMergeGapThreshold: TimeInterval = 60 * 60
 
     private(set) var examPoints: [ExamPoint] = []
     private(set) var isLoading = false
@@ -139,7 +125,7 @@ final class HRVAnalysisViewModel {
             let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : Self.median(recentRMSSDValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
-            sleepRanges = Self.buildSleepRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
+            sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
             isHealthKitAuthorized = true
         } catch {
             healthKitErrorMessage = error.localizedDescription
@@ -170,87 +156,6 @@ final class HRVAnalysisViewModel {
         } catch {
             calendarErrorMessage = error.localizedDescription
         }
-    }
-
-    // 자다가 잠깐 깨는 간격(maxGap 이내)은 별도 수면으로 쪼개지 않고 하나로 합치되, 합쳐진 구간 안에서
-    // 단계별로 실제 잔 시간이 얼마인지는 그대로 유지해서 탭했을 때 보여준다.
-    private static func buildSleepRanges(
-        _ samples: [(start: Date, end: Date, stage: HealthKitService.SleepStage)],
-        maxGap: TimeInterval
-    ) -> [SleepRange] {
-        let sorted = samples.sorted { $0.start < $1.start }
-        var ranges: [SleepRange] = []
-        var currentGroup: [(start: Date, end: Date, stage: HealthKitService.SleepStage)] = []
-        var currentGroupEnd: Date?
-
-        func flushGroup() {
-            guard let start = currentGroup.map(\.start).min(), let end = currentGroupEnd else { return }
-            var durations: [HealthKitService.SleepStage: TimeInterval] = [:]
-            for sample in currentGroup {
-                durations[sample.stage, default: 0] += sample.end.timeIntervalSince(sample.start)
-            }
-            // 취침시간 일관성 점수는 이 밤 이전의 밤들과 비교해야 해서, 지금까지 쌓인 ranges(과거 밤들)를
-            // 그대로 넘긴다 — samples가 시간순 정렬이라 ranges는 항상 currentGroup보다 앞선 밤들이다.
-            let score = estimatedSleepScore(start: start, end: end, stageDurations: durations, previousNights: ranges)
-            ranges.append(SleepRange(start: start, end: end, stageDurations: durations, estimatedScore: score))
-            currentGroup = []
-            currentGroupEnd = nil
-        }
-
-        for sample in sorted {
-            if let groupEnd = currentGroupEnd, sample.start.timeIntervalSince(groupEnd) > maxGap {
-                flushGroup()
-            }
-            currentGroup.append(sample)
-            currentGroupEnd = max(currentGroupEnd ?? sample.end, sample.end)
-        }
-        flushGroup()
-
-        return ranges
-    }
-
-    // 애플이 공개한 수면 점수 구성: 수면시간 50점(8시간 기준) + 취침시간 일관성 30점 + 각성 20점.
-    private static let sleepScoreTargetDuration: TimeInterval = 8 * 60 * 60
-    // 일관성 비교 기준 — 최근 일주일치 취침 시각과 비교한다.
-    private static let bedtimeConsistencyWindow = 6
-    private static let bedtimeConsistencyToleranceMinutes: Double = 90
-    private static let interruptionTolerance: TimeInterval = 60 * 60
-
-    private static func estimatedSleepScore(
-        start: Date,
-        end: Date,
-        stageDurations: [HealthKitService.SleepStage: TimeInterval],
-        previousNights: [SleepRange]
-    ) -> Int {
-        let trackedDuration = stageDurations.values.reduce(0, +)
-        let durationScore = min(50.0, (trackedDuration / sleepScoreTargetDuration) * 50)
-
-        // 비교할 과거 밤이 부족하면(초기 사용) 불리하지 않도록 만점을 준다.
-        let recentBedtimes = previousNights.suffix(bedtimeConsistencyWindow).map(\.start)
-        let consistencyScore: Double
-        if recentBedtimes.count >= 2 {
-            let currentMinutes = bedtimeMinutesSinceNoon(start)
-            let averageMinutes = recentBedtimes.map(bedtimeMinutesSinceNoon).reduce(0, +) / Double(recentBedtimes.count)
-            let deviation = abs(currentMinutes - averageMinutes)
-            consistencyScore = max(0, 30 * (1 - deviation / bedtimeConsistencyToleranceMinutes))
-        } else {
-            consistencyScore = 30
-        }
-
-        let awakeDuration = max(0, end.timeIntervalSince(start) - trackedDuration)
-        let interruptionScore = max(0, 20 * (1 - awakeDuration / interruptionTolerance))
-
-        let total = Int((durationScore + consistencyScore + interruptionScore).rounded())
-        return min(100, max(0, total))
-    }
-
-    // 취침 시각은 자정을 넘나들어서(23:30 vs 00:15) 단순 시:분 비교로는 안 되고, 정오를 기준으로
-    // 밀어서(자정=720분) 비교해야 자정 전후 취침 시각들이 가깝게 계산된다.
-    private static func bedtimeMinutesSinceNoon(_ date: Date) -> Double {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
-        let minutesSinceMidnight = Double((components.hour ?? 0) * 60 + (components.minute ?? 0))
-        let shifted = minutesSinceMidnight - 12 * 60
-        return shifted < 0 ? shifted + 24 * 60 : shifted
     }
 
     private static func segmentByGap(_ samples: [(Date, Double)], gapThreshold: TimeInterval) -> [HRVPoint] {

@@ -126,11 +126,6 @@ extension HRVAnalysisView {
 
     static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
-    func formattedDuration(_ interval: TimeInterval) -> String {
-        let totalMinutes = Int(interval) / 60
-        return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
-    }
-
     func allDayEventColor(for category: CalendarEventCategory) -> Color {
         switch category {
         case .holiday: Theme.holiday
@@ -173,7 +168,7 @@ extension HRVAnalysisView {
                     .cornerRadius(4)
                     .annotation(position: .overlay) {
                         if isShort {
-                            Text(formattedDuration(duration))
+                            Text(SleepAnalysisService.formattedDuration(duration))
                                 .font(.system(size: 8))
                                 .foregroundStyle(.white)
                         }

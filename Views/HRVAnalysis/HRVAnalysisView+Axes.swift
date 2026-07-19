@@ -47,7 +47,7 @@ extension HRVAnalysisView {
         xAxisLabel: @escaping (Date) -> AnyView,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
-        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = [],
+        tooltipSleepRanges: [SleepRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
@@ -74,7 +74,7 @@ extension HRVAnalysisView {
         visibleDomain: TimeInterval,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
-        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = [],
+        tooltipSleepRanges: [SleepRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되

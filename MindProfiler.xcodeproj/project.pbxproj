@@ -32,6 +32,9 @@
 		63D6917DE455882DFE349BB3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D406E7D6B4DE3F230832DE06 /* HealthKit.framework */; };
 		9B1F4A2C5E6D7089ABCDEF01 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */; };
 		9B1F4A2C5E6D7089ABCDEF03 /* CalendarEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */; };
+		9B1F4A2C5E6D7089ABCDEF05 /* SleepAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF06 /* SleepAnalysisService.swift */; };
+		9B1F4A2C5E6D7089ABCDEF07 /* HRVStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */; };
+		9B1F4A2C5E6D7089ABCDEF09 /* SleepDetailPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */; };
 		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
 		75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */; };
 		76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */; };
@@ -112,6 +115,9 @@
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
 		9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventService.swift; sourceTree = "<group>"; };
+		9B1F4A2C5E6D7089ABCDEF06 /* SleepAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepAnalysisService.swift; sourceTree = "<group>"; };
+		9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVStatistics.swift; sourceTree = "<group>"; };
+		9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDetailPanel.swift; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
@@ -276,6 +282,8 @@
 				A260AC61F3C8A7585B32E365 /* ExamService.swift */,
 				E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */,
 				9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */,
+				9B1F4A2C5E6D7089ABCDEF06 /* SleepAnalysisService.swift */,
+				9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -286,6 +294,7 @@
 				13D905DBDEF8F79C569C2996 /* BarChartCard.swift */,
 				21D63CA734994647CAA7014D /* HeartLoader.swift */,
 				CC8EB2D685ED1EB34689D7FE /* Theme.swift */,
+				9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -443,6 +452,9 @@
 				899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */,
 				DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF03 /* CalendarEventService.swift in Sources */,
+				9B1F4A2C5E6D7089ABCDEF05 /* SleepAnalysisService.swift in Sources */,
+				9B1F4A2C5E6D7089ABCDEF07 /* HRVStatistics.swift in Sources */,
+				9B1F4A2C5E6D7089ABCDEF09 /* SleepDetailPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
