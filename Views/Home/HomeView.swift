@@ -114,36 +114,40 @@ struct HomeView: View {
         .background(.black.opacity(0.35), in: Capsule())
     }
 
+    // 아이콘 줄 + 라벨 줄을 각각 별도 Text로 나눠 쌓는다 — 한 Text가 좁은 너비에서 자동으로
+    // 줄바꿈되게 두지 않는다(ui-style.md "버튼 안에서는 줄바꿈하지 않는다").
     private var coffeeButton: some View {
         Button {
             Task { await viewModel.logCoffee() }
         } label: {
-            HStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("☕").font(.system(size: 16))
-                Text("커피").font(.caption).foregroundStyle(.white)
-                if viewModel.todayCoffeeCount > 0 {
-                    Text("\(viewModel.todayCoffeeCount)")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.white)
-                        .padding(5)
-                        .background(Color.red, in: Circle())
-                }
+                Text("커피").font(.caption2).foregroundStyle(.white)
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
             .background(.black.opacity(0.35), in: Capsule())
+            .overlay(alignment: .topTrailing) {
+                if viewModel.todayCoffeeCount > 0 {
+                    Text("\(viewModel.todayCoffeeCount)")
+                        .font(.system(size: 9).bold())
+                        .foregroundStyle(.white)
+                        .padding(4)
+                        .background(Color.red, in: Circle())
+                        .offset(x: 4, y: -4)
+                }
+            }
         }
     }
 
-    // 아이콘/글씨를 가로로 나란히 두면 커피 버튼까지 세 개가 한 줄에서 넘치기 쉬워서, 세로로
-    // 줄바꿈해 너비를 좁게 유지한다.
+    // 아침/취침은 글자가 짧아서 한 줄(HStack)로 충분하다 — 억지로 줄바꿈하지 않는다.
     private func medicationButton(timing: MedicationTiming, icon: String, isTaken: Bool) -> some View {
         Button {
             Task { await viewModel.logMedicationQuick(timing) }
         } label: {
-            VStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Text(icon).font(.system(size: 16))
-                Text(timing.label).font(.caption2).foregroundStyle(.white)
+                Text(timing.label).font(.caption).foregroundStyle(.white)
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
