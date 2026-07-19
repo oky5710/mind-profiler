@@ -8,7 +8,6 @@ enum Theme {
     static let exercise = Color(red: 0.0863, green: 0.6392, blue: 0.2902) // #16a34a
     static let sleep = Color(red: 0.3882, green: 0.4000, blue: 0.9451) // #6366f1
     static let rmssd = Color(red: 0.5451, green: 0.3608, blue: 0.9647) // #8b5cf6
-    static let gray7 = Color(red: 0.2157, green: 0.2549, blue: 0.3176) // #374151
 
     // Apple 표준 시스템 색상(HIG). 라이트/다크/대비 높음 4가지 모두 대응하는 값이라 UIKit 없이
     // Assets.xcassets의 컬러셋(SystemColors 그룹)으로 넣어뒀다 — 하드코딩된 단일 RGB가 아니라

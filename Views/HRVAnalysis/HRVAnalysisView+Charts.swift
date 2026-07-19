@@ -40,7 +40,7 @@ extension HRVAnalysisView {
 
         return Chart {
             // SDNN은 rMSSD와의 값 차이를 참고만 하려는 용도라, 시간별 모드에서만 눈에 덜 띄게
-            // 회색(gray-700)으로 뒤쪽에 깔아서 그린다 — rMSSD 라인이 항상 위에 보인다.
+            // 시스템 회색(systemGray4)으로 뒤쪽에 깔아서 그린다 — rMSSD 라인이 항상 위에 보인다.
             // 두께를 rMSSD보다 굵게 하면 흐린 색과 별개로 오히려 더 튀어 보여서, 두께는 rMSSD와
             // 동일하게(기본값) 둔다.
             if chartMode == .hourly, !hiddenSeries.contains(.sdnn) {
@@ -50,7 +50,7 @@ extension HRVAnalysisView {
                         y: .value("SDNN", point.value),
                         series: .value("구간", "sdnn-\(point.segment)")
                     )
-                    .foregroundStyle(Theme.gray7)
+                    .foregroundStyle(Theme.systemGray4)
                 }
             }
 
