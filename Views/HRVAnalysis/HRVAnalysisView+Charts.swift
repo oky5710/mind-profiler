@@ -1,32 +1,18 @@
 import Charts
 import SwiftUI
 
-// 캘린더/수면 툴팁의 위쪽 끝을 x축 위치에 맞추려면(중앙이 아니라) 렌더링된 실제 높이를 먼저
-// 측정해야 한다 — position()은 항상 중앙 기준이라 높이의 절반만큼 아래로 더 내려서 보정한다.
-private struct TooltipHeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 // 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
 extension HRVAnalysisView {
-    private func topAligned(
-        x: CGFloat,
-        topY: CGFloat,
-        height: CGFloat,
-        onHeightChange: @escaping (CGFloat) -> Void,
-        @ViewBuilder content: () -> some View
-    ) -> some View {
-        content()
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: TooltipHeightKey.self, value: proxy.size.height)
-                }
-            )
-            .onPreferenceChange(TooltipHeightKey.self, perform: onHeightChange)
-            .position(x: x, y: topY + height / 2)
+    // position()은 항상 뷰의 중앙을 그 좌표에 맞추기 때문에, 툴팁의 "위쪽 끝"을 특정 y에 맞추려면
+    // 높이를 미리 알아야 한다. 크기를 재는 대신, 폭 0짜리 점을 그 y에 정확히 놓고 overlay(alignment: .top)로
+    // 툴팁을 그 점의 위쪽 기준으로 붙이면 — 툴팁 실제 높이와 무관하게 항상 위쪽 끝이 그 y에 온다.
+    private func topAligned(x: CGFloat, topY: CGFloat, @ViewBuilder content: () -> some View) -> some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .position(x: x, y: topY)
+            .overlay(alignment: .top) {
+                content()
+            }
     }
 
     // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
@@ -60,22 +46,12 @@ extension HRVAnalysisView {
             let tooltipY = lineChartHeight + 8 + ganttChartHeight
             ZStack(alignment: .topLeading) {
                 if let x = calendarTooltipAnchorX, let event = tooltipCalendarEvent {
-                    topAligned(
-                        x: x,
-                        topY: tooltipY,
-                        height: calendarTooltipHeight,
-                        onHeightChange: { calendarTooltipHeight = $0 }
-                    ) {
+                    topAligned(x: x, topY: tooltipY) {
                         tooltipLabel(for: event)
                     }
                 }
                 if let x = sleepTooltipAnchorX, let sleepRange = tooltipSleepRange {
-                    topAligned(
-                        x: x,
-                        topY: tooltipY,
-                        height: sleepTooltipHeight,
-                        onHeightChange: { sleepTooltipHeight = $0 }
-                    ) {
+                    topAligned(x: x, topY: tooltipY) {
                         tooltipLabel(for: sleepRange)
                     }
                 }
@@ -175,6 +151,8 @@ extension HRVAnalysisView {
     }
 
     private static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
+    // 탭해서 선택된 막대가 1.2배(위로 20%)까지 자라야 해서, y축 범위 자체를 1.2까지 늘려둔다.
+    private static let ganttYDomainMax: Double = 1.2
 
     func formattedDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval) / 60
@@ -228,6 +206,28 @@ extension HRVAnalysisView {
                         }
                     }
                 }
+
+                // 탭해서 선택된 수면 구간은 시작점(y=0, 간트 차트 기준선)은 그대로 두고 위로 20% 더
+                // 키우고, 흰 막대를 뒤에 깔아 테두리처럼 보이게 해서 더 잘 보이게 한다.
+                if let selected = tooltipSleepRange {
+                    let isShort = selected.end.timeIntervalSince(selected.start) < Self.shortSleepThreshold
+
+                    RectangleMark(
+                        xStart: .value("수면 시작", selected.start),
+                        xEnd: .value("수면 끝", selected.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1.2)
+                    )
+                    .foregroundStyle(.white)
+
+                    RectangleMark(
+                        xStart: .value("수면 시작", selected.start),
+                        xEnd: .value("수면 끝", selected.end),
+                        yStart: .value("아래", 0.02),
+                        yEnd: .value("위", 1.18)
+                    )
+                    .foregroundStyle(isShort ? Color.red : sleepColor)
+                }
             }
 
             if !hiddenSeries.contains(.exercise) {
@@ -256,19 +256,40 @@ extension HRVAnalysisView {
                     .foregroundStyle(calendarEventColor.opacity(0.35))
                 }
 
+                // 탭해서 선택된 시간 일정도 수면과 같은 방식(시작점 고정, 위로 20% 키움 + 흰 테두리)으로
+                // 강조한다. 종일 일정(원)은 이미 자체적으로 흰 테두리가 있어 여기 대상이 아니다.
+                if let selected = tooltipCalendarEvent, !selected.isAllDay {
+                    RectangleMark(
+                        xStart: .value("일정 시작", selected.start),
+                        xEnd: .value("일정 끝", selected.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1.2)
+                    )
+                    .foregroundStyle(.white)
+
+                    RectangleMark(
+                        xStart: .value("일정 시작", selected.start),
+                        xEnd: .value("일정 끝", selected.end),
+                        yStart: .value("아래", 0.02),
+                        yEnd: .value("위", 1.18)
+                    )
+                    .foregroundStyle(calendarEventColor)
+                }
+
                 ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
                     // 흰 원(뒤, 크게) 위에 일정 색 원(앞, 작게)을 겹쳐서 테두리처럼 보이게 한다 —
-                    // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다.
+                    // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다. y축 범위가 0...1.2로 늘어난
+                    // 만큼(선택된 막대가 1.2까지 자람) 원의 상대적 높이(90%)도 그대로 유지되도록 맞춘다.
                     PointMark(
                         x: .value("날짜", marker.day),
-                        y: .value("위치", 0.9)
+                        y: .value("위치", Self.ganttYDomainMax * 0.9)
                     )
                     .symbolSize(90)
                     .foregroundStyle(.white)
 
                     PointMark(
                         x: .value("날짜", marker.day),
-                        y: .value("위치", 0.9)
+                        y: .value("위치", Self.ganttYDomainMax * 0.9)
                     )
                     .symbolSize(60)
                     .foregroundStyle(allDayEventColor(for: marker.event.category))
@@ -277,7 +298,7 @@ extension HRVAnalysisView {
         }
         .frame(height: ganttChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
-        .chartYScale(domain: 0...1)
+        .chartYScale(domain: 0...Self.ganttYDomainMax)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
