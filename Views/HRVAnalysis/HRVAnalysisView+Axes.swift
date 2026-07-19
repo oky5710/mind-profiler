@@ -45,13 +45,14 @@ extension HRVAnalysisView {
         yAxisTickValues: [Double],
         xAxisTickDates: [Date],
         xAxisLabel: @escaping (Date) -> AnyView,
+        xAxisLabelPositionDate: @escaping (Date) -> Date = { $0 },
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
-            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
+            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel, labelPositionDate: xAxisLabelPositionDate)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(
                 proxy: proxy,
@@ -321,11 +322,20 @@ extension HRVAnalysisView {
             .tracking(1)
     }
 
+    // 캔들스틱 마크는 x: .value(_, monthStart, unit: .month)로 그 달 전체 구간에 걸쳐 묶여서,
+    // 실제로는 달의 시작이 아니라 그 구간 중앙(대략 보름)에 그려진다 — 라벨도 같은 좌표를 쓰게
+    // 이 중앙 시각을 계산한다.
+    func monthMidpoint(of date: Date) -> Date {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: date) else { return date }
+        return interval.start.addingTimeInterval(interval.duration / 2)
+    }
+
     // x축 라벨도 y축과 같은 이유(ui-style.md)로 레이아웃 공간을 차지하지 않고 차트 안에 고정 위치로 띄운다.
     private func xAxisOverlay(
         proxy: ChartProxy,
         tickDates: [Date],
-        label: @escaping (Date) -> AnyView
+        label: @escaping (Date) -> AnyView,
+        labelPositionDate: @escaping (Date) -> Date = { $0 }
     ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
@@ -356,10 +366,13 @@ extension HRVAnalysisView {
                             }
                             .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
-                            if visibleLabelDates.contains(date) {
+                            // 월별 캔들스틱처럼 마크가 unit(예: .month) 단위로 묶여서 눈금의 정확한
+                            // 시각이 아니라 그 구간 중앙에 그려지는 경우, 라벨도 같은 중앙 좌표를
+                            // 쓰도록 labelPositionDate로 별도 계산한다(그리드 선은 눈금 그대로).
+                            if visibleLabelDates.contains(date), let labelX = proxy.position(forX: labelPositionDate(date)) {
                                 label(date)
                                     .padding(.horizontal, 3)
-                                    .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
+                                    .position(x: plotRect.minX + labelX, y: plotRect.maxY - 10)
                             }
                         }
                     }

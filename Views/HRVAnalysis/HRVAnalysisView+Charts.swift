@@ -325,7 +325,8 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
                 xAxisTickDates: monthlyTickDates,
-                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) },
+                xAxisLabelPositionDate: monthMidpoint
             )
         }
     }
