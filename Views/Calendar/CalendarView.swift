@@ -71,6 +71,11 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
+    // 날짜 칸 높이를 고정값으로 둬서(가변 minHeight가 아니라) 그 날의 배지 개수(기분/커피/운동)와
+    // 무관하게 같은 주의 모든 칸, 나아가 달력 전체의 모든 주가 항상 같은 높이로 보이게 한다.
+    // 하루에 배지가 다 붙는 최악의 경우(날짜 원 + 배지 3줄)까지 잘리지 않을 만큼 넉넉하게 잡았다.
+    private static let dayCellHeight: CGFloat = 80
+
     private var calendarGrid: some View {
         VStack(spacing: 4) {
             ForEach(Array(viewModel.weeks.enumerated()), id: \.offset) { _, week in
@@ -79,7 +84,7 @@ struct CalendarView: View {
                         if let date {
                             dayCell(date: date, columnIndex: index)
                         } else {
-                            Color.clear.frame(maxWidth: .infinity, minHeight: 64)
+                            Color.clear.frame(maxWidth: .infinity).frame(height: Self.dayCellHeight)
                         }
                     }
                 }
@@ -119,7 +124,8 @@ struct CalendarView: View {
                         .font(.caption2)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(height: Self.dayCellHeight, alignment: .topLeading)
         }
         .buttonStyle(.plain)
     }

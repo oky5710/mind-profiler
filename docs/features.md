@@ -27,6 +27,11 @@
 - 월 달력 그리드, 날짜 탭 → bottom sheet로 유형 선택 후 입력.
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
   운동(`ExerciseEntryForm`).
+- **날짜 칸 정렬/높이**: 각 칸의 내용(날짜 숫자 + 기분/커피/운동 배지)은 세로 top·가로 left로
+  정렬한다(`VStack(alignment: .leading)` + `.frame(alignment: .topLeading)`). 칸 높이는 가변
+  `minHeight`가 아니라 고정 `height`(`CalendarView.dayCellHeight`, 배지 3개가 다 붙는 최악의
+  경우까지 잘리지 않을 만큼 넉넉하게)로 둬서, 그날의 배지 개수와 무관하게 같은 주의 칸들은 물론
+  달력 전체 모든 주가 항상 같은 높이로 보인다.
 - **운동 기록 입력**: mind-record 웹의 `ExerciseForm.tsx`와 동일한 필드 — 종류(유산소/근력 운동/직접
   입력), 시간(분), 강도(1~5, "매우 쉬움~매우 힘듦" 라벨). `POST /exercises`에 `{date, type,
   durationMinutes, intensity}`를 보낸다(date는 다른 유형과 동일하게 `yyyy-MM-dd`). HealthKit에서
