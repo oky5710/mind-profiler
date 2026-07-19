@@ -108,6 +108,34 @@ extension HRVAnalysisView {
                 // 캘린더/수면 툴팁은 간트 차트 안에 그리지 않는다 — 어떤 일정/수면 구간이 선택됐는지만
                 // (tooltipCalendarEvent/tooltipSleepRange) 여기서 판정하고, 실제 상세 패널은
                 // HRVAnalysisView.swift의 selectedItemDetailPanel이 간트 차트 아래 전체 폭으로 그린다.
+                // 대신 선택된 막대에는 그림자를 준다 — 차트 마크 자체는 shadow()를 지원하지 않아서,
+                // 같은 위치·크기·색으로 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 그 도형에 그림자를 준다.
+                if !tooltipRanges.isEmpty, let event = tooltipCalendarEvent, !event.isAllDay,
+                   let plotFrame = proxy.plotFrame,
+                   let x0 = proxy.position(forX: event.start), let x1 = proxy.position(forX: event.end),
+                   let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+                    let plotRect = geo[plotFrame]
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(calendarEventColor)
+                        .frame(width: abs(x1 - x0), height: abs(y1 - y0))
+                        .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
+                        .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+                        .allowsHitTesting(false)
+                }
+
+                if !tooltipSleepRanges.isEmpty, let sleepRange = tooltipSleepRange,
+                   let plotFrame = proxy.plotFrame,
+                   let x0 = proxy.position(forX: sleepRange.start), let x1 = proxy.position(forX: sleepRange.end),
+                   let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+                    let plotRect = geo[plotFrame]
+                    let isShort = sleepRange.end.timeIntervalSince(sleepRange.start) < Self.shortSleepThreshold
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isShort ? Color.red : sleepColor)
+                        .frame(width: abs(x1 - x0), height: abs(y1 - y0))
+                        .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
+                        .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+                        .allowsHitTesting(false)
+                }
 
                 Rectangle()
                     .fill(.clear)

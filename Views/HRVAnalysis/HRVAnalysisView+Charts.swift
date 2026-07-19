@@ -124,7 +124,7 @@ extension HRVAnalysisView {
         }
     }
 
-    private static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
+    static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
     func formattedDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval) / 60
