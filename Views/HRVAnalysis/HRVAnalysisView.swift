@@ -380,18 +380,10 @@ struct HRVAnalysisView: View {
     private var legendItems: [LegendItem] {
         HRVSeries.allCases.filter { $0.appliesTo(chartMode) }.flatMap { series -> [LegendItem] in
             if series == .rmssd, chartMode == .monthly {
+                // 세 스와치의 실제 그림 크기(8pt/2pt/2pt)가 서로 달라도, 모두 같은 12x14 칸 안에
+                // 가운데 정렬해서 스와치 모양과 무관하게 텍스트 세로 위치가 셋 다 나란히 맞는다.
+                // 순서는 차트에서 겹쳐 그리는 순서(뒤→앞)와 같다: 심지 → 박스 → 중앙값.
                 return [
-                    LegendItem(
-                        id: "rmssd-box",
-                        series: .rmssd,
-                        label: "1Q~3Q",
-                        boldValue: nil,
-                        swatch: AnyView(
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Theme.rmssdRange)
-                                .frame(width: 12, height: 8)
-                        )
-                    ),
                     LegendItem(
                         id: "rmssd-line",
                         series: .rmssd,
@@ -401,6 +393,31 @@ struct HRVAnalysisView: View {
                             Rectangle()
                                 .fill(rmssdColor.opacity(0.5))
                                 .frame(width: 2, height: 10)
+                                .frame(width: 12, height: 14)
+                        )
+                    ),
+                    LegendItem(
+                        id: "rmssd-box",
+                        series: .rmssd,
+                        label: "1Q~3Q",
+                        boldValue: nil,
+                        swatch: AnyView(
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.rmssdRange)
+                                .frame(width: 12, height: 8)
+                                .frame(width: 12, height: 14)
+                        )
+                    ),
+                    LegendItem(
+                        id: "rmssd-median",
+                        series: .rmssd,
+                        label: "중앙값",
+                        boldValue: nil,
+                        swatch: AnyView(
+                            Rectangle()
+                                .fill(rmssdColor)
+                                .frame(width: 12, height: 2)
+                                .frame(width: 12, height: 14)
                         )
                     )
                 ]
