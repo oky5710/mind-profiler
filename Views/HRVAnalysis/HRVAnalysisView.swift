@@ -37,7 +37,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sleep: "수면"
         case .exercise: "운동"
         case .median: "최근 30일 중앙값"
-        case .sdnn: "SDNN (참고용, 시간별)"
+        case .sdnn: "SDNN"
         case .calendarEvent: "캘린더"
         case .cv: "변동계수 (CV)"
         }
@@ -54,6 +54,15 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .calendarEvent: "square.fill"
         case .cv: "chart.bar.fill"
         }
+    }
+
+    // 월별 캔들스틱은 박스(1Q~3Q)와 심지(최소~최대)가 같은 rMSSD 범례 항목 아래 겹쳐 있어서,
+    // 무엇이 무엇인지 범례 문구에 풀어서 설명한다.
+    func label(for mode: HRVChartMode) -> String {
+        if self == .rmssd, mode == .monthly {
+            return "rMSSD — 사각형: 1Q~3Q, 세로선: 최소~최대"
+        }
+        return label
     }
 
     // 시간별/일별/월별 모드가 서로 다른 차트 조합을 그리므로, 그 모드에서 실제로
@@ -374,8 +383,13 @@ struct HRVAnalysisView: View {
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
                 } label: {
-                    legendRow(color: seriesColor(series), symbol: series.symbol, label: series.label)
-                        .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
+                    legendRow(
+                        color: seriesColor(series),
+                        symbol: series.symbol,
+                        label: series.label(for: chartMode),
+                        boldValue: series == .median ? medianLegendValue : nil
+                    )
+                    .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
                 }
                 .buttonStyle(.plain)
             }
@@ -383,7 +397,12 @@ struct HRVAnalysisView: View {
         .padding(.top, 4)
     }
 
-    private func legendRow(color: Color, symbol: String, label: String) -> some View {
+    private var medianLegendValue: String? {
+        guard let median = viewModel.recentThirtyDayRMSSDMedian else { return nil }
+        return "\(Int(median.rounded()))ms"
+    }
+
+    private func legendRow(color: Color, symbol: String, label: String, boldValue: String? = nil) -> some View {
         HStack(spacing: 6) {
             Image(systemName: symbol)
                 .font(.system(size: 8))
@@ -391,6 +410,11 @@ struct HRVAnalysisView: View {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            if let boldValue {
+                Text(boldValue)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.primary)
+            }
         }
     }
 
