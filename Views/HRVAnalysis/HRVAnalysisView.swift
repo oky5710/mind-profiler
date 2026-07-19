@@ -329,9 +329,11 @@ struct HRVAnalysisView: View {
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
     }
 
-    // 간트 차트 아래 전체 폭을 채우는 상세 패널 — 캘린더 일정이나 수면 막대를 탭하면 뜬다.
+    // 캘린더 일정이나 수면 막대를 탭하면 뜨는 상세 패널 — lineAndGanttChartsStack의 오버레이로
+    // x축 위치에 붙여서 그린다(HRVAnalysisView+Charts.swift). 오버레이라 레이아웃 높이에 영향을
+    // 주지 않고, 그 아래 범례 위에 겹쳐서 나온다.
     @ViewBuilder
-    private var selectedItemDetailPanel: some View {
+    var selectedItemDetailPanel: some View {
         if let event = tooltipCalendarEvent {
             tooltipLabel(for: event)
         } else if let sleepRange = tooltipSleepRange {
@@ -373,7 +375,6 @@ struct HRVAnalysisView: View {
                             .foregroundStyle(.secondary)
                     }
                     lineAndGanttChartsStack
-                    selectedItemDetailPanel
                 }
             }
 
