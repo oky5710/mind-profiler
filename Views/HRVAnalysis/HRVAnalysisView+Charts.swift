@@ -125,8 +125,6 @@ extension HRVAnalysisView {
     }
 
     private static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
-    // 탭해서 선택된 막대가 1.2배(위로 20%)까지 자라야 해서, y축 범위 자체를 1.2까지 늘려둔다.
-    private static let ganttYDomainMax: Double = 1.2
 
     func formattedDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval) / 60
@@ -181,8 +179,9 @@ extension HRVAnalysisView {
                     }
                 }
 
-                // 탭해서 선택된 수면 구간은 시작점(y=0, 간트 차트 기준선)은 그대로 두고 위로 20% 더
-                // 키우고, 흰 막대를 뒤에 깔아 테두리처럼 보이게 해서 더 잘 보이게 한다.
+                // 탭해서 선택된 수면 구간은 흰 막대(전체 높이)를 뒤에 깔고 그 앞에 살짝 안쪽으로 줄인
+                // 색 막대를 그려서 테두리처럼 보이게 한다 — 차트 y축 범위(0...1)는 선택 여부와
+                // 무관하게 그대로라 간트 차트 전체 높이가 바뀌지 않는다.
                 if let selected = tooltipSleepRange {
                     let isShort = selected.end.timeIntervalSince(selected.start) < Self.shortSleepThreshold
 
@@ -190,15 +189,15 @@ extension HRVAnalysisView {
                         xStart: .value("수면 시작", selected.start),
                         xEnd: .value("수면 끝", selected.end),
                         yStart: .value("아래", 0),
-                        yEnd: .value("위", 1.2)
+                        yEnd: .value("위", 1)
                     )
                     .foregroundStyle(.white)
 
                     RectangleMark(
                         xStart: .value("수면 시작", selected.start),
                         xEnd: .value("수면 끝", selected.end),
-                        yStart: .value("아래", 0.02),
-                        yEnd: .value("위", 1.18)
+                        yStart: .value("아래", 0.05),
+                        yEnd: .value("위", 0.95)
                     )
                     .foregroundStyle(isShort ? Color.red : sleepColor)
                 }
@@ -230,40 +229,39 @@ extension HRVAnalysisView {
                     .foregroundStyle(calendarEventColor.opacity(0.35))
                 }
 
-                // 탭해서 선택된 시간 일정도 수면과 같은 방식(시작점 고정, 위로 20% 키움 + 흰 테두리)으로
+                // 탭해서 선택된 시간 일정도 수면과 같은 방식(흰 막대 뒤 + 안쪽으로 줄인 색 막대 앞)으로
                 // 강조한다. 종일 일정(원)은 이미 자체적으로 흰 테두리가 있어 여기 대상이 아니다.
                 if let selected = tooltipCalendarEvent, !selected.isAllDay {
                     RectangleMark(
                         xStart: .value("일정 시작", selected.start),
                         xEnd: .value("일정 끝", selected.end),
                         yStart: .value("아래", 0),
-                        yEnd: .value("위", 1.2)
+                        yEnd: .value("위", 1)
                     )
                     .foregroundStyle(.white)
 
                     RectangleMark(
                         xStart: .value("일정 시작", selected.start),
                         xEnd: .value("일정 끝", selected.end),
-                        yStart: .value("아래", 0.02),
-                        yEnd: .value("위", 1.18)
+                        yStart: .value("아래", 0.05),
+                        yEnd: .value("위", 0.95)
                     )
                     .foregroundStyle(calendarEventColor)
                 }
 
                 ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
                     // 흰 원(뒤, 크게) 위에 일정 색 원(앞, 작게)을 겹쳐서 테두리처럼 보이게 한다 —
-                    // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다. y축 범위가 0...1.2로 늘어난
-                    // 만큼(선택된 막대가 1.2까지 자람) 원의 상대적 높이(90%)도 그대로 유지되도록 맞춘다.
+                    // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다.
                     PointMark(
                         x: .value("날짜", marker.day),
-                        y: .value("위치", Self.ganttYDomainMax * 0.9)
+                        y: .value("위치", 0.9)
                     )
                     .symbolSize(90)
                     .foregroundStyle(.white)
 
                     PointMark(
                         x: .value("날짜", marker.day),
-                        y: .value("위치", Self.ganttYDomainMax * 0.9)
+                        y: .value("위치", 0.9)
                     )
                     .symbolSize(60)
                     .foregroundStyle(allDayEventColor(for: marker.event.category))
@@ -272,7 +270,7 @@ extension HRVAnalysisView {
         }
         .frame(height: ganttChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
-        .chartYScale(domain: 0...Self.ganttYDomainMax)
+        .chartYScale(domain: 0...1)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
