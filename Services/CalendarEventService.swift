@@ -9,6 +9,12 @@ enum CalendarEventServiceError: Error, LocalizedError {
     }
 }
 
+enum CalendarEventCategory: Equatable {
+    case holiday
+    case vacation
+    case general
+}
+
 enum CalendarEventService {
     private static let store = EKEventStore()
 
@@ -20,7 +26,9 @@ enum CalendarEventService {
 
     // HealthKit 쿼리와 달리 EventKit은 조회 기간을 반드시 명시해야 해서(무제한 조회 불가),
     // 차트가 실제로 스크롤해서 볼 법한 범위보다 넉넉하게 과거 1년~미래 3개월로 고정한다.
-    static func fetchEvents() async -> [(title: String, start: Date, end: Date, isAllDay: Bool, location: String?)] {
+    static func fetchEvents() async -> [
+        (title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory)
+    ] {
         let calendar = Calendar.current
         let start = calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date()
         let end = calendar.date(byAdding: .month, value: 3, to: Date()) ?? Date()
@@ -35,9 +43,23 @@ enum CalendarEventService {
                     start: event.startDate,
                     end: event.endDate,
                     isAllDay: event.isAllDay,
-                    location: event.location
+                    location: event.location,
+                    category: category(forCalendarTitle: event.calendar.title)
                 )
             }
         }.value
+    }
+
+    // EventKit에는 "공휴일"/"휴가" 같은 일정 유형 개념이 없어서, 애플이 구독 캘린더로 제공하는
+    // "Holidays in ..." 캘린더 이름과 사용자가 직접 만든 "휴가" 캘린더 이름으로 구분한다.
+    private static func category(forCalendarTitle title: String) -> CalendarEventCategory {
+        let lowercased = title.lowercased()
+        if lowercased.contains("holiday") || title.contains("공휴일") {
+            return .holiday
+        }
+        if lowercased.contains("vacation") || title.contains("휴가") {
+            return .vacation
+        }
+        return .general
     }
 }

@@ -29,7 +29,7 @@ enum HRVChartMode: String, CaseIterable {
         switch self {
         case .hourly: "clock"
         case .daily: "calendar"
-        case .monthly: "calendar.circle"
+        case .monthly: "chart.bar"
         }
     }
 }
@@ -253,6 +253,11 @@ struct HRVAnalysisView: View {
 
     func tooltipLabel(for event: HRVAnalysisViewModel.CalendarEventRange) -> some View {
         VStack(alignment: .leading, spacing: 2) {
+            if event.category != .general {
+                Text(event.category == .holiday ? "공휴일" : "휴가")
+                    .font(.caption2.bold())
+                    .foregroundStyle(allDayEventColor(for: event.category))
+            }
             Text(event.title)
                 .font(.callout.bold())
             Text(calendarEventTimeRangeText(event))

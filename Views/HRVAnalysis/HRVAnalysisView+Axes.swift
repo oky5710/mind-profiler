@@ -4,6 +4,9 @@ import SwiftUI
 // 커스텀 축/스크롤/툴팁 오버레이. Swift Charts 기본 축은 y축 라벨 너비만큼 플롯 영역을 줄이고,
 // 내장 chartScrollableAxes는 이 화면 조합(다중 Chart + 커스텀 축)에서 반응하지 않아 전부 직접 구현했다.
 extension HRVAnalysisView {
+    // 이 값보다 적게 움직인 드래그만 "탭"으로 보고 툴팁을 갱신한다 — 그 이상은 스크롤 의도로 본다.
+    private static let tooltipDragTolerance: CGFloat = 4
+
     // y축 라벨이 차트 레이아웃 공간을 차지하지 않고 고정된 위치에 떠 있어야 한다는 규칙(ui-style.md) 때문에,
     // 기본 제공되는 leading y축(라벨 너비만큼 플롯 영역을 줄임) 대신 y축은 숨기고 직접 오버레이로 그린다.
     func yAxisTicks(upperBound: Double) -> [Double] {
@@ -130,7 +133,7 @@ extension HRVAnalysisView {
                     .contentShape(Rectangle())
                     .gesture(
                         // minimumDistance: 0 — 손가락을 움직이지 않는 단순 탭에서도 onChanged가 즉시 발생해야
-                        // 툴팁/세로선이 뜬다. 스크롤 자체는 변화량(translation)이 거의 0이라 실질적 이동은 없음.
+                        // 툴팁/세로선이 뜬다. 이동량이 커지면(스크롤 의도) 아래에서 툴팁을 감춘다.
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 if dragAnchorPosition == nil {
@@ -145,6 +148,16 @@ extension HRVAnalysisView {
                                 let proposed = anchor.addingTimeInterval(deltaSeconds)
                                 let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-visibleDomain)
                                 hrvScrollPosition = min(proposed, maxStart)
+
+                                // 실제로 스크롤하려고 손가락을 움직이는 중에는 툴팁을 감춘다 — 계속 값이
+                                // 바뀌면서 스크롤과 툴팁 갱신이 뒤섞여 산만해지는 걸 막는다. 제자리에 가까운
+                                // 탭(이동량이 작음)일 때만 툴팁을 갱신한다.
+                                guard abs(value.translation.width) <= Self.tooltipDragTolerance else {
+                                    tooltipPoint = nil
+                                    tooltipCalendarEvent = nil
+                                    tooltipSleepRange = nil
+                                    return
+                                }
 
                                 if !tooltipPoints.isEmpty {
                                     let localX = value.location.x - plotRect.minX

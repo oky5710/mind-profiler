@@ -122,6 +122,30 @@ extension HRVAnalysisView {
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
     }
 
+    func allDayEventColor(for category: CalendarEventCategory) -> Color {
+        switch category {
+        case .holiday: Theme.holiday
+        case .vacation: Theme.vacation
+        case .general: calendarEventColor
+        }
+    }
+
+    // 여러 날짜에 걸친 종일 일정(예: 3일짜리 휴가)은 원 하나로 뭉뚱그리지 않고, 걸치는 날마다
+    // 정오에 원을 하나씩 찍어서 캘린더 앱처럼 날짜별로 표시한다.
+    private var allDayEventDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] {
+        let calendar = Calendar.current
+        return viewModel.calendarEventRanges
+            .filter(\.isAllDay)
+            .flatMap { event -> [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] in
+                let dayCount = max(calendar.dateComponents([.day], from: event.start, to: event.end).day ?? 1, 1)
+                return (0..<dayCount).compactMap { offset in
+                    guard let dayStart = calendar.date(byAdding: .day, value: offset, to: event.start),
+                          let noon = calendar.date(byAdding: .hour, value: 12, to: dayStart) else { return nil }
+                    return (day: noon, event: event)
+                }
+            }
+    }
+
     var ganttChart: some View {
         let visibleDomain = chartMode.visibleDomain
 
@@ -161,8 +185,8 @@ extension HRVAnalysisView {
             }
 
             // 캘린더 일정은 수면/운동과 한 레인에 겹쳐서 표시하되, 시간이 있는 일정과 종일 일정을
-            // 구분해야 해서(둘 다 같은 색이면 종일 일정이 하루 전체를 뒤덮어 다른 막대를 가려버림)
-            // 시간 일정은 전체 높이에 옅게, 종일 일정은 위쪽 얇은 띠에 진하게 그린다.
+            // 다르게 그린다 — 시간 일정은 전체 높이에 옅게 깐 막대, 종일 일정은 겹치는 막대 위에서도
+            // 묻히지 않도록 흰 테두리가 있는 원(날짜당 하나)으로 표시한다.
             if !hiddenSeries.contains(.calendarEvent) {
                 ForEach(viewModel.calendarEventRanges.filter { !$0.isAllDay }) { event in
                     RectangleMark(
@@ -174,14 +198,22 @@ extension HRVAnalysisView {
                     .foregroundStyle(calendarEventColor.opacity(0.35))
                 }
 
-                ForEach(viewModel.calendarEventRanges.filter(\.isAllDay)) { event in
-                    RectangleMark(
-                        xStart: .value("일정 시작", event.start),
-                        xEnd: .value("일정 끝", event.end),
-                        yStart: .value("아래", 0.85),
-                        yEnd: .value("위", 1)
+                ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
+                    // 흰 원(뒤, 크게) 위에 일정 색 원(앞, 작게)을 겹쳐서 테두리처럼 보이게 한다 —
+                    // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다.
+                    PointMark(
+                        x: .value("날짜", marker.day),
+                        y: .value("위치", 0.9)
                     )
-                    .foregroundStyle(calendarEventColor.opacity(0.9))
+                    .symbolSize(90)
+                    .foregroundStyle(.white)
+
+                    PointMark(
+                        x: .value("날짜", marker.day),
+                        y: .value("위치", 0.9)
+                    )
+                    .symbolSize(60)
+                    .foregroundStyle(allDayEventColor(for: marker.event.category))
                 }
             }
         }

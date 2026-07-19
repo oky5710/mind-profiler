@@ -37,6 +37,7 @@ final class HRVAnalysisViewModel {
         let end: Date
         let isAllDay: Bool
         let location: String?
+        let category: CalendarEventCategory
     }
 
     // 탭했을 때 보여줄 수면 단계 구성 — HealthKit은 숫자 "수면 점수"를 안 주기 때문에 대신 이걸 보여준다.
@@ -156,7 +157,8 @@ final class HRVAnalysisViewModel {
                         start: event.start,
                         end: event.end,
                         isAllDay: event.isAllDay,
-                        location: event.location
+                        location: event.location,
+                        category: event.category
                     )
                 }
                 .sorted { $0.start < $1.start }
