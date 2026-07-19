@@ -39,19 +39,25 @@ extension HRVAnalysisView {
         }
     }
 
+    enum AxisLabelVerticalAnchor {
+        case bottom
+        case center
+    }
+
     func chartOverlay(
         proxy: ChartProxy,
         visibleDomain: TimeInterval,
         yAxisTickValues: [Double],
         xAxisTickDates: [Date],
         xAxisLabel: @escaping (Date) -> AnyView,
+        xAxisLabelVerticalAnchor: AxisLabelVerticalAnchor = .bottom,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
-            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
+            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel, labelVerticalAnchor: xAxisLabelVerticalAnchor)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(
                 proxy: proxy,
@@ -315,24 +321,19 @@ extension HRVAnalysisView {
     }
 
     func monthlyAxisLabel(for date: Date) -> some View {
-        let calendar = Calendar.current
-        let cv = viewModel.wearableRMSSDMonthlyStats.first {
-            calendar.isDate($0.monthStart, equalTo: date, toGranularity: .month)
-        }?.cv
-
-        return VStack(spacing: 1) {
-            Text(Self.monthFormatter.string(from: date))
-                .bold()
-            if let cv {
-                Text("CV \(String(format: "%.1f", cv))%")
-            }
-        }
-        .font(.system(size: 9))
-        .tracking(1)
+        Text(Self.monthFormatter.string(from: date))
+            .bold()
+            .font(.system(size: 9))
+            .tracking(1)
     }
 
     // x축 라벨도 y축과 같은 이유(ui-style.md)로 레이아웃 공간을 차지하지 않고 차트 안에 고정 위치로 띄운다.
-    private func xAxisOverlay(proxy: ChartProxy, tickDates: [Date], label: @escaping (Date) -> AnyView) -> some View {
+    private func xAxisOverlay(
+        proxy: ChartProxy,
+        tickDates: [Date],
+        label: @escaping (Date) -> AnyView,
+        labelVerticalAnchor: AxisLabelVerticalAnchor = .bottom
+    ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
                 let plotRect = geo[plotFrame]
@@ -363,9 +364,10 @@ extension HRVAnalysisView {
                             .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
                             if visibleLabelDates.contains(date) {
+                                let labelY = labelVerticalAnchor == .center ? plotRect.midY : plotRect.maxY - 10
                                 label(date)
                                     .padding(.horizontal, 3)
-                                    .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
+                                    .position(x: plotRect.minX + x, y: labelY)
                             }
                         }
                     }

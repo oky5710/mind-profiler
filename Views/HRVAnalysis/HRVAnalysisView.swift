@@ -10,7 +10,9 @@ enum HRVChartMode: String, CaseIterable {
         switch self {
         case .hourly: 24 * 60 * 60
         case .daily: 30 * 24 * 60 * 60
-        case .monthly: 4 * 30 * 24 * 60 * 60
+        // 달 하나가 화면에서 차지하는 폭 자체를 70%로 줄여달라는 요청 — 같은 화면 폭에 더 많은
+        // 달이 보이면 달 하나의 대역폭(bandwidth)이 그만큼 좁아지므로, 보이는 기간을 1/0.7배로 늘린다.
+        case .monthly: (4 * 30 * 24 * 60 * 60) / 0.7
         }
     }
 

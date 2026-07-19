@@ -270,27 +270,30 @@ extension HRVAnalysisView {
         return Chart {
             if !hiddenSeries.contains(.rmssd) {
                 ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
-                    // 주식 차트의 고가-저가 심지처럼, 최소~최대 범위를 얇은 세로선으로.
+                    // 주식 차트의 고가-저가 심지처럼, 최소~최대 범위를 얇은 세로선으로 — 박스보다
+                    // 먼저 그려서 제일 뒤로 보내고, 박스와 겹치는 부분은 박스 아래 가려지게 한다.
                     RuleMark(
                         x: .value("월", stat.monthStart, unit: .month),
                         yStart: .value("최소", stat.min),
                         yEnd: .value("최대", stat.max)
                     )
                     .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    .foregroundStyle(rmssdColor.opacity(0.6))
+                    .foregroundStyle(rmssdColor.opacity(0.5))
 
-                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로.
+                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로 — 심지 위에 겹쳐 그리도록
+                    // 충분히 불투명하게 채워서 박스 구간의 심지가 가려지게 한다.
                     RectangleMark(
                         x: .value("월", stat.monthStart, unit: .month),
                         yStart: .value("1Q", stat.q1),
                         yEnd: .value("3Q", stat.q3),
                         width: .fixed(monthlyBarWidth)
                     )
-                    .foregroundStyle(rmssdColor.opacity(0.35))
+                    .foregroundStyle(rmssdColor.opacity(0.6))
                     .cornerRadius(4)
 
                     // 두께를 그 달 자체의 범위로 계산하면 달마다 들쭉날쭉해지므로, 전체 y축
-                    // 범위 기준 고정 두께로 그려서 박스 안에 굵은 선처럼 보이게 한다.
+                    // 범위 기준 고정 두께로 그려서 박스 안에 굵은 흰 선처럼 보이게 한다. 박스가
+                    // 불투명해진 만큼 같은 색이면 묻히므로 흰색으로 대비를 준다.
                     let halfThickness = max(yAxisUpperBound * 0.01, 0.5)
                     RectangleMark(
                         x: .value("월", stat.monthStart, unit: .month),
@@ -298,7 +301,7 @@ extension HRVAnalysisView {
                         yEnd: .value("중앙값 위", stat.median + halfThickness),
                         width: .fixed(monthlyBarWidth)
                     )
-                    .foregroundStyle(rmssdColor)
+                    .foregroundStyle(.white)
                 }
             }
 
@@ -324,7 +327,8 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
                 xAxisTickDates: monthlyTickDates,
-                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) },
+                xAxisLabelVerticalAnchor: .center
             )
         }
     }
@@ -332,7 +336,8 @@ extension HRVAnalysisView {
     private var monthlyCVChart: some View {
         let visibleDomain = chartMode.visibleDomain
         let maxCV = viewModel.wearableRMSSDMonthlyStats.compactMap(\.cv).max() ?? 0
-        let yAxisUpperBound = max(ceil(maxCV / 10) * 10, 10)
+        // 막대 위에 값(annotation)을 적을 여백이 필요해서, 최댓값보다 넉넉하게 위쪽 여유를 둔다.
+        let yAxisUpperBound = max(ceil(maxCV * 1.35 / 10) * 10, 10)
 
         return Chart {
             if !hiddenSeries.contains(.cv) {
@@ -345,6 +350,11 @@ extension HRVAnalysisView {
                         )
                         .foregroundStyle(Theme.systemTeal)
                         .cornerRadius(4)
+                        .annotation(position: .top) {
+                            Text("\(String(format: "%.1f", cv))%")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -360,7 +370,7 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: [],
                 xAxisTickDates: monthlyTickDates,
-                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+                xAxisLabel: { _ in AnyView(EmptyView()) }
             )
         }
     }
