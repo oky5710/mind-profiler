@@ -86,7 +86,12 @@ struct DayEntrySheet: View {
                 await onSaved()
                 dismiss()
             }
-        case .medication, .event:
+        case .medication:
+            MedicationEntryForm(date: date) {
+                await onSaved()
+                dismiss()
+            }
+        case .event:
             EmptyView()
         }
     }

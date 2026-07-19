@@ -38,6 +38,10 @@ actor APIClient {
         try await send(path: path, method: "POST", body: body, authorized: authorized)
     }
 
+    func delete<Response: Decodable>(_ path: String, authorized: Bool = true) async throws -> Response {
+        try await send(path: path, method: "DELETE", body: Optional<EmptyBody>.none, authorized: authorized)
+    }
+
     private func send<Body: Encodable, Response: Decodable>(
         path: String,
         method: String,

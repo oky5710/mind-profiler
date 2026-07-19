@@ -29,11 +29,15 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | POST | `/coffee` | 커피 기록 생성 | `CoffeeService.logCoffee` / `logQuickCoffee` |
 | GET | `/exercises` | 전체 운동 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑) | `ExerciseService.allExercises` |
 | POST | `/exercises` | 운동 기록 생성 | `ExerciseService.logExercise` |
+| GET | `/medications` | 등록된 약 전체 조회 | `MedicationService.allMedications` |
+| POST | `/medications` | 약 등록(이름+복용 시간대) | `MedicationService.addMedication` |
+| DELETE | `/medications/:id` | 약 삭제(soft delete) | `MedicationService.removeMedication` |
+| POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
 
 ## 아직 안 씀
 
-약복용/이벤트 관련 엔드포인트는 백엔드에 이미 있지만(`mind-chart-backend`의 `medication`/`event`
-모듈 — `POST /medications/logs/quick` 등) iOS 쪽에 `Service`가 아직 없다 —
+이벤트 관련 엔드포인트는 백엔드에 이미 있지만(`mind-chart-backend`의 `event` 모듈) iOS 쪽에
+`Service`가 아직 없다 —
 [features.md](features.md)의 "아직 없음" 항목 구현 시 여기 추가한다.
 (구글 캘린더 관련 엔드포인트는 iOS에서 안 쓴다 — 아래 EventKit 섹션 참고.)
 

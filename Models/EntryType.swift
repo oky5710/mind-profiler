@@ -29,8 +29,8 @@ enum EntryType: String, CaseIterable, Identifiable {
 
     var isImplemented: Bool {
         switch self {
-        case .mood, .coffee, .exam, .exercise: true
-        case .medication, .event: false
+        case .mood, .coffee, .exam, .exercise, .medication: true
+        case .event: false
         }
     }
 }
