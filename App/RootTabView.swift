@@ -13,9 +13,9 @@ struct RootTabView: View {
                     Label("캘린더", systemImage: "calendar")
                 }
 
-            StatisticsView()
+            ReportView()
                 .tabItem {
-                    Label("통계", systemImage: "chart.line.uptrend.xyaxis")
+                    Label("보고서", systemImage: "doc.text.magnifyingglass")
                 }
 
             HRVAnalysisView()

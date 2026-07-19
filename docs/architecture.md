@@ -6,7 +6,7 @@
 - **ViewModels** — `@Observable` + `@MainActor` 클래스. 화면 하나당 하나. `async/await`로 Service를 호출하고 결과를 `@State`로 노출.
 - **Models** — API 요청/응답 Codable 구조체 (`ExamModels`, `MoodModels`, `CoffeeModels`, `AuthModels` 등).
 - **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음.
-- **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `BarChartCard`).
+- **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `SleepDetailPanel`).
 
 View 파일 하나가 너무 커지면(대략 500줄 이상) `extension`으로 여러 파일에 나눠 담는다 — 새 타입/프로토콜을
 만들지 않고 관심사별로만 파일을 쪼갠다 (예: `HRVAnalysisView.swift`의 상태/구성 vs
@@ -35,9 +35,12 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
   (안 하면 앱이 즉시 크래시) 읽기는 하지만, 화면에서는 rMSSD와의 값 차이를 참고만 하도록 옅게(시간별 모드,
   `Theme.systemGray4`) 보여주기만 한다.
 - HealthKit 데이터는 백엔드에 저장하지 않고, 매번 기기에서 읽어와 화면에서만 사용한다 (검사 기록(SDNN·rMSSD 등)·기분·커피 등 사용자가 직접 입력하는 기록만 백엔드에 저장).
-- 애플 워치가 Health 앱에 보여주는 "수면 점수"는 HealthKit 공개 API로 노출되지 않는다 — "오늘의 패턴"의
-  수면 상세 패널에 보이는 추정 점수는 애플이 공개한 가중치 구성을 흉내 낸 자체 계산값이다
-  (`HRVAnalysisViewModel.estimatedSleepScore`). 자세한 내용은 [features.md](features.md) 참고.
+- 애플 워치가 Health 앱에 보여주는 "수면 점수"는 HealthKit 공개 API로 노출되지 않는다 — 수면 상세
+  패널(`SleepDetailPanel`)에 보이는 추정 점수는 애플이 공개한 가중치 구성을 흉내 낸 자체 계산값이다
+  (`SleepAnalysisService`). 자세한 내용은 [features.md](features.md) 참고.
+- 원시 HealthKit 샘플(수면 단계, rMSSD 등)을 화면에 쓸 모양으로 가공하는 순수 계산 로직은
+  `SleepAnalysisService`(수면 구간·추정 점수)와 `HRVStatistics`(중앙값·일별 중앙값·Pearson 상관계수)로
+  분리해뒀다 — "오늘의 패턴"과 "보고서" 화면이 이 계산을 그대로 공유해서 쓴다.
 
 ## EventKit
 
@@ -54,8 +57,11 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 |---|---|---|
 | 진입 화면 | `Views/Home/HomeView.swift` | `HomeViewModel` |
 | 달력보기 | `Views/Calendar/CalendarView.swift` | `CalendarViewModel` |
-| 나의 Trend(통계) | `Views/Statistics/StatisticsView.swift` | `StatisticsViewModel` |
 | 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
+| 보고서 | `Views/Report/ReportView.swift` | `ReportViewModel` |
 | 설정 (SDNN vs rMSSD 분석) | `Views/Settings/SettingsView.swift` | `HRVCorrelationViewModel` |
+
+PRD에는 없던 "보고서" 화면은 정신과 진료용 요약 보고서로, 원래 있던 "나의 Trend"(통계, 기분·커피
+막대그래프만 있던 화면)를 대체했다 — 자세한 내용은 [features.md](features.md) 참고.
 
 아직 포팅되지 않은 화면/기능은 [features.md](features.md) 참고.
