@@ -43,7 +43,8 @@ extension HRVAnalysisView {
         xAxisTickDates: [Date],
         xAxisLabel: @escaping (Date) -> AnyView,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
-        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = []
+        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
+        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
@@ -52,7 +53,8 @@ extension HRVAnalysisView {
                 proxy: proxy,
                 visibleDomain: visibleDomain,
                 tooltipPoints: tooltipPoints,
-                tooltipRanges: tooltipRanges
+                tooltipRanges: tooltipRanges,
+                tooltipSleepRanges: tooltipSleepRanges
             )
         }
     }
@@ -66,7 +68,8 @@ extension HRVAnalysisView {
         proxy: ChartProxy,
         visibleDomain: TimeInterval,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
-        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = []
+        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
+        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
@@ -108,6 +111,20 @@ extension HRVAnalysisView {
                         .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
+                // 수면 툴팁도 캘린더와 같은 방식(탭한 위치가 그 구간 안인지)으로 판단한다.
+                if !tooltipSleepRanges.isEmpty,
+                   let sleepRange = tooltipSleepRange,
+                   let plotFrame = proxy.plotFrame,
+                   let x = proxy.position(forX: sleepRange.start) {
+                    let plotRect = geo[plotFrame]
+                    let clampedLocalX = min(
+                        max(x, estimatedTooltipHalfWidth),
+                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                    )
+                    tooltipLabel(for: sleepRange)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
+                }
+
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
@@ -142,6 +159,15 @@ extension HRVAnalysisView {
                                     let localX = value.location.x - plotRect.minX
                                     if let touchedDate: Date = proxy.value(atX: localX) {
                                         tooltipCalendarEvent = tooltipRanges.first {
+                                            $0.start <= touchedDate && touchedDate <= $0.end
+                                        }
+                                    }
+                                }
+
+                                if !tooltipSleepRanges.isEmpty {
+                                    let localX = value.location.x - plotRect.minX
+                                    if let touchedDate: Date = proxy.value(atX: localX) {
+                                        tooltipSleepRange = tooltipSleepRanges.first {
                                             $0.start <= touchedDate && touchedDate <= $0.end
                                         }
                                     }

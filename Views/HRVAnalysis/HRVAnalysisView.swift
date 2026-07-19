@@ -1,6 +1,17 @@
 import Charts
 import SwiftUI
 
+private extension HealthKitService.SleepStage {
+    var label: String {
+        switch self {
+        case .deep: "깊은 수면"
+        case .rem: "렘(REM)"
+        case .core: "코어"
+        case .unspecified: "수면(단계 미상)"
+        }
+    }
+}
+
 enum HRVChartMode: String, CaseIterable {
     case hourly = "시간별"
     case daily = "일별"
@@ -61,6 +72,7 @@ struct HRVAnalysisView: View {
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
+    @State var tooltipSleepRange: HRVAnalysisViewModel.SleepRange?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -156,6 +168,7 @@ struct HRVAnalysisView: View {
                     // 탭했을 때만 걸린다.
                     tooltipPoint = nil
                     tooltipCalendarEvent = nil
+                    tooltipSleepRange = nil
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -178,6 +191,7 @@ struct HRVAnalysisView: View {
             hrvScrollPosition = latestVisibleEnd(for: newMode).addingTimeInterval(-newMode.visibleDomain)
             tooltipPoint = nil
             tooltipCalendarEvent = nil
+            tooltipSleepRange = nil
             recomputeRange()
         }
         .refreshable {
@@ -260,6 +274,37 @@ struct HRVAnalysisView: View {
             return "\(Self.monthDayFormatter.string(from: event.start)) 종일"
         }
         return "\(Self.tooltipDateFormatter.string(from: event.start)) ~ \(Self.hourMinuteFormatter.string(from: event.end))"
+    }
+
+    // 단계별로 보여줄 순서 — 중요도가 높은 깊은 수면/렘을 앞에 둔다.
+    private static let sleepStageDisplayOrder: [HealthKitService.SleepStage] = [.deep, .rem, .core, .unspecified]
+
+    func tooltipLabel(for sleepRange: HRVAnalysisViewModel.SleepRange) -> some View {
+        let totalDuration = sleepRange.end.timeIntervalSince(sleepRange.start)
+        let trackedDuration = sleepRange.stageDurations.values.reduce(0, +)
+        let awakeDuration = max(0, totalDuration - trackedDuration)
+
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(
+                "\(formattedDuration(totalDuration)) · \(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
+            )
+            .font(.callout.bold())
+            ForEach(Self.sleepStageDisplayOrder, id: \.self) { stage in
+                if let duration = sleepRange.stageDurations[stage] {
+                    Text("\(stage.label) \(formattedDuration(duration))")
+                        .font(.caption2)
+                }
+            }
+            if awakeDuration >= 60 {
+                Text("깨어있음 \(formattedDuration(awakeDuration))")
+                    .font(.caption2)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 8))
+        .fixedSize()
     }
 
     private var hrvChartBody: some View {

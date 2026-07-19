@@ -39,6 +39,14 @@ final class HRVAnalysisViewModel {
         let location: String?
     }
 
+    // 탭했을 때 보여줄 수면 단계 구성 — HealthKit은 숫자 "수면 점수"를 안 주기 때문에 대신 이걸 보여준다.
+    struct SleepRange: Identifiable {
+        let id = UUID()
+        let start: Date
+        let end: Date
+        let stageDurations: [HealthKitService.SleepStage: TimeInterval]
+    }
+
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
     private static let hrvGapThresholdHourly: TimeInterval = 3 * 60 * 60
     private static let hrvGapThresholdDaily: TimeInterval = 1.5 * 24 * 60 * 60
@@ -59,7 +67,7 @@ final class HRVAnalysisViewModel {
     // 최근 30일 rMSSD 중앙값 — 라인 차트에 점선으로 표시.
     private(set) var recentThirtyDayRMSSDMedian: Double?
     private(set) var exerciseRanges: [RangeInterval] = []
-    private(set) var sleepRanges: [RangeInterval] = []
+    private(set) var sleepRanges: [SleepRange] = []
     private(set) var isHealthKitAuthorized = false
     private(set) var isLoadingHealthKit = false
     private(set) var healthKitErrorMessage: String?
@@ -108,7 +116,7 @@ final class HRVAnalysisViewModel {
             try await HealthKitService.requestAuthorization()
 
             async let workouts = HealthKitService.fetchWorkoutRanges()
-            async let sleep = HealthKitService.fetchSleepRanges()
+            async let sleep = HealthKitService.fetchSleepStageSamples()
             async let rmssd = HealthKitService.fetchRMSSDSamples()
             async let sdnn = HealthKitService.fetchSDNNSamples()
             let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples) = try await (workouts, sleep, rmssd, sdnn)
@@ -126,8 +134,7 @@ final class HRVAnalysisViewModel {
             let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : Self.median(recentRMSSDValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
-            sleepRanges = Self.mergeCloseRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
-                .map { RangeInterval(start: $0.start, end: $0.end) }
+            sleepRanges = Self.buildSleepRanges(sleepSamples, maxGap: Self.sleepMergeGapThreshold)
             isHealthKitAuthorized = true
         } catch {
             healthKitErrorMessage = error.localizedDescription
@@ -159,20 +166,38 @@ final class HRVAnalysisViewModel {
         }
     }
 
-    private static func mergeCloseRanges(
-        _ ranges: [(start: Date, end: Date)],
+    // 자다가 잠깐 깨는 간격(maxGap 이내)은 별도 수면으로 쪼개지 않고 하나로 합치되, 합쳐진 구간 안에서
+    // 단계별로 실제 잔 시간이 얼마인지는 그대로 유지해서 탭했을 때 보여준다.
+    private static func buildSleepRanges(
+        _ samples: [(start: Date, end: Date, stage: HealthKitService.SleepStage)],
         maxGap: TimeInterval
-    ) -> [(start: Date, end: Date)] {
-        let sorted = ranges.sorted { $0.start < $1.start }
-        var merged: [(start: Date, end: Date)] = []
-        for range in sorted {
-            if let last = merged.last, range.start.timeIntervalSince(last.end) <= maxGap {
-                merged[merged.count - 1].end = max(last.end, range.end)
-            } else {
-                merged.append(range)
+    ) -> [SleepRange] {
+        let sorted = samples.sorted { $0.start < $1.start }
+        var ranges: [SleepRange] = []
+        var currentGroup: [(start: Date, end: Date, stage: HealthKitService.SleepStage)] = []
+        var currentGroupEnd: Date?
+
+        func flushGroup() {
+            guard let start = currentGroup.map(\.start).min(), let end = currentGroupEnd else { return }
+            var durations: [HealthKitService.SleepStage: TimeInterval] = [:]
+            for sample in currentGroup {
+                durations[sample.stage, default: 0] += sample.end.timeIntervalSince(sample.start)
             }
+            ranges.append(SleepRange(start: start, end: end, stageDurations: durations))
+            currentGroup = []
+            currentGroupEnd = nil
         }
-        return merged
+
+        for sample in sorted {
+            if let groupEnd = currentGroupEnd, sample.start.timeIntervalSince(groupEnd) > maxGap {
+                flushGroup()
+            }
+            currentGroup.append(sample)
+            currentGroupEnd = max(currentGroupEnd ?? sample.end, sample.end)
+        }
+        flushGroup()
+
+        return ranges
     }
 
     private static func segmentByGap(_ samples: [(Date, Double)], gapThreshold: TimeInterval) -> [HRVPoint] {

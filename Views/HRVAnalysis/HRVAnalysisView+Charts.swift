@@ -117,7 +117,7 @@ extension HRVAnalysisView {
 
     private static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
-    private func formattedDuration(_ interval: TimeInterval) -> String {
+    func formattedDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval) / 60
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
     }
@@ -197,7 +197,8 @@ extension HRVAnalysisView {
                 yAxisTickValues: [],
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges
+                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges,
+                tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges
             )
         }
     }

@@ -12,12 +12,21 @@ enum HealthKitError: Error, LocalizedError {
 enum HealthKitService {
     private static let store = HKHealthStore()
 
-    private static let asleepValues: Set<Int> = [
-        HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
-        HKCategoryValueSleepAnalysis.asleepCore.rawValue,
-        HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
-        HKCategoryValueSleepAnalysis.asleepREM.rawValue,
-    ]
+    // HealthKit은 숫자 "수면 점수"를 공개 API로 제공하지 않아(애플워치 자체 수면 앱의 내부 지표),
+    // 대신 탭했을 때 보여줄 수 있는 건 단계별(코어/깊은/렘) 시간 구성이다.
+    enum SleepStage: String, CaseIterable {
+        case core, deep, rem, unspecified
+
+        fileprivate init?(categoryValue: Int) {
+            switch categoryValue {
+            case HKCategoryValueSleepAnalysis.asleepCore.rawValue: self = .core
+            case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: self = .deep
+            case HKCategoryValueSleepAnalysis.asleepREM.rawValue: self = .rem
+            case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue: self = .unspecified
+            default: return nil
+            }
+        }
+    }
 
     static func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -169,7 +178,10 @@ enum HealthKitService {
         }
     }
 
-    static func fetchSleepRanges() async throws -> [(start: Date, end: Date)] {
+    // 수면 단계(코어/깊은/렘/미상)가 붙은 상태로 원시 샘플을 그대로 반환한다 — 각성/침대에 누움 값은
+    // SleepStage(categoryValue:)가 nil을 반환해 자동으로 걸러진다. 막대 구간 병합과 단계별 시간 집계는
+    // 호출부(HRVAnalysisViewModel)에서 처리한다.
+    static func fetchSleepStageSamples() async throws -> [(start: Date, end: Date, stage: SleepStage)] {
         let sleepType = HKCategoryType(.sleepAnalysis)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
@@ -184,10 +196,12 @@ enum HealthKitService {
                     continuation.resume(throwing: error)
                     return
                 }
-                let ranges = (samples as? [HKCategorySample] ?? [])
-                    .filter { asleepValues.contains($0.value) }
-                    .map { (start: $0.startDate, end: $0.endDate) }
-                continuation.resume(returning: ranges)
+                let stageSamples = (samples as? [HKCategorySample] ?? [])
+                    .compactMap { sample -> (start: Date, end: Date, stage: SleepStage)? in
+                        guard let stage = SleepStage(categoryValue: sample.value) else { return nil }
+                        return (start: sample.startDate, end: sample.endDate, stage: stage)
+                    }
+                continuation.resume(returning: stageSamples)
             }
             store.execute(query)
         }
