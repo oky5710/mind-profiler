@@ -60,10 +60,10 @@ final class ReportViewModel {
         let restDayAverageRMSSD: Double?
     }
 
-    // 선택 기간 동안의 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서 온
-    // 값이라 하나라도 없을 수 있다(예: rMSSD 계산용 원시 박동 시리즈가 없는 기기/기간).
+    // 선택 기간 동안의 안정시 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서
+    // 온 값이라 하나라도 없을 수 있다(예: rMSSD 계산용 원시 박동 시리즈가 없는 기기/기간).
     struct VitalMedians {
-        let heartRate: Double?
+        let restingHeartRate: Double?
         let sdnn: Double?
         let rmssd: Double?
     }
@@ -109,7 +109,7 @@ final class ReportViewModel {
             async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples()
             async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples()
             async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples()
-            async let heartRateSamplesTask = HealthKitService.fetchHeartRateSamples()
+            async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples()
             async let pairsTask = HealthKitService.fetchSDNNRMSSDPairs()
             async let workoutsTask = HealthKitService.fetchWorkoutRanges()
             async let moodsTask = MoodService.allMoods()
@@ -117,10 +117,10 @@ final class ReportViewModel {
             async let calendarEventsTask = Self.fetchCalendarEventsSafely()
 
             let (
-                allSleepSamples, allRMSSDSamples, allSDNNSamples, allHeartRateSamples,
+                allSleepSamples, allRMSSDSamples, allSDNNSamples, allRestingHeartRateSamples,
                 allPairs, allWorkouts, allMoods, allCoffees, calendarEvents
             ) = try await (
-                sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, heartRateSamplesTask,
+                sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, restingHeartRateSamplesTask,
                 pairsTask, workoutsTask, moodsTask, coffeesTask, calendarEventsTask
             )
 
@@ -149,9 +149,9 @@ final class ReportViewModel {
             )
 
             let periodSDNN = allSDNNSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
-            let periodHeartRate = allHeartRateSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
+            let periodRestingHeartRate = allRestingHeartRateSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
             vitalMedians = VitalMedians(
-                heartRate: periodHeartRate.isEmpty ? nil : HRVStatistics.median(periodHeartRate),
+                restingHeartRate: periodRestingHeartRate.isEmpty ? nil : HRVStatistics.median(periodRestingHeartRate),
                 sdnn: periodSDNN.isEmpty ? nil : HRVStatistics.median(periodSDNN),
                 rmssd: periodRMSSD.isEmpty ? nil : HRVStatistics.median(periodRMSSD.map(\.value))
             )

@@ -94,11 +94,12 @@ struct ReportView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("기간 요약").font(.system(size: 13.6, weight: .semibold))
 
-            if let vitals = viewModel.vitalMedians, vitals.heartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
+            if let vitals = viewModel.vitalMedians,
+               vitals.restingHeartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
                     GridRow {
-                        Text("심박수 중앙값").font(.footnote).foregroundStyle(.secondary)
-                        Text(vitals.heartRate.map { "\(Int($0.rounded()))bpm" } ?? "—").font(.footnote)
+                        Text("안정시 심박수 중앙값").font(.footnote).foregroundStyle(.secondary)
+                        Text(vitals.restingHeartRate.map { "\(Int($0.rounded()))bpm" } ?? "—").font(.footnote)
                     }
                     GridRow {
                         Text("SDNN 중앙값").font(.footnote).foregroundStyle(.secondary)
