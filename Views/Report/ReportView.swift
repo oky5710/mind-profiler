@@ -38,6 +38,7 @@ struct ReportView: View {
                         HeartLoader(height: 200)
                     } else if viewModel.hasAnalyzed {
                         sleepSection
+                        cvSection
                         rmssdSection
                         sdnnRmssdSection
                         correlationSection
@@ -131,6 +132,49 @@ struct ReportView: View {
                     }
             }
         }
+    }
+
+    // MARK: - 변동계수 (CV)
+
+    private var cvSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("변동계수 (CV)").font(.system(size: 13.6, weight: .semibold))
+
+            if let findings = viewModel.cvFindings {
+                Text("변동계수 \(String(format: "%.1f", findings.overallCV))%")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                cvChart(findings)
+            } else {
+                Text("해당 기간에 rMSSD 데이터가 없어요")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func cvChart(_ findings: ReportViewModel.CVFindings) -> some View {
+        Chart {
+            // AreaMark를 먼저 그려서 뒤에 깔고, LineMark를 나중에 그려서 그 위로 보이게 한다
+            // (Swift Charts는 먼저 선언된 마크 위에 나중 마크를 겹쳐 그린다).
+            ForEach(findings.dailyPoints) { point in
+                AreaMark(
+                    x: .value("날짜", point.date, unit: .day),
+                    yStart: .value("평균-표준편차", point.lowerBand),
+                    yEnd: .value("평균+표준편차", point.upperBand)
+                )
+                .foregroundStyle(Theme.rmssd.opacity(0.15))
+            }
+            ForEach(findings.dailyPoints) { point in
+                LineMark(
+                    x: .value("날짜", point.date, unit: .day),
+                    y: .value("일별 평균", point.mean)
+                )
+                .foregroundStyle(Theme.rmssd)
+            }
+        }
+        .frame(height: 180)
+        .chartYAxisLabel("rMSSD (ms)")
     }
 
     // MARK: - rMSSD

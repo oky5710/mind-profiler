@@ -13,6 +13,26 @@ enum HRVStatistics {
         return sorted[count / 2]
     }
 
+    static func mean(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    // 표본 표준편차(n-1로 나눔) — 값이 1개 이하면 편차를 정의할 수 없어 0으로 둔다.
+    static func standardDeviation(_ values: [Double]) -> Double {
+        guard values.count > 1 else { return 0 }
+        let m = mean(values)
+        let sumSquaredDiffs = values.reduce(0.0) { $0 + ($1 - m) * ($1 - m) }
+        return (sumSquaredDiffs / Double(values.count - 1)).squareRoot()
+    }
+
+    // 변동계수(CV) = 표준편차 ÷ 평균 × 100.
+    static func coefficientOfVariation(_ values: [Double]) -> Double? {
+        let m = mean(values)
+        guard m != 0 else { return nil }
+        return standardDeviation(values) / m * 100
+    }
+
     static func dailyMedian(_ samples: [(date: Date, value: Double)]) -> [(date: Date, value: Double)] {
         var groups: [Date: [Double]] = [:]
         for sample in samples {

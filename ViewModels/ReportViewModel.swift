@@ -22,6 +22,23 @@ final class ReportViewModel {
         var difference: Double { abs(sdnn - rmssd) }
     }
 
+    // 변동계수(CV) = 표준편차 ÷ 평균 × 100 — rMSSD 기준.
+    struct CVFindings {
+        // 기간 내 모든 원시(시간별) rMSSD 샘플 분포로 계산한 전체 변동계수(%).
+        let overallCV: Double
+        let dailyPoints: [CVDailyPoint]
+    }
+
+    struct CVDailyPoint: Identifiable {
+        let date: Date
+        // 그날 원시 샘플들의 평균 — 라인차트로 그린다.
+        let mean: Double
+        // 그날을 포함한 이전 7일 원시 샘플 전체의 표준편차로 만든 밴드(평균 ± 표준편차).
+        let lowerBand: Double
+        let upperBand: Double
+        var id: Date { date }
+    }
+
     struct CorrelationFindings {
         // 기분 점수 vs 그날 rMSSD 중앙값의 Pearson 상관계수.
         let moodRMSSDCorrelation: Double?
@@ -43,6 +60,7 @@ final class ReportViewModel {
     private(set) var sleepRanges: [SleepRange] = []
     private(set) var averageSleepDuration: TimeInterval?
     private(set) var averageSleepScore: Double?
+    private(set) var cvFindings: CVFindings?
     private(set) var rmssdFindings: RMSSDLowestFindings?
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var correlationFindings: CorrelationFindings?
@@ -97,6 +115,7 @@ final class ReportViewModel {
             }
 
             let periodRMSSD = allRMSSDSamples.filter { $0.date >= start && $0.date < end }
+            cvFindings = Self.computeCVFindings(periodRMSSD: periodRMSSD, allRMSSDSamples: allRMSSDSamples)
             rmssdFindings = Self.computeRMSSDFindings(periodRMSSD)
 
             let periodPairs = allPairs.filter { $0.date >= start && $0.date < end }
@@ -121,6 +140,47 @@ final class ReportViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // 전체 CV는 기간 안의 원시 샘플만으로 계산하지만, 일별 평균의 롤링 표준편차 밴드는 기간 시작일
+    // 근처도 온전한 7일 창을 갖도록 기간 제한이 없는 allRMSSDSamples에서 과거 데이터를 끌어와 쓴다.
+    private static func computeCVFindings(
+        periodRMSSD: [(date: Date, value: Double)],
+        allRMSSDSamples: [(date: Date, value: Double)]
+    ) -> CVFindings? {
+        guard !periodRMSSD.isEmpty else { return nil }
+        let calendar = Calendar.current
+
+        guard let overallCV = HRVStatistics.coefficientOfVariation(periodRMSSD.map(\.value)) else { return nil }
+
+        var samplesByDay: [Date: [Double]] = [:]
+        for sample in allRMSSDSamples {
+            samplesByDay[calendar.startOfDay(for: sample.date), default: []].append(sample.value)
+        }
+
+        let periodDays = Set(periodRMSSD.map { calendar.startOfDay(for: $0.date) }).sorted()
+
+        let dailyPoints: [CVDailyPoint] = periodDays.compactMap { day -> CVDailyPoint? in
+            guard let dayValues = samplesByDay[day], !dayValues.isEmpty,
+                  let windowStart = calendar.date(byAdding: .day, value: -6, to: day) else { return nil }
+
+            var windowValues: [Double] = []
+            var cursor = windowStart
+            while cursor <= day {
+                if let values = samplesByDay[cursor] {
+                    windowValues.append(contentsOf: values)
+                }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+                cursor = next
+            }
+
+            let dayMean = HRVStatistics.mean(dayValues)
+            let windowSD = HRVStatistics.standardDeviation(windowValues)
+
+            return CVDailyPoint(date: day, mean: dayMean, lowerBand: dayMean - windowSD, upperBand: dayMean + windowSD)
+        }
+
+        return CVFindings(overallCV: overallCV, dailyPoints: dailyPoints)
     }
 
     private static func computeRMSSDFindings(_ samples: [(date: Date, value: Double)]) -> RMSSDLowestFindings? {
