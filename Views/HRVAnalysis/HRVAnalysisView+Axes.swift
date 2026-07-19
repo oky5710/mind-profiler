@@ -65,6 +65,23 @@ extension HRVAnalysisView {
         }
     }
 
+    // 선택된 Gantt 막대(캘린더 일정/수면 구간) 강조용 그림자 도형 — 차트 마크 자체는 shadow()를
+    // 지원하지 않아서, 같은 위치·크기·색으로 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 대신 그림자를 준다.
+    @ViewBuilder
+    private func selectionShadow(start: Date, end: Date, color: Color, proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        if let plotFrame = proxy.plotFrame,
+           let x0 = proxy.position(forX: start), let x1 = proxy.position(forX: end),
+           let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+            let plotRect = geo[plotFrame]
+            RoundedRectangle(cornerRadius: 4)
+                .fill(color)
+                .frame(width: abs(x1 - x0), height: abs(y1 - y0))
+                .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
+                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+                .allowsHitTesting(false)
+        }
+    }
+
     // MARK: - 직접 구현한 드래그 스크롤
     // Swift Charts 내장 chartScrollableAxes가 이 환경에서 잘 반응하지 않아,
     // 드래그 위치를 직접 계산해서 hrvScrollPosition(보이는 구간의 시작 시각)을 갱신함.
@@ -111,31 +128,13 @@ extension HRVAnalysisView {
                 // HRVAnalysisView.swift의 selectedItemDetailPanel이 간트 차트 아래 전체 폭으로 그린다.
                 // 대신 선택된 막대에는 그림자를 준다 — 차트 마크 자체는 shadow()를 지원하지 않아서,
                 // 같은 위치·크기·색으로 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 그 도형에 그림자를 준다.
-                if !tooltipRanges.isEmpty, let event = tooltipCalendarEvent, !event.isAllDay,
-                   let plotFrame = proxy.plotFrame,
-                   let x0 = proxy.position(forX: event.start), let x1 = proxy.position(forX: event.end),
-                   let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
-                    let plotRect = geo[plotFrame]
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(calendarEventColor)
-                        .frame(width: abs(x1 - x0), height: abs(y1 - y0))
-                        .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
-                        .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
-                        .allowsHitTesting(false)
+                if !tooltipRanges.isEmpty, let event = tooltipCalendarEvent, !event.isAllDay {
+                    selectionShadow(start: event.start, end: event.end, color: calendarEventColor, proxy: proxy, geo: geo)
                 }
 
-                if !tooltipSleepRanges.isEmpty, let sleepRange = tooltipSleepRange,
-                   let plotFrame = proxy.plotFrame,
-                   let x0 = proxy.position(forX: sleepRange.start), let x1 = proxy.position(forX: sleepRange.end),
-                   let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
-                    let plotRect = geo[plotFrame]
+                if !tooltipSleepRanges.isEmpty, let sleepRange = tooltipSleepRange {
                     let isShort = sleepRange.end.timeIntervalSince(sleepRange.start) < Self.shortSleepThreshold
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isShort ? Color.red : sleepColor)
-                        .frame(width: abs(x1 - x0), height: abs(y1 - y0))
-                        .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
-                        .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
-                        .allowsHitTesting(false)
+                    selectionShadow(start: sleepRange.start, end: sleepRange.end, color: isShort ? .red : sleepColor, proxy: proxy, geo: geo)
                 }
 
                 Rectangle()

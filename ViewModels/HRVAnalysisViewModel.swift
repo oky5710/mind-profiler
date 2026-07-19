@@ -178,13 +178,8 @@ final class HRVAnalysisViewModel {
     }
 
     private static func dailyMedian(_ samples: [(Date, Double)]) -> [(Date, Double)] {
-        var groups: [Date: [Double]] = [:]
-        for (date, value) in samples {
-            groups[Calendar.current.startOfDay(for: date), default: []].append(value)
-        }
-        return groups
-            .map { (day, values) in (day, HRVStatistics.median(values)) }
-            .sorted { $0.0 < $1.0 }
+        HRVStatistics.dailyMedian(samples.map { (date: $0.0, value: $0.1) })
+            .map { ($0.date, $0.value) }
     }
 
     private static func monthlyStats(_ samples: [(Date, Double)]) -> [MonthlyHRVStat] {

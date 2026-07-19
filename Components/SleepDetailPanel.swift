@@ -35,13 +35,6 @@ struct SleepDetailPanel: View {
         let color: Color
     }
 
-    private static let hourMinuteFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     // 각성(수면 중 깬 시간)은 수면 단계가 아니라 "그 나머지"라서, 단계 색과 헷갈리지 않게 무채색으로 둔다.
     private var slices: [Slice] {
         var slices = SleepAnalysisService.stageDisplayOrder.compactMap { stage -> Slice? in
@@ -67,7 +60,7 @@ struct SleepDetailPanel: View {
             Text(
                 "\(HRVAnalysisView.monthDayFormatter.string(from: sleepRange.start)) · " +
                     "\(SleepAnalysisService.formattedDuration(totalDuration)) · " +
-                    "\(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
+                    "\(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.end))"
             )
             .font(.caption2)
 

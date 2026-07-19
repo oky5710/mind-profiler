@@ -37,7 +37,7 @@ enum HRVStatistics {
     static func quartiles(_ values: [Double]) -> (q1: Double, median: Double, q3: Double) {
         let sorted = values.sorted()
         guard !sorted.isEmpty else { return (0, 0, 0) }
-        return (percentile(sorted, 0.25), percentile(sorted, 0.5), percentile(sorted, 0.75))
+        return (percentile(sorted, 0.25), median(sorted), percentile(sorted, 0.75))
     }
 
     private static func percentile(_ sortedValues: [Double], _ fraction: Double) -> Double {
