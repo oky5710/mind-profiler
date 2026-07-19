@@ -60,9 +60,9 @@ enum HRVSeries: String, CaseIterable, Identifiable {
     // 영향을 주는 지표만 범례에 노출한다 — 안 그러면 토글해도 아무 변화가 없는 항목이 보인다.
     func appliesTo(_ mode: HRVChartMode) -> Bool {
         switch self {
-        case .rmssd, .examRmssd: true
+        case .rmssd, .examRmssd, .median: true
         case .sdnn: mode == .hourly
-        case .median, .sleep, .exercise, .calendarEvent: mode != .monthly
+        case .sleep, .exercise, .calendarEvent: mode != .monthly
         case .cv: mode == .monthly
         }
     }

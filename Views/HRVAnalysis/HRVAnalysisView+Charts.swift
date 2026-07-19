@@ -313,6 +313,12 @@ extension HRVAnalysisView {
                     .foregroundStyle(examRmssdColor)
                 }
             }
+
+            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayRMSSDMedian {
+                RuleMark(y: .value("최근 30일 중앙값", median))
+                    .foregroundStyle(.gray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
         }
         .frame(height: lineChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
