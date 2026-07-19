@@ -284,10 +284,7 @@ struct HRVAnalysisView: View {
                     closeButton { tooltipCalendarEvent = nil }
                 }
         } else if let sleepRange = tooltipSleepRange {
-            SleepDetailPanel(sleepRange: sleepRange)
-                .overlay(alignment: .topTrailing) {
-                    closeButton { tooltipSleepRange = nil }
-                }
+            SleepDetailPanel(sleepRange: sleepRange) { tooltipSleepRange = nil }
         }
     }
 

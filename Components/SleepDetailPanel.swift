@@ -23,8 +23,10 @@ private extension HealthKitService.SleepStage {
 
 // 수면 막대(오늘의 패턴 Gantt 차트, 보고서 막대그래프)를 탭했을 때 보여주는 상세 카드 — 추정 수면
 // 점수, 총 수면 시간, 단계별(코어/깊은/렘/미상) 구성 도넛 차트를 보여준다. 두 화면이 그대로 공유해서 쓴다.
+// 닫기 버튼도 이 컴포넌트에 포함돼 있어서, 쓰는 화면마다 따로 만들 필요 없이 onClose만 넘기면 된다.
 struct SleepDetailPanel: View {
     let sleepRange: SleepRange
+    let onClose: () -> Void
 
     private struct Slice: Identifiable {
         let id: String
@@ -63,7 +65,8 @@ struct SleepDetailPanel: View {
             Text("추정 수면 점수 \(sleepRange.estimatedScore)점 · \(SleepAnalysisService.scoreLabel(sleepRange.estimatedScore))")
                 .font(.subheadline.bold())
             Text(
-                "\(SleepAnalysisService.formattedDuration(totalDuration)) · " +
+                "\(HRVAnalysisView.monthDayFormatter.string(from: sleepRange.start)) · " +
+                    "\(SleepAnalysisService.formattedDuration(totalDuration)) · " +
                     "\(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
             )
             .font(.caption2)
@@ -102,5 +105,14 @@ struct SleepDetailPanel: View {
         // 라이트 모드에서는 배경이 흰색에 가까워 테두리가 없으면 카드가 안 보일 수 있다.
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.15), lineWidth: 1))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+        .overlay(alignment: .topTrailing) {
+            Button(action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 20))
+                    .foregroundStyle(.gray)
+            }
+            .padding(8)
+        }
     }
 }
