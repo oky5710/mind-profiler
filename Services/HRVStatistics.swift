@@ -33,6 +33,22 @@ enum HRVStatistics {
         return standardDeviation(values) / m * 100
     }
 
+    // 선형 보간 방식(Type 7, numpy 기본값과 동일)의 백분위수 — 값이 비어 있으면 0.
+    static func quartiles(_ values: [Double]) -> (q1: Double, median: Double, q3: Double) {
+        let sorted = values.sorted()
+        guard !sorted.isEmpty else { return (0, 0, 0) }
+        return (percentile(sorted, 0.25), percentile(sorted, 0.5), percentile(sorted, 0.75))
+    }
+
+    private static func percentile(_ sortedValues: [Double], _ fraction: Double) -> Double {
+        guard sortedValues.count > 1 else { return sortedValues.first ?? 0 }
+        let rank = fraction * Double(sortedValues.count - 1)
+        let lowerIndex = Int(rank)
+        let upperIndex = min(lowerIndex + 1, sortedValues.count - 1)
+        let interpolation = rank - Double(lowerIndex)
+        return sortedValues[lowerIndex] + (sortedValues[upperIndex] - sortedValues[lowerIndex]) * interpolation
+    }
+
     static func dailyMedian(_ samples: [(date: Date, value: Double)]) -> [(date: Date, value: Double)] {
         var groups: [Date: [Double]] = [:]
         for sample in samples {

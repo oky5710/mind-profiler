@@ -25,7 +25,7 @@ enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, sleep, exercise, median, sdnn, calendarEvent
+    case rmssd, examRmssd, sleep, exercise, median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
     var label: String {
@@ -37,6 +37,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .median: "최근 30일 중앙값"
         case .sdnn: "SDNN (참고용, 시간별)"
         case .calendarEvent: "캘린더"
+        case .cv: "변동계수 (CV)"
         }
     }
 
@@ -49,6 +50,18 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .median: "minus"
         case .sdnn: "minus"
         case .calendarEvent: "square.fill"
+        case .cv: "chart.bar.fill"
+        }
+    }
+
+    // 시간별/일별/월별 모드가 서로 다른 차트 조합을 그리므로, 그 모드에서 실제로
+    // 영향을 주는 지표만 범례에 노출한다 — 안 그러면 토글해도 아무 변화가 없는 항목이 보인다.
+    func appliesTo(_ mode: HRVChartMode) -> Bool {
+        switch self {
+        case .rmssd, .examRmssd: true
+        case .sdnn: mode == .hourly
+        case .median, .sleep, .exercise, .calendarEvent: mode != .monthly
+        case .cv: mode == .monthly
         }
     }
 }
@@ -353,7 +366,7 @@ struct HRVAnalysisView: View {
 
     private var legend: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
-            ForEach(HRVSeries.allCases) { series in
+            ForEach(HRVSeries.allCases.filter { $0.appliesTo(chartMode) }) { series in
                 Button {
                     toggleSeries(series)
                     tooltipCalendarEvent = nil
@@ -396,6 +409,7 @@ struct HRVAnalysisView: View {
         case .median: .gray
         case .sdnn: Theme.systemGray4
         case .calendarEvent: calendarEventColor
+        case .cv: Theme.systemTeal
         }
     }
 }

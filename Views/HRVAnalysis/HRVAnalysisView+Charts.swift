@@ -242,32 +242,64 @@ extension HRVAnalysisView {
         }
     }
 
+    // 월별 모드는 주식 차트의 캔들스틱처럼 위쪽엔 rMSSD 최소~최대(심지)+1Q~3Q(몸통)+중앙값을,
+    // 원래 간트 차트가 있던 아래쪽엔 그 달의 CV(변동계수)를 막대로 보여준다.
     var monthlyChart: some View {
+        VStack(spacing: 8) {
+            monthlyCandlestickChart
+            monthlyCVChart
+        }
+        .background {
+            // 막대 너비 = bandwidth(달 하나가 차지하는 폭)의 50%를 다시 70%로 줄인 값, 10~30px로 clamp.
+            // plot 폭은 축을 숨겨서 프레임 전체와 같으므로, 컨테이너 폭을 그대로 plot 폭으로 쓴다.
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { updateMonthlyBarWidth(plotWidth: geo.size.width) }
+                    .onChange(of: geo.size.width) { _, newWidth in
+                        updateMonthlyBarWidth(plotWidth: newWidth)
+                    }
+            }
+        }
+    }
+
+    private var monthlyCandlestickChart: some View {
         let range = cachedRange
         let visibleDomain = chartMode.visibleDomain
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
-            ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
-                RectangleMark(
-                    x: .value("월", stat.monthStart, unit: .month),
-                    yStart: .value("최소", stat.min),
-                    yEnd: .value("최대", stat.max),
-                    width: .fixed(monthlyBarWidth)
-                )
-                .foregroundStyle(rmssdColor.opacity(0.35))
-                .cornerRadius(6)
+            if !hiddenSeries.contains(.rmssd) {
+                ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
+                    // 주식 차트의 고가-저가 심지처럼, 최소~최대 범위를 얇은 세로선으로.
+                    RuleMark(
+                        x: .value("월", stat.monthStart, unit: .month),
+                        yStart: .value("최소", stat.min),
+                        yEnd: .value("최대", stat.max)
+                    )
+                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .foregroundStyle(rmssdColor.opacity(0.6))
 
-                // 두께를 그 달 자체의 최소~최대 범위로 계산하면 달마다 변동폭이 달라서 두께가
-                // 들쭉날쭉해진다 — 전체 y축 범위 기준으로 고정해서 모든 달이 같은 두께가 되게 한다.
-                let halfThickness = max(yAxisUpperBound * 0.01, 0.5)
-                RectangleMark(
-                    x: .value("월", stat.monthStart, unit: .month),
-                    yStart: .value("중앙값 아래", stat.median - halfThickness),
-                    yEnd: .value("중앙값 위", stat.median + halfThickness),
-                    width: .fixed(monthlyBarWidth)
-                )
-                .foregroundStyle(rmssdColor)
+                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로.
+                    RectangleMark(
+                        x: .value("월", stat.monthStart, unit: .month),
+                        yStart: .value("1Q", stat.q1),
+                        yEnd: .value("3Q", stat.q3),
+                        width: .fixed(monthlyBarWidth)
+                    )
+                    .foregroundStyle(rmssdColor.opacity(0.35))
+                    .cornerRadius(4)
+
+                    // 두께를 그 달 자체의 범위로 계산하면 달마다 들쭉날쭉해지므로, 전체 y축
+                    // 범위 기준 고정 두께로 그려서 박스 안에 굵은 선처럼 보이게 한다.
+                    let halfThickness = max(yAxisUpperBound * 0.01, 0.5)
+                    RectangleMark(
+                        x: .value("월", stat.monthStart, unit: .month),
+                        yStart: .value("중앙값 아래", stat.median - halfThickness),
+                        yEnd: .value("중앙값 위", stat.median + halfThickness),
+                        width: .fixed(monthlyBarWidth)
+                    )
+                    .foregroundStyle(rmssdColor)
+                }
             }
 
             if !hiddenSeries.contains(.examRmssd) {
@@ -295,22 +327,47 @@ extension HRVAnalysisView {
                 xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
             )
         }
-        .background {
-            // 막대 너비 = bandwidth(달 하나가 차지하는 폭)의 50%, 10~30px로 clamp.
-            // plot 폭은 축을 숨겨서 프레임 전체와 같으므로, 컨테이너 폭을 그대로 plot 폭으로 쓴다.
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear { updateMonthlyBarWidth(plotWidth: geo.size.width) }
-                    .onChange(of: geo.size.width) { _, newWidth in
-                        updateMonthlyBarWidth(plotWidth: newWidth)
+    }
+
+    private var monthlyCVChart: some View {
+        let visibleDomain = chartMode.visibleDomain
+        let maxCV = viewModel.wearableRMSSDMonthlyStats.compactMap(\.cv).max() ?? 0
+        let yAxisUpperBound = max(ceil(maxCV / 10) * 10, 10)
+
+        return Chart {
+            if !hiddenSeries.contains(.cv) {
+                ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
+                    if let cv = stat.cv {
+                        BarMark(
+                            x: .value("월", stat.monthStart, unit: .month),
+                            y: .value("CV", cv),
+                            width: .fixed(monthlyBarWidth)
+                        )
+                        .foregroundStyle(Theme.systemTeal)
+                        .cornerRadius(4)
                     }
+                }
             }
+        }
+        .frame(height: ganttChartHeight)
+        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: [],
+                xAxisTickDates: monthlyTickDates,
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
+            )
         }
     }
 
     private func updateMonthlyBarWidth(plotWidth: CGFloat) {
         let bandCount = max(monthlyTickDates.count, 1)
         let bandwidth = plotWidth / CGFloat(bandCount)
-        monthlyBarWidth = min(max(bandwidth * 0.5, 10), 30)
+        monthlyBarWidth = min(max(bandwidth * 0.5, 10), 30) * 0.7
     }
 }

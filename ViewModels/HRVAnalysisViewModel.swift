@@ -20,7 +20,9 @@ final class HRVAnalysisViewModel {
         let monthStart: Date
         let min: Double
         let max: Double
+        let q1: Double
         let median: Double
+        let q3: Double
         let cv: Double?
         var id: Date { monthStart }
     }
@@ -195,11 +197,14 @@ final class HRVAnalysisViewModel {
             .compactMap { components, values -> MonthlyHRVStat? in
                 guard let monthStart = calendar.date(from: components) else { return nil }
                 let sorted = values.sorted()
+                let quartiles = HRVStatistics.quartiles(sorted)
                 return MonthlyHRVStat(
                     monthStart: monthStart,
                     min: sorted.first ?? 0,
                     max: sorted.last ?? 0,
-                    median: HRVStatistics.median(sorted),
+                    q1: quartiles.q1,
+                    median: quartiles.median,
+                    q3: quartiles.q3,
                     cv: HRVStatistics.coefficientOfVariation(sorted)
                 )
             }
