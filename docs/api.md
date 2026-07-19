@@ -30,9 +30,11 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | GET | `/exercises` | 전체 운동 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑) | `ExerciseService.allExercises` |
 | POST | `/exercises` | 운동 기록 생성 | `ExerciseService.logExercise` |
 | GET | `/medications` | 등록된 약 전체 조회 | `MedicationService.allMedications` |
-| POST | `/medications` | 약 등록(이름+복용 시간대) | `MedicationService.addMedication` |
+| POST | `/medications` | 약 등록(검색 결과+복용 시간대) | `MedicationService.addMedication` |
 | DELETE | `/medications/:id` | 약 삭제(soft delete) | `MedicationService.removeMedication` |
+| GET | `/medications/logs?date=yyyy-MM-dd` | 특정 날짜 복용 기록 조회(홈 화면 퀵버튼 체크 표시용) | `MedicationService.logs` |
 | POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
+| GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
 
 ## 아직 안 씀
 

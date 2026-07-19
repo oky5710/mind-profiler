@@ -1,8 +1,8 @@
 import SwiftUI
 
-// 약 등록(이름 + 복용 시간대)과 그날의 복용 체크(퀵버튼)를 한 화면에서 처리한다. mind-record 웹은
-// 등록을 별도 "복용약 관리" 화면에서 하지만, iOS는 그 화면이 아직 없어서 여기 함께 넣었다 —
-// 공공 약품 DB 검색(/drugs/search)은 범위 밖이라 이름만 직접 입력받는다.
+// 약 등록(식약처 낱알식별정보 검색으로 선택 + 복용 시간대)과 그날의 복용 체크(퀵버튼)를 한 화면에서
+// 처리한다. mind-record 웹은 등록을 별도 "복용약 관리" 화면에서 하지만, iOS는 그 화면이 아직 없어서
+// 여기 함께 넣었다.
 struct MedicationEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
@@ -10,11 +10,7 @@ struct MedicationEntryForm: View {
     @State private var medications: [MedicationEntry] = []
     @State private var isLoadingMedications = true
     @State private var loadErrorMessage: String?
-
-    @State private var newMedicationName = ""
-    @State private var newMedicationTimings: Set<MedicationTiming> = []
-    @State private var isAddingMedication = false
-    @State private var addErrorMessage: String?
+    @State private var isPresentingDrugSearch = false
 
     @State private var selectedQuickTimings: Set<MedicationTiming> = []
     @State private var isSaving = false
@@ -69,26 +65,19 @@ struct MedicationEntryForm: View {
             }
 
             Section("새 약 등록") {
-                TextField("약 이름", text: $newMedicationName)
-                ForEach(MedicationTiming.allCases) { timing in
-                    Toggle(timing.label, isOn: timingBinding(timing, in: $newMedicationTimings))
-                }
-                if let addErrorMessage {
-                    Text(addErrorMessage).font(.footnote).foregroundStyle(.red)
-                }
                 Button {
-                    Task { await addMedication() }
+                    isPresentingDrugSearch = true
                 } label: {
-                    if isAddingMedication {
-                        ProgressView()
-                    } else {
-                        Text("약 추가")
-                    }
+                    Label("약 검색으로 추가", systemImage: "magnifyingglass")
                 }
-                .disabled(isAddingMedication)
             }
         }
         .task { await loadMedications() }
+        .sheet(isPresented: $isPresentingDrugSearch) {
+            DrugSearchSheet(existingItemSeqs: Set(medications.compactMap(\.itemSeq))) {
+                await loadMedications()
+            }
+        }
     }
 
     private func timingBinding(_ timing: MedicationTiming, in set: Binding<Set<MedicationTiming>>) -> Binding<Bool> {
@@ -119,26 +108,6 @@ struct MedicationEntryForm: View {
             }
         }
         await loadMedications()
-    }
-
-    private func addMedication() async {
-        addErrorMessage = nil
-        let trimmedName = newMedicationName.trimmingCharacters(in: .whitespaces)
-        guard !trimmedName.isEmpty else {
-            addErrorMessage = "약 이름을 입력해주세요."
-            return
-        }
-
-        isAddingMedication = true
-        do {
-            try await MedicationService.addMedication(name: trimmedName, timings: Array(newMedicationTimings))
-            newMedicationName = ""
-            newMedicationTimings = []
-            await loadMedications()
-        } catch {
-            addErrorMessage = error.localizedDescription
-        }
-        isAddingMedication = false
     }
 
     private func saveQuickLogs() async {

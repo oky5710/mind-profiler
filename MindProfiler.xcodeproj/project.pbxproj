@@ -67,6 +67,7 @@
 		6663270304ED23D94FC361ED /* MedicationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D6C75DD02E38AA10033162 /* MedicationModels.swift */; };
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
 		962A6287F5A7DA07B688C976 /* MedicationEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */; };
+		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -131,6 +132,7 @@
 		08D6C75DD02E38AA10033162 /* MedicationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationModels.swift; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
 		99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationEntryForm.swift; sourceTree = "<group>"; };
+		A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugSearchSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -176,6 +178,7 @@
 				9FCDEABE829D5B4188733280 /* ExamEntryForm.swift */,
 				2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */,
 				99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */,
+				A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -475,6 +478,7 @@
 				6663270304ED23D94FC361ED /* MedicationModels.swift in Sources */,
 				B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */,
 				962A6287F5A7DA07B688C976 /* MedicationEntryForm.swift in Sources */,
+				882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

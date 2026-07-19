@@ -44,12 +44,16 @@
   카푸치노/에스프레소/콜드브루(`CoffeeService.typeOptions`).
 - **기분 하루 1건 제약**: 백엔드가 같은 날 중복 기록을 409로 거부한다 — mind-record 웹과 동일하게
   "오늘 기분은 이미 입력됐어요" 문구로 안내한다(`MoodEntryForm`).
-- **약복용 (`MedicationEntryForm`)**: 약 등록과 그날의 복용 체크를 한 화면에서 처리한다.
-  - 등록: 이름 + 복용 시간대(아침/점심/저녁/취침전/필요시, `MedicationTiming`)를 `POST /medications`로
-    저장. mind-record 웹은 이 등록을 별도 "복용약 관리" 화면에서 하지만 iOS엔 그 화면이 아직 없어서
-    캘린더 폼에 함께 넣었다 — 공공 약품 DB 검색(`/drugs/search`)은 범위 밖이라 이름만 직접 입력.
-    등록된 약 목록(`GET /medications`)을 같이 보여주고 스와이프로 삭제(`DELETE /medications/:id`)할
-    수 있다.
+- **약복용 (`MedicationEntryForm`)**: 약 등록과 그날의 복용 체크를 한 화면에서 처리한다. "오늘 복용
+  처리"가 가장 자주 쓰는 동작이라 맨 위에 오고, 그 아래 등록된 약 목록·새 약 등록 순서다.
+  - 등록: `DrugSearchSheet`에서 식약처 낱알식별정보(`GET /drugs/search?name=`)를 검색하고, 결과를
+    선택한 뒤 복용 시간대(아침/점심/저녁/취침전/필요시, `MedicationTiming`)를 골라 `POST /medications`로
+    저장한다 — mind-record 웹의 `MedicinePage.tsx` `DrugSearchSheet`와 동일한 2단계 흐름(검색·목록 →
+    시간대 선택 → 등록)이고, 이름을 직접 입력해 등록하는 수단은 웹에도 없어서 iOS도 지원하지 않는다.
+    검색 결과 중 이미 등록된 약(`itemSeq` 일치)은 "복용 중"으로 비활성화해서 중복 등록을 막는다.
+    mind-record 웹은 이 등록을 별도 "복용약 관리" 화면에서 하지만 iOS엔 그 화면이 아직 없어서 캘린더
+    폼에 함께 넣었다. 등록된 약 목록(`GET /medications`)을 같이 보여주고 스와이프로 삭제
+    (`DELETE /medications/:id`)할 수 있다.
   - 복용 체크: mind-record 웹 캘린더용 `MedicationForm.tsx`와 동일하게 아침/취침/필요시 세 가지만
     체크박스로 노출하고(`MedicationService.quickLogTimings`), 선택한 시간대마다
     `POST /medications/logs/quick`를 호출한다 — 이 엔드포인트는 그 시간대로 등록된 약 전부를 한 번에

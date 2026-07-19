@@ -13,15 +13,40 @@ enum MedicationService {
         try await APIClient.shared.get("/medications/logs?date=\(DateKey.string(from: date))")
     }
 
-    static func addMedication(name: String, timings: [MedicationTiming]) async throws {
+    static func addMedication(
+        name: String,
+        timings: [MedicationTiming],
+        itemSeq: String? = nil,
+        entpName: String? = nil,
+        itemImage: String? = nil,
+        drugShape: String? = nil,
+        colorClass: String? = nil,
+        chart: String? = nil
+    ) async throws {
         let _: MedicationEntry = try await APIClient.shared.post(
             "/medications",
-            body: MedicationRequest(name: name, timings: timings.map(\.rawValue))
+            body: MedicationRequest(
+                name: name,
+                itemSeq: itemSeq,
+                entpName: entpName,
+                itemImage: itemImage,
+                drugShape: drugShape,
+                colorClass: colorClass,
+                chart: chart,
+                timings: timings.map(\.rawValue)
+            )
         )
     }
 
     static func removeMedication(id: String) async throws {
         let _: MedicationEntry = try await APIClient.shared.delete("/medications/\(id)")
+    }
+
+    // 식약처 낱알식별정보 검색 — mind-record 웹의 /drugs/search와 동일. 인증 불필요한 공개
+    // 엔드포인트지만 APIClient가 항상 붙이는 Bearer 헤더는 백엔드가 무시하므로 문제 없다.
+    static func searchDrugs(name: String) async throws -> DrugSearchResponse {
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return try await APIClient.shared.get("/drugs/search?name=\(encodedName)")
     }
 
     // 해당 시간대에 복용하는 것으로 등록된 약 전부를 한 번에 복용 처리 — 등록된 약이 없으면
