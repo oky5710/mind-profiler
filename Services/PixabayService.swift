@@ -33,7 +33,7 @@ enum PixabayService {
         }
 
         let index = Int.random(in: 0..<decoded.hits.count)
-        guard let url = URL(string: decoded.hits[index].largeImageURL) else {
+        guard let url = URL(string: decoded.hits[index].webformatURL) else {
             throw APIError.invalidResponse
         }
         return url
