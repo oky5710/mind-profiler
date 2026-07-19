@@ -388,16 +388,21 @@ struct HRVAnalysisView: View {
     @ViewBuilder
     private func legendContent(for series: HRVSeries) -> some View {
         if series == .rmssd, chartMode == .monthly {
+            // 두 줄의 스와치 높이(사각형 8pt, 세로선 10pt)가 서로 달라서 그냥 두면 텍스트 세로
+            // 위치가 줄마다 미묘하게 어긋난다 — 둘 다 같은 높이의 칸 안에 가운데 정렬해서 스와치
+            // 모양과 무관하게 두 줄의 텍스트가 같은 세로선에 나란히 오게 한다.
             VStack(alignment: .leading, spacing: 2) {
                 legendRow(label: "1Q~3Q") {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Theme.rmssdRange)
                         .frame(width: 12, height: 8)
+                        .frame(width: 12, height: 14)
                 }
                 legendRow(label: "최소~최대") {
                     Rectangle()
                         .fill(rmssdColor.opacity(0.5))
                         .frame(width: 2, height: 10)
+                        .frame(width: 12, height: 14)
                 }
             }
         } else {
