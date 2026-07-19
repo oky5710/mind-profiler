@@ -170,6 +170,7 @@ extension HRVAnalysisView {
                         yEnd: .value("위", 1)
                     )
                     .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
+                    .cornerRadius(4)
                     .annotation(position: .overlay) {
                         if isShort {
                             Text(formattedDuration(duration))
@@ -189,6 +190,7 @@ extension HRVAnalysisView {
                         yEnd: .value("위", 1)
                     )
                     .foregroundStyle(exerciseColor.opacity(0.7))
+                    .cornerRadius(4)
                 }
             }
 
@@ -204,6 +206,7 @@ extension HRVAnalysisView {
                         yEnd: .value("위", 1)
                     )
                     .foregroundStyle(calendarEventColor.opacity(0.35))
+                    .cornerRadius(4)
                 }
 
                 ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
