@@ -50,10 +50,21 @@ struct HomeView: View {
                             .frame(maxWidth: 280)
                     }
 
-                    HStack(spacing: 12) {
-                        coffeeButton
-                        medicationButton(timing: .morning, icon: "🌅", isTaken: viewModel.hasMorningMedicationTaken)
-                        medicationButton(timing: .bedtime, icon: "🌙", isTaken: viewModel.hasBedtimeMedicationTaken)
+                    // 한 줄에 다 안 들어가면 버튼 내용을 줄이는 게 아니라 버튼째로 다음 줄로 내린다
+                    // (ui-style.md "버튼 안에서는 줄바꿈하지 않는다").
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            coffeeButton
+                            medicationButton(timing: .morning, icon: "🌅", isTaken: viewModel.hasMorningMedicationTaken)
+                            medicationButton(timing: .bedtime, icon: "🌙", isTaken: viewModel.hasBedtimeMedicationTaken)
+                        }
+                        VStack(spacing: 8) {
+                            coffeeButton
+                            HStack(spacing: 12) {
+                                medicationButton(timing: .morning, icon: "🌅", isTaken: viewModel.hasMorningMedicationTaken)
+                                medicationButton(timing: .bedtime, icon: "🌙", isTaken: viewModel.hasBedtimeMedicationTaken)
+                            }
+                        }
                     }
                     if let coffeeErrorMessage = viewModel.coffeeErrorMessage {
                         Text(coffeeErrorMessage)
@@ -114,15 +125,14 @@ struct HomeView: View {
         .background(.black.opacity(0.35), in: Capsule())
     }
 
-    // 아이콘 줄 + 라벨 줄을 각각 별도 Text로 나눠 쌓는다 — 한 Text가 좁은 너비에서 자동으로
-    // 줄바꿈되게 두지 않는다(ui-style.md "버튼 안에서는 줄바꿈하지 않는다").
+    // 버튼 안 내용은 항상 한 줄(HStack) — ui-style.md "버튼 안에서는 줄바꿈하지 않는다".
     private var coffeeButton: some View {
         Button {
             Task { await viewModel.logCoffee() }
         } label: {
-            VStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Text("☕").font(.system(size: 16))
-                Text("커피").font(.caption2).foregroundStyle(.white)
+                Text("커피").font(.caption).foregroundStyle(.white)
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
@@ -140,7 +150,6 @@ struct HomeView: View {
         }
     }
 
-    // 아침/취침은 글자가 짧아서 한 줄(HStack)로 충분하다 — 억지로 줄바꿈하지 않는다.
     private func medicationButton(timing: MedicationTiming, icon: String, isTaken: Bool) -> some View {
         Button {
             Task { await viewModel.logMedicationQuick(timing) }
