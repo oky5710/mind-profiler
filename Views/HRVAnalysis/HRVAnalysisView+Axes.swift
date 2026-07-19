@@ -177,6 +177,9 @@ extension HRVAnalysisView {
                                     }
                                 }
 
+                                // 이 차트가 캘린더/수면 툴팁을 아예 다루지 않으면(라인 차트, 월별 차트),
+                                // 여기를 탭했을 때 다른 차트에서 열려 있던 캘린더/수면 툴팁은 무조건 닫는다 —
+                                // "툴팁이 아닌 곳을 클릭하면 무조건 닫힌다"를 모든 차트에서 보장하기 위함.
                                 if !tooltipRanges.isEmpty || !tooltipAllDayMarkers.isEmpty {
                                     let localX = value.location.x - plotRect.minX
                                     var matchedEvent: HRVAnalysisViewModel.CalendarEventRange?
@@ -201,6 +204,8 @@ extension HRVAnalysisView {
                                     }
 
                                     tooltipCalendarEvent = matchedEvent
+                                } else {
+                                    tooltipCalendarEvent = nil
                                 }
 
                                 if !tooltipSleepRanges.isEmpty {
@@ -210,6 +215,8 @@ extension HRVAnalysisView {
                                             $0.start <= touchedDate && touchedDate <= $0.end
                                         }
                                     }
+                                } else {
+                                    tooltipSleepRange = nil
                                 }
                             }
                             .onEnded { _ in

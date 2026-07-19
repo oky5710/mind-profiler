@@ -291,8 +291,6 @@ struct HRVAnalysisView: View {
         }
     }
 
-    // lineAndGanttChartsStack이 이 패널 전체를 allowsHitTesting(false)로 덮어써서(차트 제스처를
-    // 가리지 않으려고) 닫기 버튼도 같이 탭이 안 먹는다 — 버튼에서만 다시 true로 켜서 예외로 둔다.
     private func closeButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: "xmark.circle.fill")
@@ -301,7 +299,6 @@ struct HRVAnalysisView: View {
                 .foregroundStyle(.gray)
         }
         .padding(8)
-        .allowsHitTesting(true)
     }
 
     private var hrvChartBody: some View {
@@ -362,6 +359,8 @@ struct HRVAnalysisView: View {
             ForEach(HRVSeries.allCases) { series in
                 Button {
                     toggleSeries(series)
+                    tooltipCalendarEvent = nil
+                    tooltipSleepRange = nil
                 } label: {
                     legendRow(color: seriesColor(series), symbol: series.symbol, label: series.label)
                         .opacity(hiddenSeries.contains(series) ? 0.35 : 1)

@@ -27,11 +27,11 @@ extension HRVAnalysisView {
             }
         }
         // 상세 패널은 오버레이라 이 스택의 레이아웃 높이에 영향을 주지 않는다 — x축 위치(간트 차트
-        // 바로 아래)에 붙여서 그 아래 범례 위에 겹쳐 보이게 한다.
+        // 바로 아래)에 붙여서 그 아래 범례 위에 겹쳐 보이게 한다. 히트 테스트는 켜둔 채로 둔다 —
+        // 패널이 자기 영역의 탭을 그대로 흡수해야 뒤에 가려진 범례 버튼이 같이 눌리지 않는다.
         .overlay(alignment: .top) {
             selectedItemDetailPanel
                 .offset(y: lineChartHeight + 8 + ganttChartHeight)
-                .allowsHitTesting(false)
         }
         // 겹치는 범례가 선언 순서상 나중에 그려져 패널을 가리므로, zIndex로 항상 위에 오도록 고정한다.
         .zIndex(1)
