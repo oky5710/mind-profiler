@@ -22,6 +22,25 @@ struct MedicationEntryForm: View {
 
     var body: some View {
         Form {
+            Section("오늘 복용 처리") {
+                ForEach(MedicationService.quickLogTimings) { timing in
+                    Toggle(timing.label, isOn: timingBinding(timing, in: $selectedQuickTimings))
+                }
+                if let saveErrorMessage {
+                    Text(saveErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+                Button {
+                    Task { await saveQuickLogs() }
+                } label: {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text("저장")
+                    }
+                }
+                .disabled(isSaving)
+            }
+
             Section("등록된 약") {
                 if isLoadingMedications {
                     ProgressView()
@@ -67,25 +86,6 @@ struct MedicationEntryForm: View {
                     }
                 }
                 .disabled(isAddingMedication)
-            }
-
-            Section("오늘 복용 처리") {
-                ForEach(MedicationService.quickLogTimings) { timing in
-                    Toggle(timing.label, isOn: timingBinding(timing, in: $selectedQuickTimings))
-                }
-                if let saveErrorMessage {
-                    Text(saveErrorMessage).font(.footnote).foregroundStyle(.red)
-                }
-                Button {
-                    Task { await saveQuickLogs() }
-                } label: {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text("저장")
-                    }
-                }
-                .disabled(isSaving)
             }
         }
         .task { await loadMedications() }

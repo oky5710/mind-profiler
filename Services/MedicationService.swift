@@ -9,6 +9,10 @@ enum MedicationService {
         try await APIClient.shared.get("/medications")
     }
 
+    static func logs(on date: Date) async throws -> [MedicationLogEntry] {
+        try await APIClient.shared.get("/medications/logs?date=\(DateKey.string(from: date))")
+    }
+
     static func addMedication(name: String, timings: [MedicationTiming]) async throws {
         let _: MedicationEntry = try await APIClient.shared.post(
             "/medications",
