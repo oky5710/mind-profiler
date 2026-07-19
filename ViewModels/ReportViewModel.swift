@@ -60,6 +60,14 @@ final class ReportViewModel {
         let restDayAverageRMSSD: Double?
     }
 
+    // 선택 기간 동안의 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서 온
+    // 값이라 하나라도 없을 수 있다(예: rMSSD 계산용 원시 박동 시리즈가 없는 기기/기간).
+    struct VitalMedians {
+        let heartRate: Double?
+        let sdnn: Double?
+        let rmssd: Double?
+    }
+
     var previousVisitDate: Date
     var thisVisitDate: Date
 
@@ -74,6 +82,7 @@ final class ReportViewModel {
     private(set) var rmssdFindings: RMSSDLowestFindings?
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var correlationFindings: CorrelationFindings?
+    private(set) var vitalMedians: VitalMedians?
 
     init() {
         let now = Date()
@@ -99,14 +108,20 @@ final class ReportViewModel {
 
             async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples()
             async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples()
+            async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples()
+            async let heartRateSamplesTask = HealthKitService.fetchHeartRateSamples()
             async let pairsTask = HealthKitService.fetchSDNNRMSSDPairs()
             async let workoutsTask = HealthKitService.fetchWorkoutRanges()
             async let moodsTask = MoodService.allMoods()
             async let coffeesTask = CoffeeService.allCoffees()
             async let calendarEventsTask = Self.fetchCalendarEventsSafely()
 
-            let (allSleepSamples, allRMSSDSamples, allPairs, allWorkouts, allMoods, allCoffees, calendarEvents) = try await (
-                sleepSamplesTask, rmssdSamplesTask, pairsTask, workoutsTask, moodsTask, coffeesTask, calendarEventsTask
+            let (
+                allSleepSamples, allRMSSDSamples, allSDNNSamples, allHeartRateSamples,
+                allPairs, allWorkouts, allMoods, allCoffees, calendarEvents
+            ) = try await (
+                sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, heartRateSamplesTask,
+                pairsTask, workoutsTask, moodsTask, coffeesTask, calendarEventsTask
             )
 
             // 수면은 기간 경계에 걸친 밤이 중간에 잘리지 않도록 전체 샘플을 먼저 병합한 뒤,
@@ -131,6 +146,14 @@ final class ReportViewModel {
                 periodRMSSD,
                 allSleepRanges: allRanges,
                 calendarEvents: calendarEvents
+            )
+
+            let periodSDNN = allSDNNSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
+            let periodHeartRate = allHeartRateSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
+            vitalMedians = VitalMedians(
+                heartRate: periodHeartRate.isEmpty ? nil : HRVStatistics.median(periodHeartRate),
+                sdnn: periodSDNN.isEmpty ? nil : HRVStatistics.median(periodSDNN),
+                rmssd: periodRMSSD.isEmpty ? nil : HRVStatistics.median(periodRMSSD.map(\.value))
             )
 
             let periodPairs = allPairs.filter { $0.date >= start && $0.date < end }

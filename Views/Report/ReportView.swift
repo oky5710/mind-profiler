@@ -53,6 +53,7 @@ struct ReportView: View {
                     if viewModel.isAnalyzing {
                         HeartLoader(height: 200)
                     } else if viewModel.hasAnalyzed {
+                        vitalsSection
                         sleepSection
                         cvSection
                         rmssdSection
@@ -85,6 +86,35 @@ struct ReportView: View {
         }
         .buttonStyle(.borderedProminent)
         .disabled(viewModel.isAnalyzing)
+    }
+
+    // MARK: - 기간 요약 (심박수/SDNN/rMSSD 중앙값)
+
+    private var vitalsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("기간 요약").font(.system(size: 13.6, weight: .semibold))
+
+            if let vitals = viewModel.vitalMedians, vitals.heartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
+                    GridRow {
+                        Text("심박수 중앙값").font(.footnote).foregroundStyle(.secondary)
+                        Text(vitals.heartRate.map { "\(Int($0.rounded()))bpm" } ?? "—").font(.footnote)
+                    }
+                    GridRow {
+                        Text("SDNN 중앙값").font(.footnote).foregroundStyle(.secondary)
+                        Text(vitals.sdnn.map { "\(Int($0.rounded()))ms" } ?? "—").font(.footnote)
+                    }
+                    GridRow {
+                        Text("rMSSD 중앙값").font(.footnote).foregroundStyle(.secondary)
+                        Text(vitals.rmssd.map { "\(Int($0.rounded()))ms" } ?? "—").font(.footnote)
+                    }
+                }
+            } else {
+                Text("해당 기간에 심박수/HRV 데이터가 없어요")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     // MARK: - 수면

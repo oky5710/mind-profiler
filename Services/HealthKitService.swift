@@ -71,6 +71,7 @@ enum HealthKitService {
                 HKCategoryType(.sleepAnalysis),
                 HKSeriesType.heartbeat(),
                 HKQuantityType(.heartRateVariabilitySDNN),
+                HKQuantityType(.heartRate),
             ]
         )
     }
@@ -80,6 +81,15 @@ enum HealthKitService {
         try await fetchQuantitySamples(
             type: HKQuantityType(.heartRateVariabilitySDNN),
             unit: .secondUnit(with: .milli)
+        )
+    }
+
+    // 보고서의 기간 요약(심박수 중앙값)용 — SDNN/rMSSD와 달리 HRV 측정값이 아니라 일반 심박수라
+    // 애플워치가 훨씬 자주(수 분 단위) 남긴다.
+    static func fetchHeartRateSamples() async throws -> [(date: Date, value: Double)] {
+        try await fetchQuantitySamples(
+            type: HKQuantityType(.heartRate),
+            unit: HKUnit.count().unitDivided(by: .minute())
         )
     }
 
