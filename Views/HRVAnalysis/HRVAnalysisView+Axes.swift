@@ -39,25 +39,19 @@ extension HRVAnalysisView {
         }
     }
 
-    enum AxisLabelVerticalAnchor {
-        case bottom
-        case center
-    }
-
     func chartOverlay(
         proxy: ChartProxy,
         visibleDomain: TimeInterval,
         yAxisTickValues: [Double],
         xAxisTickDates: [Date],
         xAxisLabel: @escaping (Date) -> AnyView,
-        xAxisLabelVerticalAnchor: AxisLabelVerticalAnchor = .bottom,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
-            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel, labelVerticalAnchor: xAxisLabelVerticalAnchor)
+            xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(
                 proxy: proxy,
@@ -331,8 +325,7 @@ extension HRVAnalysisView {
     private func xAxisOverlay(
         proxy: ChartProxy,
         tickDates: [Date],
-        label: @escaping (Date) -> AnyView,
-        labelVerticalAnchor: AxisLabelVerticalAnchor = .bottom
+        label: @escaping (Date) -> AnyView
     ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
@@ -364,10 +357,9 @@ extension HRVAnalysisView {
                             .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
                             if visibleLabelDates.contains(date) {
-                                let labelY = labelVerticalAnchor == .center ? plotRect.midY : plotRect.maxY - 10
                                 label(date)
                                     .padding(.horizontal, 3)
-                                    .position(x: plotRect.minX + x, y: labelY)
+                                    .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
                             }
                         }
                     }

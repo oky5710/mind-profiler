@@ -291,17 +291,15 @@ extension HRVAnalysisView {
                     .foregroundStyle(rmssdColor.opacity(0.6))
                     .cornerRadius(4)
 
-                    // 두께를 그 달 자체의 범위로 계산하면 달마다 들쭉날쭉해지므로, 전체 y축
-                    // 범위 기준 고정 두께로 그려서 박스 안에 굵은 흰 선처럼 보이게 한다. 박스가
-                    // 불투명해진 만큼 같은 색이면 묻히므로 흰색으로 대비를 준다.
-                    let halfThickness = max(yAxisUpperBound * 0.01, 0.5)
+                    // 중앙값 선은 값(y축) 범위가 아니라 고정 픽셀 두께(2px)로 그려서, y축 스케일과
+                    // 무관하게 항상 같은 굵기로 보이고 다른 두 마크보다 위(제일 앞)에 그려진다.
                     RectangleMark(
                         x: .value("월", stat.monthStart, unit: .month),
-                        yStart: .value("중앙값 아래", stat.median - halfThickness),
-                        yEnd: .value("중앙값 위", stat.median + halfThickness),
-                        width: .fixed(monthlyBarWidth)
+                        y: .value("중앙값", stat.median),
+                        width: .fixed(monthlyBarWidth),
+                        height: .fixed(2)
                     )
-                    .foregroundStyle(.white)
+                    .foregroundStyle(rmssdColor)
                 }
             }
 
@@ -327,8 +325,7 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
                 xAxisTickDates: monthlyTickDates,
-                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) },
-                xAxisLabelVerticalAnchor: .center
+                xAxisLabel: { date in AnyView(monthlyAxisLabel(for: date)) }
             )
         }
     }
