@@ -16,6 +16,8 @@ enum CalendarEventCategory: Equatable {
 }
 
 enum CalendarEventService {
+    typealias Event = (title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory)
+
     private static let store = EKEventStore()
 
     static func requestAuthorization() async throws {
@@ -26,20 +28,16 @@ enum CalendarEventService {
 
     // HealthKit 쿼리와 달리 EventKit은 조회 기간을 반드시 명시해야 해서(무제한 조회 불가),
     // 차트가 실제로 스크롤해서 볼 법한 범위보다 넉넉하게 과거 1년~미래 3개월로 고정한다.
-    static func fetchEvents() async -> [
-        (title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory)
-    ] {
+    static func fetchEvents() async -> [Event] {
         let calendar = Calendar.current
         let start = calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date()
         let end = calendar.date(byAdding: .month, value: 3, to: Date()) ?? Date()
 
         // events(matching:)는 동기 호출이라 detached task로 넘겨서 메인 액터(호출부인
-        // HRVAnalysisViewModel)를 막지 않게 한다.
+        // HRVAnalysisViewModel/ReportViewModel)를 막지 않게 한다.
         return await Task.detached(priority: .userInitiated) {
             let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-            return store.events(matching: predicate).compactMap { event -> (
-                title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory
-            )? in
+            return store.events(matching: predicate).compactMap { event -> Event? in
                 let category = category(forCalendarTitle: event.calendar.title)
                 // "Holidays in ..." 캘린더에는 실제 쉬는 공휴일뿐 아니라 어버이날처럼 안 쉬는
                 // 기념일도 같이 들어 있어서, 실제 관공서 공휴일 이름만 남기고 나머지는 아예 뺀다.

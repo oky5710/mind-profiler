@@ -211,6 +211,11 @@ struct ReportView: View {
                 if let lowestDate = findings.lowestDailyDate {
                     Text("가장 낮은 날: \(Self.dateFormatter.string(from: lowestDate))")
                         .font(.footnote)
+                    if let context = findings.lowestDayContext {
+                        Text(context)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if let lowestRaw = findings.lowestRawSample {
                     Text(
@@ -221,6 +226,10 @@ struct ReportView: View {
                 }
                 if let weekday = findings.lowestAverageWeekday, Self.weekdaySymbols.indices.contains(weekday - 1) {
                     Text("평균적으로 가장 낮은 요일: \(Self.weekdaySymbols[weekday - 1])")
+                        .font(.footnote)
+                }
+                if let hour = findings.mostFrequentLowestHour {
+                    Text("자주 낮은 시간대: \(hour)시~\(hour + 1)시")
                         .font(.footnote)
                 }
             } else {
