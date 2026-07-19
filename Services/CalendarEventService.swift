@@ -37,14 +37,22 @@ enum CalendarEventService {
         // HRVAnalysisViewModel)를 막지 않게 한다.
         return await Task.detached(priority: .userInitiated) {
             let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-            return store.events(matching: predicate).map { event in
-                (
+            return store.events(matching: predicate).compactMap { event -> (
+                title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory
+            )? in
+                let category = category(forCalendarTitle: event.calendar.title)
+                // "Holidays in ..." 캘린더에는 실제 쉬는 공휴일뿐 아니라 어버이날처럼 안 쉬는
+                // 기념일도 같이 들어 있어서, 실제 관공서 공휴일 이름만 남기고 나머지는 아예 뺀다.
+                if category == .holiday && !isLegalHolidayTitle(event.title ?? "") {
+                    return nil
+                }
+                return (
                     title: event.title ?? "제목 없음",
                     start: event.startDate,
                     end: event.endDate,
                     isAllDay: event.isAllDay,
                     location: event.location,
-                    category: category(forCalendarTitle: event.calendar.title)
+                    category: category
                 )
             }
         }.value
@@ -61,5 +69,16 @@ enum CalendarEventService {
             return .vacation
         }
         return .general
+    }
+
+    // "관공서의 공휴일에 관한 규정" 기준 법정 공휴일 이름만 화이트리스트로 남긴다 — 어버이날,
+    // 스승의날, 국군의날 같은 기념일은 이 목록에 없어서 자동으로 제외된다.
+    private static let legalHolidayTitleKeywords = [
+        "신정", "설날", "삼일절", "어린이날", "부처님", "현충일", "광복절",
+        "추석", "개천절", "한글날", "성탄절", "크리스마스", "대체공휴일", "임시공휴일"
+    ]
+
+    private static func isLegalHolidayTitle(_ title: String) -> Bool {
+        legalHolidayTitleKeywords.contains { title.contains($0) }
     }
 }
