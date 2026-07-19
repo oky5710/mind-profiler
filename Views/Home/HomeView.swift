@@ -50,9 +50,21 @@ struct HomeView: View {
                             .frame(maxWidth: 280)
                     }
 
-                    coffeeButton
+                    HStack(spacing: 12) {
+                        coffeeButton
+                        medicationButton(timing: .morning, icon: "🌅", isTaken: viewModel.hasMorningMedicationTaken)
+                        medicationButton(timing: .bedtime, icon: "🌙", isTaken: viewModel.hasBedtimeMedicationTaken)
+                    }
                     if let coffeeErrorMessage = viewModel.coffeeErrorMessage {
                         Text(coffeeErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .shadow(radius: 4)
+                            .frame(maxWidth: 280)
+                    }
+                    if let medicationErrorMessage = viewModel.medicationErrorMessage {
+                        Text(medicationErrorMessage)
                             .font(.footnote)
                             .foregroundStyle(.white)
                             .multilineTextAlignment(.center)
@@ -80,6 +92,9 @@ struct HomeView: View {
         }
         .task {
             await viewModel.loadTodayCoffeeCountIfNeeded()
+        }
+        .task {
+            await viewModel.loadTodayMedicationLogsIfNeeded()
         }
     }
 
@@ -112,6 +127,24 @@ struct HomeView: View {
                         .foregroundStyle(.white)
                         .padding(6)
                         .background(Color.red, in: Circle())
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .background(.black.opacity(0.35), in: Capsule())
+        }
+    }
+
+    private func medicationButton(timing: MedicationTiming, icon: String, isTaken: Bool) -> some View {
+        Button {
+            Task { await viewModel.logMedicationQuick(timing) }
+        } label: {
+            HStack(spacing: 6) {
+                Text(icon).font(.system(size: 22))
+                Text(timing.label).foregroundStyle(.white)
+                if isTaken {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
                 }
             }
             .padding(.vertical, 8)

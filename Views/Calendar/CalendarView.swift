@@ -65,7 +65,7 @@ struct CalendarView: View {
                 Text(symbol)
                     .font(.caption)
                     .foregroundStyle(color(forColumn: index))
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal)
