@@ -283,7 +283,6 @@ extension HRVAnalysisView {
                             if visibleLabelDates.contains(date) {
                                 label(date)
                                     .padding(.horizontal, 3)
-                                    .background(Color(.systemBackground).opacity(0.85))
                                     .position(x: plotRect.minX + x, y: plotRect.maxY - 10)
                             }
                         }
