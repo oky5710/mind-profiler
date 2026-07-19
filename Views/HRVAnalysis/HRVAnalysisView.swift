@@ -77,6 +77,7 @@ struct HRVAnalysisView: View {
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
     @State var tooltipSleepRange: SleepRange?
+    @State var tooltipWorkoutRange: HRVAnalysisViewModel.WorkoutRange?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -173,6 +174,7 @@ struct HRVAnalysisView: View {
                     tooltipPoint = nil
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
+                    tooltipWorkoutRange = nil
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -196,6 +198,7 @@ struct HRVAnalysisView: View {
             tooltipPoint = nil
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
+            tooltipWorkoutRange = nil
             recomputeRange()
         }
         .refreshable {
@@ -288,6 +291,35 @@ struct HRVAnalysisView: View {
         return "\(Self.tooltipDateFormatter.string(from: event.start)) ~ \(Self.hourMinuteFormatter.string(from: event.end))"
     }
 
+    func tooltipLabel(for workout: HRVAnalysisViewModel.WorkoutRange) -> some View {
+        let duration = workout.end.timeIntervalSince(workout.start)
+
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(HealthKitService.workoutActivityTypeDisplayName(workout.activityType))
+                .font(.subheadline.bold())
+            Text(
+                "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDuration(duration)) · " +
+                    "\(Self.hourMinuteFormatter.string(from: workout.start)) ~ \(Self.hourMinuteFormatter.string(from: workout.end))"
+            )
+            .font(.caption2)
+            if let energyBurnedKcal = workout.energyBurnedKcal, energyBurnedKcal > 0 {
+                Text("\(Int(energyBurnedKcal.rounded()))kcal")
+                    .font(.caption2)
+            }
+            if let distanceMeters = workout.distanceMeters, distanceMeters > 0 {
+                Text(String(format: "%.2fkm", distanceMeters / 1000))
+                    .font(.caption2)
+            }
+        }
+        .foregroundStyle(.black)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.15), lineWidth: 1))
+        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    }
+
     // 캘린더 일정이나 수면 막대를 탭하면 뜨는 상세 패널 — lineAndGanttChartsStack의 오버레이로
     // x축 위치에 붙여서 그린다(HRVAnalysisView+Charts.swift). 오버레이라 레이아웃 높이에 영향을
     // 주지 않고, 그 아래 범례 위에 겹쳐서 나온다.
@@ -300,6 +332,11 @@ struct HRVAnalysisView: View {
                 }
         } else if let sleepRange = tooltipSleepRange {
             SleepDetailPanel(sleepRange: sleepRange) { tooltipSleepRange = nil }
+        } else if let workoutRange = tooltipWorkoutRange {
+            tooltipLabel(for: workoutRange)
+                .overlay(alignment: .topTrailing) {
+                    closeButton { tooltipWorkoutRange = nil }
+                }
         }
     }
 
@@ -445,6 +482,7 @@ struct HRVAnalysisView: View {
                     toggleSeries(item.series)
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
+                    tooltipWorkoutRange = nil
                 } label: {
                     legendRow(label: item.label, boldValue: item.boldValue) { item.swatch }
                         .opacity(hiddenSeries.contains(item.series) ? 0.35 : 1)

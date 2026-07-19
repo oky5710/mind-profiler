@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 
 @MainActor
 @Observable
@@ -27,10 +28,13 @@ final class HRVAnalysisViewModel {
         var id: Date { monthStart }
     }
 
-    struct RangeInterval: Identifiable {
+    struct WorkoutRange: Identifiable {
+        let id = UUID()
         let start: Date
         let end: Date
-        var id: Date { start }
+        let activityType: HKWorkoutActivityType
+        let energyBurnedKcal: Double?
+        let distanceMeters: Double?
     }
 
     struct CalendarEventRange: Identifiable {
@@ -60,7 +64,7 @@ final class HRVAnalysisViewModel {
     private(set) var wearableSDNNPointsHourly: [HRVPoint] = []
     // 최근 30일 rMSSD 중앙값 — 라인 차트에 점선으로 표시.
     private(set) var recentThirtyDayRMSSDMedian: Double?
-    private(set) var exerciseRanges: [RangeInterval] = []
+    private(set) var exerciseRanges: [WorkoutRange] = []
     private(set) var sleepRanges: [SleepRange] = []
     private(set) var isHealthKitAuthorized = false
     private(set) var isLoadingHealthKit = false
@@ -127,7 +131,15 @@ final class HRVAnalysisViewModel {
             let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
             let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
             recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : HRVStatistics.median(recentRMSSDValues)
-            exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
+            exerciseRanges = workoutRanges.map {
+                WorkoutRange(
+                    start: $0.start,
+                    end: $0.end,
+                    activityType: $0.activityType,
+                    energyBurnedKcal: $0.energyBurnedKcal,
+                    distanceMeters: $0.distanceMeters
+                )
+            }
             sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
             isHealthKitAuthorized = true
         } catch {

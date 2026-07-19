@@ -28,6 +28,33 @@ enum HealthKitService {
         }
     }
 
+    // 운동 상세 패널에 보여줄 종목 이름. HKWorkoutActivityType은 80개가 넘어서 자주 쓰는 종목만
+    // 매핑하고, 나머지는 뭉뚱그려 "기타 운동"으로 보여준다.
+    static func workoutActivityTypeDisplayName(_ type: HKWorkoutActivityType) -> String {
+        switch type {
+        case .running: "달리기"
+        case .walking: "걷기"
+        case .cycling: "사이클"
+        case .swimming: "수영"
+        case .yoga: "요가"
+        case .functionalStrengthTraining, .traditionalStrengthTraining: "근력 운동"
+        case .coreTraining: "코어 운동"
+        case .elliptical: "일립티컬"
+        case .rowing: "로잉"
+        case .stairClimbing: "계단 오르기"
+        case .hiking: "하이킹"
+        case .dance: "댄스"
+        case .highIntensityIntervalTraining: "고강도 인터벌(HIIT)"
+        case .mixedCardio, .cardioDance: "유산소"
+        case .pilates: "필라테스"
+        case .basketball: "농구"
+        case .soccer: "축구"
+        case .tennis: "테니스"
+        case .golf: "골프"
+        default: "기타 운동"
+        }
+    }
+
     static func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthKitError.notAvailable
@@ -155,7 +182,9 @@ enum HealthKitService {
         return (sumOfSquaredDiffs / Double(diffCount)).squareRoot()
     }
 
-    static func fetchWorkoutRanges() async throws -> [(start: Date, end: Date)] {
+    static func fetchWorkoutRanges() async throws -> [
+        (start: Date, end: Date, activityType: HKWorkoutActivityType, energyBurnedKcal: Double?, distanceMeters: Double?)
+    ] {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -170,7 +199,17 @@ enum HealthKitService {
                     return
                 }
                 let ranges = (samples as? [HKWorkout] ?? []).map { workout in
-                    (start: workout.startDate, end: workout.endDate)
+                    (
+                        start: workout.startDate,
+                        end: workout.endDate,
+                        activityType: workout.workoutActivityType,
+                        // totalEnergyBurned/totalDistance는 iOS 18+ deprecated지만, 운동을 기록한 앱이
+                        // HKWorkout 저장 시점에 같이 넣어둔 값을 그대로 읽는 거라 워크아웃 타입 권한
+                        // 외에 별도 퀀티티 타입 권한이 필요 없다 — statistics(for:)로 바꾸면 활동
+                        // 에너지/거리 퀀티티 타입 권한을 새로 요청해야 해서 이 방식을 그대로 쓴다.
+                        energyBurnedKcal: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                        distanceMeters: workout.totalDistance?.doubleValue(for: .meter())
+                    )
                 }
                 continuation.resume(returning: ranges)
             }

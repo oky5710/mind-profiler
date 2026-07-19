@@ -49,6 +49,7 @@ extension HRVAnalysisView {
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
+        tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
@@ -60,6 +61,7 @@ extension HRVAnalysisView {
                 tooltipPoints: tooltipPoints,
                 tooltipRanges: tooltipRanges,
                 tooltipSleepRanges: tooltipSleepRanges,
+                tooltipWorkoutRanges: tooltipWorkoutRanges,
                 tooltipAllDayMarkers: tooltipAllDayMarkers
             )
         }
@@ -93,6 +95,7 @@ extension HRVAnalysisView {
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
+        tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
         tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
@@ -137,6 +140,10 @@ extension HRVAnalysisView {
                     selectionShadow(start: sleepRange.start, end: sleepRange.end, color: isShort ? .red : sleepColor, proxy: proxy, geo: geo)
                 }
 
+                if !tooltipWorkoutRanges.isEmpty, let workoutRange = tooltipWorkoutRange {
+                    selectionShadow(start: workoutRange.start, end: workoutRange.end, color: exerciseColor, proxy: proxy, geo: geo)
+                }
+
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
@@ -165,6 +172,7 @@ extension HRVAnalysisView {
                                     tooltipPoint = nil
                                     tooltipCalendarEvent = nil
                                     tooltipSleepRange = nil
+                                    tooltipWorkoutRange = nil
                                     return
                                 }
 
@@ -217,6 +225,17 @@ extension HRVAnalysisView {
                                     }
                                 } else {
                                     tooltipSleepRange = nil
+                                }
+
+                                if !tooltipWorkoutRanges.isEmpty {
+                                    let localX = value.location.x - plotRect.minX
+                                    if let touchedDate: Date = proxy.value(atX: localX) {
+                                        tooltipWorkoutRange = tooltipWorkoutRanges.first {
+                                            $0.start <= touchedDate && touchedDate <= $0.end
+                                        }
+                                    }
+                                } else {
+                                    tooltipWorkoutRange = nil
                                 }
                             }
                             .onEnded { _ in

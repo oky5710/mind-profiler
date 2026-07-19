@@ -237,6 +237,7 @@ extension HRVAnalysisView {
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                 tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
                 tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
+                tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
                 tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayEventDayMarkers
             )
         }

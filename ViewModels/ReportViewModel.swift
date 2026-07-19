@@ -140,7 +140,9 @@ final class ReportViewModel {
                 .prefix(3)
                 .map { $0 }
 
-            let periodWorkouts = allWorkouts.filter { $0.start < end && $0.end >= start }
+            let periodWorkouts = allWorkouts
+                .filter { $0.start < end && $0.end >= start }
+                .map { (start: $0.start, end: $0.end) }
             let periodMoods = Self.parseMoodEntries(allMoods).filter { $0.date >= start && $0.date < end }
             let periodCoffees = Self.parseCoffeeEntries(allCoffees).filter { $0.date >= start && $0.date < end }
 
