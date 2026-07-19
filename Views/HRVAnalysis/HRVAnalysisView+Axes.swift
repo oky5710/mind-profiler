@@ -315,10 +315,20 @@ extension HRVAnalysisView {
     }
 
     func monthlyAxisLabel(for date: Date) -> some View {
-        Text(Self.monthFormatter.string(from: date))
-            .bold()
-            .font(.system(size: 9))
-            .tracking(1)
+        let calendar = Calendar.current
+        let cv = viewModel.wearableRMSSDMonthlyStats.first {
+            calendar.isDate($0.monthStart, equalTo: date, toGranularity: .month)
+        }?.cv
+
+        return VStack(spacing: 1) {
+            Text(Self.monthFormatter.string(from: date))
+                .bold()
+            if let cv {
+                Text("CV \(String(format: "%.1f", cv))%")
+            }
+        }
+        .font(.system(size: 9))
+        .tracking(1)
     }
 
     // x축 라벨도 y축과 같은 이유(ui-style.md)로 레이아웃 공간을 차지하지 않고 차트 안에 고정 위치로 띄운다.

@@ -21,6 +21,7 @@ final class HRVAnalysisViewModel {
         let min: Double
         let max: Double
         let median: Double
+        let cv: Double?
         var id: Date { monthStart }
     }
 
@@ -123,7 +124,7 @@ final class HRVAnalysisViewModel {
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
             let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
             let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
-            recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : Self.median(recentRMSSDValues)
+            recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : HRVStatistics.median(recentRMSSDValues)
             exerciseRanges = workoutRanges.map { RangeInterval(start: $0.start, end: $0.end) }
             sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
             isHealthKitAuthorized = true
@@ -180,7 +181,7 @@ final class HRVAnalysisViewModel {
             groups[Calendar.current.startOfDay(for: date), default: []].append(value)
         }
         return groups
-            .map { (day, values) in (day, median(values)) }
+            .map { (day, values) in (day, HRVStatistics.median(values)) }
             .sorted { $0.0 < $1.0 }
     }
 
@@ -198,19 +199,10 @@ final class HRVAnalysisViewModel {
                     monthStart: monthStart,
                     min: sorted.first ?? 0,
                     max: sorted.last ?? 0,
-                    median: median(sorted)
+                    median: HRVStatistics.median(sorted),
+                    cv: HRVStatistics.coefficientOfVariation(sorted)
                 )
             }
             .sorted { $0.monthStart < $1.monthStart }
     }
-
-    private static func median(_ values: [Double]) -> Double {
-        let sorted = values.sorted()
-        let count = sorted.count
-        if count % 2 == 0 {
-            return (sorted[count / 2 - 1] + sorted[count / 2]) / 2
-        }
-        return sorted[count / 2]
-    }
-
 }
