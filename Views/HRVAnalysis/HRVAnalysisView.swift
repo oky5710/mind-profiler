@@ -259,7 +259,7 @@ struct HRVAnalysisView: View {
                     .foregroundStyle(allDayEventColor(for: event.category))
             }
             Text(event.title)
-                .font(.callout.bold())
+                .font(.subheadline.bold())
             Text(calendarEventTimeRangeText(event))
                 .font(.caption2)
             if let location = event.location, !location.isEmpty {
@@ -293,7 +293,7 @@ struct HRVAnalysisView: View {
             Text(
                 "\(formattedDuration(totalDuration)) · \(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
             )
-            .font(.callout.bold())
+            .font(.subheadline.bold())
             ForEach(Self.sleepStageDisplayOrder, id: \.self) { stage in
                 if let duration = sleepRange.stageDurations[stage] {
                     Text("\(stage.label) \(formattedDuration(duration))")

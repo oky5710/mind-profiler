@@ -132,7 +132,7 @@ extension HRVAnalysisView {
 
     // 여러 날짜에 걸친 종일 일정(예: 3일짜리 휴가)은 원 하나로 뭉뚱그리지 않고, 걸치는 날마다
     // 정오에 원을 하나씩 찍어서 캘린더 앱처럼 날짜별로 표시한다.
-    private var allDayEventDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] {
+    var allDayEventDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] {
         let calendar = Calendar.current
         return viewModel.calendarEventRanges
             .filter(\.isAllDay)
@@ -229,8 +229,9 @@ extension HRVAnalysisView {
                 yAxisTickValues: [],
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges,
-                tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges
+                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
+                tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
+                tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayEventDayMarkers
             )
         }
     }

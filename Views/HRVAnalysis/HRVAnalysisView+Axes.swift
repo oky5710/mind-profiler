@@ -47,7 +47,8 @@ extension HRVAnalysisView {
         xAxisLabel: @escaping (Date) -> AnyView,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
-        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = []
+        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = [],
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
@@ -57,7 +58,8 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 tooltipPoints: tooltipPoints,
                 tooltipRanges: tooltipRanges,
-                tooltipSleepRanges: tooltipSleepRanges
+                tooltipSleepRanges: tooltipSleepRanges,
+                tooltipAllDayMarkers: tooltipAllDayMarkers
             )
         }
     }
@@ -72,11 +74,15 @@ extension HRVAnalysisView {
         visibleDomain: TimeInterval,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
-        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = []
+        tooltipSleepRanges: [HRVAnalysisViewModel.SleepRange] = [],
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
         let estimatedTooltipHalfWidth: CGFloat = 45
+        // 종일 일정 원은 탭 지점이 그 원에서 이만큼(포인트) 이내일 때만 반응한다 — 그 날 전체가 아니라
+        // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함.
+        let allDayMarkerHitRadius: CGFloat = 16
 
         return GeometryReader { geo in
             ZStack(alignment: .topLeading) {
@@ -99,9 +105,9 @@ extension HRVAnalysisView {
                         .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
-                // 캘린더 일정 툴팁은 포인트 툴팁과 달리 "탭한 위치가 그 일정 막대 안에 있는지"로
-                // 판단한다 (가장 가까운 값이 아니라 실제로 그 구간을 눌렀는지가 중요).
-                if !tooltipRanges.isEmpty,
+                // 캘린더 일정 툴팁은 포인트 툴팁과 달리 "탭한 위치가 그 일정 막대 안(시간 일정)이거나
+                // 원 반경 안(종일 일정)인지"로 판단한다.
+                if (!tooltipRanges.isEmpty || !tooltipAllDayMarkers.isEmpty),
                    let event = tooltipCalendarEvent,
                    let plotFrame = proxy.plotFrame,
                    let x = proxy.position(forX: event.start) {
@@ -111,7 +117,7 @@ extension HRVAnalysisView {
                         max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
                     )
                     tooltipLabel(for: event)
-                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.midY)
                 }
 
                 // 수면 툴팁도 캘린더와 같은 방식(탭한 위치가 그 구간 안인지)으로 판단한다.
@@ -125,7 +131,7 @@ extension HRVAnalysisView {
                         max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
                     )
                     tooltipLabel(for: sleepRange)
-                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.midY)
                 }
 
                 Rectangle()
@@ -168,13 +174,30 @@ extension HRVAnalysisView {
                                     }
                                 }
 
-                                if !tooltipRanges.isEmpty {
+                                if !tooltipRanges.isEmpty || !tooltipAllDayMarkers.isEmpty {
                                     let localX = value.location.x - plotRect.minX
-                                    if let touchedDate: Date = proxy.value(atX: localX) {
-                                        tooltipCalendarEvent = tooltipRanges.first {
+                                    var matchedEvent: HRVAnalysisViewModel.CalendarEventRange?
+
+                                    if !tooltipRanges.isEmpty, let touchedDate: Date = proxy.value(atX: localX) {
+                                        matchedEvent = tooltipRanges.first {
                                             $0.start <= touchedDate && touchedDate <= $0.end
                                         }
                                     }
+
+                                    // 종일 일정 원은 "그날 어디를 눌러도" 반응하면 다른 날의 원을 확인하기
+                                    // 어려워지므로, 가장 가까운 원이더라도 실제 반경 안에 들어왔을 때만 인정한다.
+                                    if matchedEvent == nil, !tooltipAllDayMarkers.isEmpty,
+                                       let nearest = tooltipAllDayMarkers.min(by: { a, b in
+                                           abs((proxy.position(forX: a.day) ?? .infinity) - localX)
+                                               < abs((proxy.position(forX: b.day) ?? .infinity) - localX)
+                                       }) {
+                                        let nearestX = proxy.position(forX: nearest.day) ?? .infinity
+                                        if abs(nearestX - localX) <= allDayMarkerHitRadius {
+                                            matchedEvent = nearest.event
+                                        }
+                                    }
+
+                                    tooltipCalendarEvent = matchedEvent
                                 }
 
                                 if !tooltipSleepRanges.isEmpty {
