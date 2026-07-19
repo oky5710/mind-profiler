@@ -42,12 +42,18 @@ extension HRVAnalysisView {
         yAxisTickValues: [Double],
         xAxisTickDates: [Date],
         xAxisLabel: @escaping (Date) -> AnyView,
-        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
+        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
+        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(proxy: proxy, tickDates: xAxisTickDates, label: xAxisLabel)
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
-            dragToScrollOverlay(proxy: proxy, visibleDomain: visibleDomain, tooltipPoints: tooltipPoints)
+            dragToScrollOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                tooltipPoints: tooltipPoints,
+                tooltipRanges: tooltipRanges
+            )
         }
     }
 
@@ -59,7 +65,8 @@ extension HRVAnalysisView {
     private func dragToScrollOverlay(
         proxy: ChartProxy,
         visibleDomain: TimeInterval,
-        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = []
+        tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
+        tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
@@ -83,6 +90,21 @@ extension HRVAnalysisView {
                         max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
                     )
                     tooltipLabel(for: point)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
+                }
+
+                // 캘린더 일정 툴팁은 포인트 툴팁과 달리 "탭한 위치가 그 일정 막대 안에 있는지"로
+                // 판단한다 (가장 가까운 값이 아니라 실제로 그 구간을 눌렀는지가 중요).
+                if !tooltipRanges.isEmpty,
+                   let event = tooltipCalendarEvent,
+                   let plotFrame = proxy.plotFrame,
+                   let x = proxy.position(forX: event.start) {
+                    let plotRect = geo[plotFrame]
+                    let clampedLocalX = min(
+                        max(x, estimatedTooltipHalfWidth),
+                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                    )
+                    tooltipLabel(for: event)
                         .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
@@ -112,6 +134,15 @@ extension HRVAnalysisView {
                                     if let touchedDate: Date = proxy.value(atX: localX) {
                                         tooltipPoint = tooltipPoints.min {
                                             abs($0.date.timeIntervalSince(touchedDate)) < abs($1.date.timeIntervalSince(touchedDate))
+                                        }
+                                    }
+                                }
+
+                                if !tooltipRanges.isEmpty {
+                                    let localX = value.location.x - plotRect.minX
+                                    if let touchedDate: Date = proxy.value(atX: localX) {
+                                        tooltipCalendarEvent = tooltipRanges.first {
+                                            $0.start <= touchedDate && touchedDate <= $0.end
                                         }
                                     }
                                 }

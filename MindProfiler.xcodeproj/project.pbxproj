@@ -30,6 +30,8 @@
 		52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8296BF009909079BC325B648 /* MoodService.swift */; };
 		546EA496568AB165FEE92A39 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE7ECB87862084848E2504A /* AuthModels.swift */; };
 		63D6917DE455882DFE349BB3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D406E7D6B4DE3F230832DE06 /* HealthKit.framework */; };
+		9B1F4A2C5E6D7089ABCDEF01 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */; };
+		9B1F4A2C5E6D7089ABCDEF03 /* CalendarEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */; };
 		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
 		75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */; };
 		76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */; };
@@ -108,6 +110,8 @@
 		400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVCorrelationViewModel.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventService.swift; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
@@ -121,6 +125,7 @@
 				1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */,
 				8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */,
 				63D6917DE455882DFE349BB3 /* HealthKit.framework in Frameworks */,
+				9B1F4A2C5E6D7089ABCDEF01 /* EventKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,6 +224,7 @@
 			isa = PBXGroup;
 			children = (
 				D406E7D6B4DE3F230832DE06 /* HealthKit.framework */,
+				9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -269,6 +275,7 @@
 				441617D9A1D63082D4432F0C /* DateKey.swift */,
 				A260AC61F3C8A7585B32E365 /* ExamService.swift */,
 				E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */,
+				9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -435,6 +442,7 @@
 				298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */,
 				899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */,
 				DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */,
+				9B1F4A2C5E6D7089ABCDEF03 /* CalendarEventService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

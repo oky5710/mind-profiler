@@ -25,7 +25,7 @@ enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, sleep, exercise, median, sdnn
+    case rmssd, examRmssd, sleep, exercise, median, sdnn, calendarEvent
     var id: String { rawValue }
 
     var label: String {
@@ -36,6 +36,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .exercise: "운동"
         case .median: "최근 30일 중앙값"
         case .sdnn: "SDNN (참고용, 시간별)"
+        case .calendarEvent: "캘린더"
         }
     }
 
@@ -47,6 +48,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .exercise: "square.fill"
         case .median: "minus"
         case .sdnn: "minus"
+        case .calendarEvent: "square.fill"
         }
     }
 }
@@ -58,6 +60,7 @@ struct HRVAnalysisView: View {
     @State var dragAnchorPosition: Date?
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
+    @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -72,6 +75,7 @@ struct HRVAnalysisView: View {
     let examRmssdColor = Theme.examRmssd
     let exerciseColor = Theme.exercise
     let sleepColor = Theme.sleep
+    let calendarEventColor = Theme.systemBlue
 
     static let hourMinuteFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -114,6 +118,7 @@ struct HRVAnalysisView: View {
             || !viewModel.examPoints.isEmpty
             || !viewModel.sleepRanges.isEmpty
             || !viewModel.exerciseRanges.isEmpty
+            || !viewModel.calendarEventRanges.isEmpty
     }
 
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
@@ -150,6 +155,7 @@ struct HRVAnalysisView: View {
                     // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
                     // 탭했을 때만 걸린다.
                     tooltipPoint = nil
+                    tooltipCalendarEvent = nil
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -165,9 +171,13 @@ struct HRVAnalysisView: View {
             await viewModel.loadWearableHRVIfNeeded()
             recomputeRange()
         }
+        .task {
+            await viewModel.loadCalendarEventsIfNeeded()
+        }
         .onChange(of: chartMode) { _, newMode in
             hrvScrollPosition = latestVisibleEnd(for: newMode).addingTimeInterval(-newMode.visibleDomain)
             tooltipPoint = nil
+            tooltipCalendarEvent = nil
             recomputeRange()
         }
         .refreshable {
@@ -227,6 +237,31 @@ struct HRVAnalysisView: View {
         .fixedSize()
     }
 
+    func tooltipLabel(for event: HRVAnalysisViewModel.CalendarEventRange) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(event.title)
+                .font(.callout.bold())
+            Text(calendarEventTimeRangeText(event))
+                .font(.caption2)
+            if let location = event.location, !location.isEmpty {
+                Text(location)
+                    .font(.caption2)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 8))
+        .fixedSize()
+    }
+
+    private func calendarEventTimeRangeText(_ event: HRVAnalysisViewModel.CalendarEventRange) -> String {
+        if event.isAllDay {
+            return "\(Self.monthDayFormatter.string(from: event.start)) 종일"
+        }
+        return "\(Self.tooltipDateFormatter.string(from: event.start)) ~ \(Self.hourMinuteFormatter.string(from: event.end))"
+    }
+
     private var hrvChartBody: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let errorMessage = viewModel.errorMessage {
@@ -266,6 +301,12 @@ struct HRVAnalysisView: View {
 
             if let healthKitErrorMessage = viewModel.healthKitErrorMessage {
                 Text(healthKitErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            if let calendarErrorMessage = viewModel.calendarErrorMessage {
+                Text(calendarErrorMessage)
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
@@ -316,6 +357,7 @@ struct HRVAnalysisView: View {
         case .exercise: exerciseColor
         case .median: .gray
         case .sdnn: .black.opacity(0.5)
+        case .calendarEvent: calendarEventColor
         }
     }
 }

@@ -159,6 +159,31 @@ extension HRVAnalysisView {
                     .foregroundStyle(exerciseColor.opacity(0.7))
                 }
             }
+
+            // 캘린더 일정은 수면/운동과 한 레인에 겹쳐서 표시하되, 시간이 있는 일정과 종일 일정을
+            // 구분해야 해서(둘 다 같은 색이면 종일 일정이 하루 전체를 뒤덮어 다른 막대를 가려버림)
+            // 시간 일정은 전체 높이에 옅게, 종일 일정은 위쪽 얇은 띠에 진하게 그린다.
+            if !hiddenSeries.contains(.calendarEvent) {
+                ForEach(viewModel.calendarEventRanges.filter { !$0.isAllDay }) { event in
+                    RectangleMark(
+                        xStart: .value("일정 시작", event.start),
+                        xEnd: .value("일정 끝", event.end),
+                        yStart: .value("아래", 0),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle(calendarEventColor.opacity(0.35))
+                }
+
+                ForEach(viewModel.calendarEventRanges.filter(\.isAllDay)) { event in
+                    RectangleMark(
+                        xStart: .value("일정 시작", event.start),
+                        xEnd: .value("일정 끝", event.end),
+                        yStart: .value("아래", 0.85),
+                        yEnd: .value("위", 1)
+                    )
+                    .foregroundStyle(calendarEventColor.opacity(0.9))
+                }
+            }
         }
         .frame(height: ganttChartHeight)
         .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
@@ -171,7 +196,8 @@ extension HRVAnalysisView {
                 visibleDomain: visibleDomain,
                 yAxisTickValues: [],
                 xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) }
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges
             )
         }
     }

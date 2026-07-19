@@ -29,6 +29,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>일정을 읽어와 HRV 추이와 함께 보여주는 데 사용합니다.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>심박변이(HRV)와 수면 데이터를 읽어와 정신 건강 패턴을 분석하는 데 사용합니다.</string>
 	<key>UIApplicationSceneManifest</key>

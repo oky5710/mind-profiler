@@ -30,6 +30,15 @@ final class HRVAnalysisViewModel {
         var id: Date { start }
     }
 
+    struct CalendarEventRange: Identifiable {
+        let id = UUID()
+        let title: String
+        let start: Date
+        let end: Date
+        let isAllDay: Bool
+        let location: String?
+    }
+
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
     private static let hrvGapThresholdHourly: TimeInterval = 3 * 60 * 60
     private static let hrvGapThresholdDaily: TimeInterval = 1.5 * 24 * 60 * 60
@@ -54,9 +63,14 @@ final class HRVAnalysisViewModel {
     private(set) var isHealthKitAuthorized = false
     private(set) var isLoadingHealthKit = false
     private(set) var healthKitErrorMessage: String?
+    private(set) var calendarEventRanges: [CalendarEventRange] = []
+    private(set) var isCalendarAuthorized = false
+    private(set) var isLoadingCalendar = false
+    private(set) var calendarErrorMessage: String?
 
     private var hasLoaded = false
     private var hasCheckedHealthKit = false
+    private var hasCheckedCalendar = false
 
     func loadIfNeeded() async {
         guard !hasLoaded else { return }
@@ -117,6 +131,31 @@ final class HRVAnalysisViewModel {
             isHealthKitAuthorized = true
         } catch {
             healthKitErrorMessage = error.localizedDescription
+        }
+    }
+
+    func loadCalendarEventsIfNeeded() async {
+        guard !hasCheckedCalendar else { return }
+        hasCheckedCalendar = true
+        isLoadingCalendar = true
+        defer { isLoadingCalendar = false }
+
+        do {
+            try await CalendarEventService.requestAuthorization()
+            calendarEventRanges = await CalendarEventService.fetchEvents()
+                .map { event in
+                    CalendarEventRange(
+                        title: event.title,
+                        start: event.start,
+                        end: event.end,
+                        isAllDay: event.isAllDay,
+                        location: event.location
+                    )
+                }
+                .sorted { $0.start < $1.start }
+            isCalendarAuthorized = true
+        } catch {
+            calendarErrorMessage = error.localizedDescription
         }
     }
 
