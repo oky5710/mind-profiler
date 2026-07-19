@@ -366,58 +366,76 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // 범례 한 칸. 월별 rMSSD는 박스(1Q~3Q)/심지(최소~최대) 두 칸으로 나뉘지만 둘 다 같은 series를
+    // 가리켜서, 탭하면 항상 rMSSD 전체가 같이 토글된다 — 각 칸이 grid의 독립된 셀이라 다른 한 줄짜리
+    // 항목과도 자연스럽게 좌측 정렬로 나란히 놓인다(한 칸 안에 두 줄을 욱여넣지 않음).
+    private struct LegendItem: Identifiable {
+        let id: String
+        let series: HRVSeries
+        let label: String
+        let boldValue: String?
+        let swatch: AnyView
+    }
+
+    private var legendItems: [LegendItem] {
+        HRVSeries.allCases.filter { $0.appliesTo(chartMode) }.flatMap { series -> [LegendItem] in
+            if series == .rmssd, chartMode == .monthly {
+                return [
+                    LegendItem(
+                        id: "rmssd-box",
+                        series: .rmssd,
+                        label: "1Q~3Q",
+                        boldValue: nil,
+                        swatch: AnyView(
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.rmssdRange)
+                                .frame(width: 12, height: 8)
+                        )
+                    ),
+                    LegendItem(
+                        id: "rmssd-line",
+                        series: .rmssd,
+                        label: "최소~최대",
+                        boldValue: nil,
+                        swatch: AnyView(
+                            Rectangle()
+                                .fill(rmssdColor.opacity(0.5))
+                                .frame(width: 2, height: 10)
+                        )
+                    )
+                ]
+            }
+            return [
+                LegendItem(
+                    id: series.id,
+                    series: series,
+                    label: series.label,
+                    boldValue: series == .median ? medianLegendValue : nil,
+                    swatch: AnyView(
+                        Image(systemName: series.symbol)
+                            .font(.system(size: 8))
+                            .foregroundStyle(seriesColor(series))
+                    )
+                )
+            ]
+        }
+    }
+
     private var legend: some View {
-        // 월별 rMSSD 항목은 두 줄(1Q~3Q/최소~최대)이라 다른 한 줄짜리 항목과 같은 행에 놓이면
-        // 기본 세로 가운데 정렬 때문에 첫 줄 위치가 서로 어긋난다 — 각 칸을 위쪽 정렬해서 맞춘다.
-        LazyVGrid(
-            columns: [GridItem(.flexible(), alignment: .top), GridItem(.flexible(), alignment: .top)],
-            alignment: .leading,
-            spacing: 6
-        ) {
-            ForEach(HRVSeries.allCases.filter { $0.appliesTo(chartMode) }) { series in
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
+            ForEach(legendItems) { item in
                 Button {
-                    toggleSeries(series)
+                    toggleSeries(item.series)
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
                 } label: {
-                    legendContent(for: series)
-                        .opacity(hiddenSeries.contains(series) ? 0.35 : 1)
+                    legendRow(label: item.label, boldValue: item.boldValue) { item.swatch }
+                        .opacity(hiddenSeries.contains(item.series) ? 0.35 : 1)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.top, 4)
-    }
-
-    // 월별 캔들스틱은 박스(1Q~3Q)와 심지(최소~최대)가 같은 rMSSD 항목 아래 겹쳐 있어서, 문구로 풀어
-    // 쓰는 대신 차트에 실제로 그려지는 모양 그대로(연보라 사각형/얇은 세로선) 두 줄로 보여준다.
-    @ViewBuilder
-    private func legendContent(for series: HRVSeries) -> some View {
-        if series == .rmssd, chartMode == .monthly {
-            // 두 줄의 스와치 높이(사각형 8pt, 세로선 10pt)가 서로 달라서 그냥 두면 텍스트 세로
-            // 위치가 줄마다 미묘하게 어긋난다 — 둘 다 같은 높이의 칸 안에 가운데 정렬해서 스와치
-            // 모양과 무관하게 두 줄의 텍스트가 같은 세로선에 나란히 오게 한다.
-            VStack(alignment: .leading, spacing: 2) {
-                legendRow(label: "1Q~3Q") {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Theme.rmssdRange)
-                        .frame(width: 12, height: 8)
-                        .frame(width: 12, height: 14)
-                }
-                legendRow(label: "최소~최대") {
-                    Rectangle()
-                        .fill(rmssdColor.opacity(0.5))
-                        .frame(width: 2, height: 10)
-                        .frame(width: 12, height: 14)
-                }
-            }
-        } else {
-            legendRow(label: series.label, boldValue: series == .median ? medianLegendValue : nil) {
-                Image(systemName: series.symbol)
-                    .font(.system(size: 8))
-                    .foregroundStyle(seriesColor(series))
-            }
-        }
     }
 
     private var medianLegendValue: String? {
