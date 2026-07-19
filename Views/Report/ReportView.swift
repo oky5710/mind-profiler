@@ -204,7 +204,7 @@ struct ReportView: View {
     // MARK: - rMSSD
 
     private var rmssdSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("rMSSD").font(.system(size: 13.6, weight: .semibold))
 
             if let findings = viewModel.rmssdFindings {
@@ -212,17 +212,8 @@ struct ReportView: View {
                     Text("가장 낮은 날: \(Self.dateFormatter.string(from: lowestDate))")
                         .font(.footnote)
                     if let context = findings.lowestDayContext {
-                        Text(context)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        lowestDayContextView(context, lowestDate: lowestDate)
                     }
-                }
-                if let lowestRaw = findings.lowestRawSample {
-                    Text(
-                        "가장 낮은 시각: \(Self.dateTimeFormatter.string(from: lowestRaw.date)) " +
-                            "(\(String(format: "%.0f", lowestRaw.value))ms)"
-                    )
-                    .font(.footnote)
                 }
                 if let weekday = findings.lowestAverageWeekday, Self.weekdaySymbols.indices.contains(weekday - 1) {
                     Text("평균적으로 가장 낮은 요일: \(Self.weekdaySymbols[weekday - 1])")
@@ -240,10 +231,29 @@ struct ReportView: View {
         }
     }
 
+    // 전날/당일 수면·일정을 " · "로 이어붙인 한 줄 대신, 각 값을 실제 날짜와 함께 별도 줄로 보여준다.
+    @ViewBuilder
+    private func lowestDayContextView(_ context: ReportViewModel.LowestDayContext, lowestDate: Date) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let duration = context.previousNightDuration,
+               let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: lowestDate) {
+                Text("\(Self.dateFormatter.string(from: previousDay)) 수면 \(SleepAnalysisService.formattedDuration(duration))")
+            }
+            if let duration = context.sameNightDuration {
+                Text("\(Self.dateFormatter.string(from: lowestDate)) 수면 \(SleepAnalysisService.formattedDuration(duration))")
+            }
+            if !context.eventTitles.isEmpty {
+                Text("일정: \(context.eventTitles.joined(separator: ", "))")
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+
     // MARK: - SDNN vs rMSSD
 
     private var sdnnRmssdSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("SDNN vs rMSSD 차이 Top 3").font(.system(size: 13.6, weight: .semibold))
 
             if viewModel.topSDNNRMSSDDifferences.isEmpty {
@@ -274,7 +284,7 @@ struct ReportView: View {
     // MARK: - 기분/운동/커피 상관관계
 
     private var correlationSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("기분·운동·커피와 rMSSD 관계").font(.system(size: 13.6, weight: .semibold))
 
             if let findings = viewModel.correlationFindings {

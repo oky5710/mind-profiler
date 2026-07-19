@@ -8,15 +8,20 @@ final class ReportViewModel {
     struct RMSSDLowestFindings {
         // 일별 대표값(중앙값) 중 가장 낮은 날.
         let lowestDailyDate: Date?
-        // 원시(시간별) 샘플 중 가장 낮은 값의 정확한 시각.
-        let lowestRawSample: (date: Date, value: Double)?
         // 일별 대표값을 요일별로 평균 냈을 때 가장 낮은 요일 (1=일요일 ... 7=토요일).
         let lowestAverageWeekday: Int?
         // 날짜별로 그 날의 최저 1시간 버킷(0~23시)을 구한 뒤, 여러 날에 걸쳐 가장 자주
         // "그날의 최저"로 뽑힌 시간대(최빈값).
         let mostFrequentLowestHour: Int?
-        // lowestDailyDate 전날/당일 수면 시간과 그날 캘린더 일정을 한두 줄로 요약한 텍스트.
-        let lowestDayContext: String?
+        // lowestDailyDate 전날/당일 수면 시간과 그날 캘린더 일정 — 화면에서 실제 날짜와 함께
+        // 각각 한 줄씩 표시하도록 값 자체를 구조화해서 넘긴다(문자열로 미리 합쳐두지 않음).
+        let lowestDayContext: LowestDayContext?
+    }
+
+    struct LowestDayContext {
+        let previousNightDuration: TimeInterval?
+        let sameNightDuration: TimeInterval?
+        let eventTitles: [String]
     }
 
     struct SDNNRMSSDDifference: Identifiable {
@@ -203,7 +208,6 @@ final class ReportViewModel {
 
         let dailyMedians = HRVStatistics.dailyMedian(samples)
         let lowestDay = dailyMedians.min { $0.value < $1.value }
-        let lowestRaw = samples.min { $0.value < $1.value }
 
         var byWeekday: [Int: [Double]] = [:]
         for entry in dailyMedians {
@@ -212,13 +216,12 @@ final class ReportViewModel {
         let weekdayAverages = byWeekday.mapValues { $0.reduce(0, +) / Double($0.count) }
         let lowestWeekday = weekdayAverages.min { $0.value < $1.value }?.key
 
-        let lowestDayContext = lowestDay.flatMap {
+        let lowestDayContext = lowestDay.map {
             Self.lowestDayContext(date: $0.date, sleepRanges: allSleepRanges, calendarEvents: calendarEvents)
         }
 
         return RMSSDLowestFindings(
             lowestDailyDate: lowestDay?.date,
-            lowestRawSample: lowestRaw,
             lowestAverageWeekday: lowestWeekday,
             mostFrequentLowestHour: Self.mostFrequentLowestHour(samples),
             lowestDayContext: lowestDayContext
@@ -252,32 +255,32 @@ final class ReportViewModel {
     }
 
     // 그 날 rMSSD가 가장 낮았던 이유를 짐작해볼 수 있게, 전날/당일 수면 시간과 그날 캘린더
-    // 일정을 한두 줄로 요약한다. 전날 수면 = date-1에 시작한 밤, 당일 수면 = date에 시작한 밤.
+    // 일정을 구조화해서 넘긴다. 전날 수면 = date-1에 시작한 밤, 당일 수면 = date에 시작한 밤 —
+    // 실제 날짜는 이 date를 기준으로 화면에서 계산해서 표시한다.
     private static func lowestDayContext(
         date: Date,
         sleepRanges: [SleepRange],
         calendarEvents: [CalendarEventService.Event]
-    ) -> String? {
+    ) -> LowestDayContext {
         let calendar = Calendar.current
-        var parts: [String] = []
 
-        if let previousDay = calendar.date(byAdding: .day, value: -1, to: date),
-           let previousNight = sleepRanges.first(where: { calendar.isDate($0.start, inSameDayAs: previousDay) }) {
-            let duration = previousNight.end.timeIntervalSince(previousNight.start)
-            parts.append("전날 수면 \(SleepAnalysisService.formattedDuration(duration))")
-        }
+        let previousNightDuration = calendar.date(byAdding: .day, value: -1, to: date)
+            .flatMap { previousDay in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: previousDay) } }
+            .map { $0.end.timeIntervalSince($0.start) }
 
-        if let sameNight = sleepRanges.first(where: { calendar.isDate($0.start, inSameDayAs: date) }) {
-            let duration = sameNight.end.timeIntervalSince(sameNight.start)
-            parts.append("당일 수면 \(SleepAnalysisService.formattedDuration(duration))")
-        }
+        let sameNightDuration = sleepRanges
+            .first { calendar.isDate($0.start, inSameDayAs: date) }
+            .map { $0.end.timeIntervalSince($0.start) }
 
-        let dayEvents = calendarEvents.filter { calendar.isDate($0.start, inSameDayAs: date) }
-        if !dayEvents.isEmpty {
-            parts.append("일정: \(dayEvents.map(\.title).joined(separator: ", "))")
-        }
+        let eventTitles = calendarEvents
+            .filter { calendar.isDate($0.start, inSameDayAs: date) }
+            .map(\.title)
 
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return LowestDayContext(
+            previousNightDuration: previousNightDuration,
+            sameNightDuration: sameNightDuration,
+            eventTitles: eventTitles
+        )
     }
 
     // 캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 정상적으로 보여준다 —
