@@ -73,6 +73,10 @@ struct HRVAnalysisView: View {
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
     @State var tooltipSleepRange: HRVAnalysisViewModel.SleepRange?
+    // 간트 차트는 세로 폭이 좁아 캘린더/수면 툴팁을 그 안에 그리면 잘리므로, x 좌표만 여기 저장해두고
+    // lineAndGanttChartsStack 바깥쪽 오버레이(세로 공간이 넉넉함)에서 그 위치에 그린다.
+    @State var calendarTooltipAnchorX: CGFloat?
+    @State var sleepTooltipAnchorX: CGFloat?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -169,6 +173,8 @@ struct HRVAnalysisView: View {
                     tooltipPoint = nil
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
+                    calendarTooltipAnchorX = nil
+                    sleepTooltipAnchorX = nil
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -192,6 +198,8 @@ struct HRVAnalysisView: View {
             tooltipPoint = nil
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
+            calendarTooltipAnchorX = nil
+            sleepTooltipAnchorX = nil
             recomputeRange()
         }
         .refreshable {

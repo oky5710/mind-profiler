@@ -26,6 +26,22 @@ extension HRVAnalysisView {
                 }
             }
         }
+        // 캘린더/수면 툴팁은 간트 차트 자체(세로 폭이 좁음)가 아니라 라인+간트를 합친 이 스택 전체를
+        // 덮는 오버레이에서 그린다 — 세로 공간이 훨씬 넉넉해서 내용이 길어도 잘리지 않는다. x 좌표는
+        // 간트 차트의 드래그 핸들러(HRVAnalysisView+Axes.swift)가 계산해서 넘겨준다.
+        .overlay(alignment: .topLeading) {
+            ZStack(alignment: .topLeading) {
+                if let x = calendarTooltipAnchorX, let event = tooltipCalendarEvent {
+                    tooltipLabel(for: event)
+                        .position(x: x, y: lineChartHeight)
+                }
+                if let x = sleepTooltipAnchorX, let sleepRange = tooltipSleepRange {
+                    tooltipLabel(for: sleepRange)
+                        .position(x: x, y: lineChartHeight)
+                }
+            }
+            .allowsHitTesting(false)
+        }
     }
 
     var baseLineChart: some View {

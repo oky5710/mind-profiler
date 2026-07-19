@@ -105,34 +105,10 @@ extension HRVAnalysisView {
                         .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
-                // 캘린더 일정 툴팁은 포인트 툴팁과 달리 "탭한 위치가 그 일정 막대 안(시간 일정)이거나
-                // 원 반경 안(종일 일정)인지"로 판단한다.
-                if (!tooltipRanges.isEmpty || !tooltipAllDayMarkers.isEmpty),
-                   let event = tooltipCalendarEvent,
-                   let plotFrame = proxy.plotFrame,
-                   let x = proxy.position(forX: event.start) {
-                    let plotRect = geo[plotFrame]
-                    let clampedLocalX = min(
-                        max(x, estimatedTooltipHalfWidth),
-                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
-                    )
-                    tooltipLabel(for: event)
-                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.midY)
-                }
-
-                // 수면 툴팁도 캘린더와 같은 방식(탭한 위치가 그 구간 안인지)으로 판단한다.
-                if !tooltipSleepRanges.isEmpty,
-                   let sleepRange = tooltipSleepRange,
-                   let plotFrame = proxy.plotFrame,
-                   let x = proxy.position(forX: sleepRange.start) {
-                    let plotRect = geo[plotFrame]
-                    let clampedLocalX = min(
-                        max(x, estimatedTooltipHalfWidth),
-                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
-                    )
-                    tooltipLabel(for: sleepRange)
-                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.midY)
-                }
+                // 캘린더/수면 툴팁은 간트 차트 안(세로 폭이 아주 좁음)이 아니라 lineAndGanttChartsStack
+                // 전체를 덮는 바깥쪽 오버레이에서 그린다 — 안에서 그리면 내용이 길 때 위아래로 잘린다.
+                // 여기서는 x 좌표만 calendarTooltipAnchorX/sleepTooltipAnchorX에 저장해서 바깥쪽
+                // 오버레이(HRVAnalysisView+Charts.swift의 lineAndGanttChartsStack)에 넘겨준다.
 
                 Rectangle()
                     .fill(.clear)
@@ -162,6 +138,8 @@ extension HRVAnalysisView {
                                     tooltipPoint = nil
                                     tooltipCalendarEvent = nil
                                     tooltipSleepRange = nil
+                                    calendarTooltipAnchorX = nil
+                                    sleepTooltipAnchorX = nil
                                     return
                                 }
 
@@ -198,13 +176,30 @@ extension HRVAnalysisView {
                                     }
 
                                     tooltipCalendarEvent = matchedEvent
+                                    if let matchedEvent, let x = proxy.position(forX: matchedEvent.start) {
+                                        calendarTooltipAnchorX = plotRect.minX + min(
+                                            max(x, estimatedTooltipHalfWidth),
+                                            max(plotWidth - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                                        )
+                                    } else {
+                                        calendarTooltipAnchorX = nil
+                                    }
                                 }
 
                                 if !tooltipSleepRanges.isEmpty {
                                     let localX = value.location.x - plotRect.minX
                                     if let touchedDate: Date = proxy.value(atX: localX) {
-                                        tooltipSleepRange = tooltipSleepRanges.first {
+                                        let matchedRange = tooltipSleepRanges.first {
                                             $0.start <= touchedDate && touchedDate <= $0.end
+                                        }
+                                        tooltipSleepRange = matchedRange
+                                        if let matchedRange, let x = proxy.position(forX: matchedRange.start) {
+                                            sleepTooltipAnchorX = plotRect.minX + min(
+                                                max(x, estimatedTooltipHalfWidth),
+                                                max(plotWidth - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                                            )
+                                        } else {
+                                            sleepTooltipAnchorX = nil
                                         }
                                     }
                                 }
