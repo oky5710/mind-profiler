@@ -356,7 +356,7 @@ struct HRVAnalysisView: View {
         case .sleep: sleepColor
         case .exercise: exerciseColor
         case .median: .gray
-        case .sdnn: .black.opacity(0.5)
+        case .sdnn: Theme.gray7
         case .calendarEvent: calendarEventColor
         }
     }
