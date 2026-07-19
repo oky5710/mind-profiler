@@ -21,6 +21,20 @@ struct ReportView: View {
 
     private static let weekdaySymbols = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"]
 
+    // ui-style.md "날짜 표기" 규칙 — 인접 포인트 간격이 하루 이상 30일 미만이면 MM-dd 표기.
+    // 이 화면의 차트는 항상 날짜 단위(하루 간격) 데이터라 이 축약 규칙 하나만 해당한다.
+    // 포맷 자체는 HRVAnalysisView.monthDayFormatter를 그대로 재사용해 앱 전체에서 동일하게 유지한다.
+    @AxisMarkBuilder
+    private static func dateAxisMarks(_ value: AxisValue) -> some AxisMark {
+        AxisGridLine()
+        AxisTick()
+        AxisValueLabel {
+            if let date = value.as(Date.self) {
+                Text(HRVAnalysisView.monthDayFormatter.string(from: date))
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -51,12 +65,17 @@ struct ReportView: View {
         }
     }
 
+    // DatePicker는 커스텀 날짜 포맷 문자열을 직접 받지 않아서, 기본 표기가 yyyy-MM-dd인
+    // sv_SE(스웨덴) 로케일로 강제해 "2026-07-17" 형태를 얻는다 — 흔히 쓰는 우회법.
+    private static let isoLocale = Locale(identifier: "sv_SE")
+
     private var datePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석 기간").font(.system(size: 13.6, weight: .semibold))
             DatePicker("이전 진료일", selection: $viewModel.previousVisitDate, displayedComponents: .date)
             DatePicker("이번 진료일", selection: $viewModel.thisVisitDate, displayedComponents: .date)
         }
+        .environment(\.locale, Self.isoLocale)
     }
 
     private var analyzeButton: some View {
@@ -92,7 +111,7 @@ struct ReportView: View {
             }
 
             if let selectedSleepRange {
-                SleepDetailPanel(sleepRange: selectedSleepRange)
+                SleepDetailPanel(sleepRange: selectedSleepRange) { self.selectedSleepRange = nil }
             }
         }
     }
@@ -116,6 +135,11 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("시간")
+        .chartXAxis {
+            AxisMarks { value in
+                Self.dateAxisMarks(value)
+            }
+        }
         .chartOverlay { proxy in
             GeometryReader { geo in
                 Rectangle()
@@ -175,6 +199,11 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("rMSSD (ms)")
+        .chartXAxis {
+            AxisMarks { value in
+                Self.dateAxisMarks(value)
+            }
+        }
     }
 
     // MARK: - rMSSD
