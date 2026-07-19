@@ -156,14 +156,6 @@ extension HRVAnalysisView {
 
     var ganttChart: some View {
         let visibleDomain = chartMode.visibleDomain
-        // 선택된 막대의 안쪽 색 막대를 좌우로도 살짝 줄여야 테두리가 위아래뿐 아니라 사방으로 보인다.
-        // 화면에 보이는 구간(visibleDomain) 대비 일정한 비율로 줄여야 확대 정도와 무관하게 테두리
-        // 두께가 비슷해 보이고, 아주 짧은 막대에서 시작/끝이 뒤집히지 않도록 자기 길이의 15%로 상한을 둔다.
-        func selectionInset(start: Date, end: Date) -> (start: Date, end: Date) {
-            let duration = end.timeIntervalSince(start)
-            let margin = min(visibleDomain * 0.004, duration * 0.15)
-            return (start.addingTimeInterval(margin), end.addingTimeInterval(-margin))
-        }
 
         return Chart {
             if !hiddenSeries.contains(.sleep) {
@@ -185,32 +177,6 @@ extension HRVAnalysisView {
                                 .foregroundStyle(.white)
                         }
                     }
-                }
-
-                // 탭해서 선택된 수면 구간은 흰 막대(전체 높이)를 뒤에 깔고 그 앞에 살짝 안쪽으로 줄인
-                // 색 막대를 그려서 테두리처럼 보이게 한다 — 차트 y축 범위(0...1)는 선택 여부와
-                // 무관하게 그대로라 간트 차트 전체 높이가 바뀌지 않는다. 흰 막대가 불투명이면 배경과
-                // 거의 같은 색이라 안쪽 색 막대(90% 높이)만 보여서 오히려 막대가 짧아진 것처럼
-                // 보이므로, 투명도를 줘서 뒤에 깔린 원래 전체 높이 막대가 테두리 부분에 비쳐 보이게 한다.
-                if let selected = tooltipSleepRange {
-                    let isShort = selected.end.timeIntervalSince(selected.start) < Self.shortSleepThreshold
-                    let inset = selectionInset(start: selected.start, end: selected.end)
-
-                    RectangleMark(
-                        xStart: .value("수면 시작", selected.start),
-                        xEnd: .value("수면 끝", selected.end),
-                        yStart: .value("아래", 0),
-                        yEnd: .value("위", 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.5))
-
-                    RectangleMark(
-                        xStart: .value("수면 시작", inset.start),
-                        xEnd: .value("수면 끝", inset.end),
-                        yStart: .value("아래", 0.05),
-                        yEnd: .value("위", 0.95)
-                    )
-                    .foregroundStyle(isShort ? Color.red : sleepColor)
                 }
             }
 
@@ -238,28 +204,6 @@ extension HRVAnalysisView {
                         yEnd: .value("위", 1)
                     )
                     .foregroundStyle(calendarEventColor.opacity(0.35))
-                }
-
-                // 탭해서 선택된 시간 일정도 수면과 같은 방식(흰 막대 뒤 + 안쪽으로 줄인 색 막대 앞)으로
-                // 강조한다. 종일 일정(원)은 이미 자체적으로 흰 테두리가 있어 여기 대상이 아니다.
-                if let selected = tooltipCalendarEvent, !selected.isAllDay {
-                    let inset = selectionInset(start: selected.start, end: selected.end)
-
-                    RectangleMark(
-                        xStart: .value("일정 시작", selected.start),
-                        xEnd: .value("일정 끝", selected.end),
-                        yStart: .value("아래", 0),
-                        yEnd: .value("위", 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.5))
-
-                    RectangleMark(
-                        xStart: .value("일정 시작", inset.start),
-                        xEnd: .value("일정 끝", inset.end),
-                        yStart: .value("아래", 0.05),
-                        yEnd: .value("위", 0.95)
-                    )
-                    .foregroundStyle(calendarEventColor)
                 }
 
                 ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
