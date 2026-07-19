@@ -35,13 +35,12 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | GET | `/medications/logs?date=yyyy-MM-dd` | 특정 날짜 복용 기록 조회(홈 화면 퀵버튼 체크 표시용) | `MedicationService.logs` |
 | POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
 | GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
+| GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |
+| POST | `/events` | 이벤트 기록 생성 | `LifeEventService.logEvent` |
 
 ## 아직 안 씀
 
-이벤트 관련 엔드포인트는 백엔드에 이미 있지만(`mind-chart-backend`의 `event` 모듈) iOS 쪽에
-`Service`가 아직 없다 —
-[features.md](features.md)의 "아직 없음" 항목 구현 시 여기 추가한다.
-(구글 캘린더 관련 엔드포인트는 iOS에서 안 쓴다 — 아래 EventKit 섹션 참고.)
+구글 캘린더 관련 엔드포인트는 iOS에서 안 쓴다 — 아래 EventKit 섹션 참고.
 
 ## HealthKit (백엔드 API 아님)
 

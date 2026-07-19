@@ -118,38 +118,45 @@ struct HomeView: View {
         Button {
             Task { await viewModel.logCoffee() }
         } label: {
-            HStack(spacing: 6) {
-                Text("☕").font(.system(size: 22))
-                Text("커피").foregroundStyle(.white)
+            HStack(spacing: 4) {
+                Text("☕").font(.system(size: 16))
+                Text("커피").font(.caption).foregroundStyle(.white)
                 if viewModel.todayCoffeeCount > 0 {
                     Text("\(viewModel.todayCoffeeCount)")
-                        .font(.caption.bold())
+                        .font(.caption2.bold())
                         .foregroundStyle(.white)
-                        .padding(6)
+                        .padding(5)
                         .background(Color.red, in: Circle())
                 }
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
             .background(.black.opacity(0.35), in: Capsule())
         }
     }
 
+    // 아이콘/글씨를 가로로 나란히 두면 커피 버튼까지 세 개가 한 줄에서 넘치기 쉬워서, 세로로
+    // 줄바꿈해 너비를 좁게 유지한다.
     private func medicationButton(timing: MedicationTiming, icon: String, isTaken: Bool) -> some View {
         Button {
             Task { await viewModel.logMedicationQuick(timing) }
         } label: {
-            HStack(spacing: 6) {
-                Text(icon).font(.system(size: 22))
-                Text(timing.label).foregroundStyle(.white)
+            VStack(spacing: 2) {
+                Text(icon).font(.system(size: 16))
+                Text(timing.label).font(.caption2).foregroundStyle(.white)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(.black.opacity(0.35), in: Capsule())
+            .overlay(alignment: .topTrailing) {
                 if isTaken {
                     Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
                         .foregroundStyle(.green)
+                        .background(.white, in: Circle())
+                        .offset(x: 4, y: -4)
                 }
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 16)
-            .background(.black.opacity(0.35), in: Capsule())
         }
     }
 

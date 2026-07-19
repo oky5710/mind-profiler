@@ -46,20 +46,16 @@ struct DayEntrySheet: View {
     private var typeList: some View {
         List(EntryType.allCases) { type in
             Button {
-                if type.isImplemented {
-                    selected = type
-                }
+                selected = type
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(type.title)
                         .font(.headline)
-                        .foregroundStyle(type.isImplemented ? .primary : .secondary)
-                    Text(type.isImplemented ? type.subtitle : "\(type.subtitle) (준비 중)")
+                    Text(type.subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-            .disabled(!type.isImplemented)
         }
     }
 
@@ -92,7 +88,10 @@ struct DayEntrySheet: View {
                 dismiss()
             }
         case .event:
-            EmptyView()
+            LifeEventEntryForm(date: date) {
+                await onSaved()
+                dismiss()
+            }
         }
     }
 }

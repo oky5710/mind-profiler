@@ -26,11 +26,4 @@ enum EntryType: String, CaseIterable, Identifiable {
         case .event: "약 변경/스트레스/병원 진료 등"
         }
     }
-
-    var isImplemented: Bool {
-        switch self {
-        case .mood, .coffee, .exam, .exercise, .medication: true
-        case .event: false
-        }
-    }
 }

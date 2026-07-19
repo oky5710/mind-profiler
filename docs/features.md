@@ -29,7 +29,8 @@
 ### 달력보기 (`Views/Calendar`)
 - 월 달력 그리드, 날짜 탭 → bottom sheet로 유형 선택 후 입력.
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
-  운동(`ExerciseEntryForm`).
+  운동(`ExerciseEntryForm`) / 약복용(`MedicationEntryForm`) / 이벤트(`LifeEventEntryForm`) —
+  PRD의 유형 전부 구현됨(`EntryType.isImplemented`는 이제 항상 `true`라 제거).
 - **날짜 칸 정렬/높이**: 각 칸의 내용(날짜 숫자 + 기분/커피/운동 배지)은 세로 top·가로 left로
   정렬한다(`VStack(alignment: .leading)` + `.frame(alignment: .topLeading)`). 칸 높이는 가변
   `minHeight`가 아니라 고정 `height`(`CalendarView.dayCellHeight`, 배지 3개가 다 붙는 최악의
@@ -58,7 +59,13 @@
     체크박스로 노출하고(`MedicationService.quickLogTimings`), 선택한 시간대마다
     `POST /medications/logs/quick`를 호출한다 — 이 엔드포인트는 그 시간대로 등록된 약 전부를 한 번에
     복용 처리하므로(`medicationId`를 안 받음), 등록된 약이 없으면 눌러도 아무 로그도 안 생긴다(무해).
-- PRD에 있는 이벤트 유형은 **폼 미구현**.
+- **이벤트 기록 (`LifeEventEntryForm`)**: mind-record 웹 `EventForm.tsx`와 동일한 필드 — 유형(약 변경/
+  대인관계 문제/업무 스트레스/병원 진료/기타, `LifeEventType`. "기타"만 제목 직접 입력), 시간,
+  설명(선택). `POST /events`에 `{date, type, title, description?}`를 보낸다 — 커피와 동일하게
+  date는 날짜+시간을 합친 전체 ISO 8601 문자열(`ISO8601DateFormatter`)이다. 웹 폼은 감정(sentiment)·
+  강도(intensity) 필드를 안 쓰고 백엔드 DTO에만 옵션으로 있어서, iOS도 그 둘은 보내지 않는다.
+  기기의 EventKit 캘린더 일정(`CalendarEventService`/`CalendarEventRange`)과 이름이 겹치지 않도록
+  `LifeEvent` 접두사를 썼다 — 서로 무관한 기능이다.
 
 ### 보고서 (`Views/Report`)
 정신과 진료용 요약 보고서 — PRD의 "추후 계획"에 있던 "병원 진료일에 맞춰 보고할 내용 생성"에 해당하는
@@ -242,7 +249,6 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
 - **독립된 "복용약 관리" 화면** (`/medicine` 대응 화면 없음) — 약 등록/복용 체크 자체는 캘린더의
   `MedicationEntryForm`으로 가능하고, 홈 화면 아침/취침 퀵버튼도 있다(위 "진입 화면 / 홈" 참고).
   없는 건 약 목록을 따로 관리(수정 등)하는 전용 화면뿐.
-- **이벤트 기록** (약 변경/대인관계/업무 스트레스/병원 진료/기타).
 
 PRD의 "구글 캘린더 연동"(읽기 전용 일정 조회)은 웹 버전 전용 요구사항이었고, iOS는 대신 네이티브
 애플 캘린더(EventKit) 연동으로 같은 목적을 구현했다 — 위 "애플 캘린더 연동" 참고.

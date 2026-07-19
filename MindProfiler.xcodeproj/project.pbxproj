@@ -68,6 +68,9 @@
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
 		962A6287F5A7DA07B688C976 /* MedicationEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */; };
 		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
+		8AF1FB4557169DFB2FD06F0E /* LifeEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E922C72C21453864B098F86 /* LifeEventModels.swift */; };
+		A0DB1FCE4A61A20127D9E5CA /* LifeEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */; };
+		076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -133,6 +136,9 @@
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
 		99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationEntryForm.swift; sourceTree = "<group>"; };
 		A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugSearchSheet.swift; sourceTree = "<group>"; };
+		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
+		103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventService.swift; sourceTree = "<group>"; };
+		11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventEntryForm.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +185,7 @@
 				2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */,
 				99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */,
 				A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */,
+				11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -301,6 +308,7 @@
 				9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */,
 				7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */,
 				C68DBBE4CFFC691126AEB83B /* MedicationService.swift */,
+				103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -342,6 +350,7 @@
 				661F32A272362CA8CF1CA9C9 /* ExamModels.swift */,
 				59197C66879A601A9A0A99AF /* ExerciseModels.swift */,
 				08D6C75DD02E38AA10033162 /* MedicationModels.swift */,
+				3E922C72C21453864B098F86 /* LifeEventModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -479,6 +488,9 @@
 				B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */,
 				962A6287F5A7DA07B688C976 /* MedicationEntryForm.swift in Sources */,
 				882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */,
+				8AF1FB4557169DFB2FD06F0E /* LifeEventModels.swift in Sources */,
+				A0DB1FCE4A61A20127D9E5CA /* LifeEventService.swift in Sources */,
+				076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
