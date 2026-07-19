@@ -131,7 +131,8 @@ extension HRVAnalysisView {
     }
 
     // 여러 날짜에 걸친 종일 일정(예: 3일짜리 휴가)은 원 하나로 뭉뚱그리지 않고, 걸치는 날마다
-    // 정오에 원을 하나씩 찍어서 캘린더 앱처럼 날짜별로 표시한다.
+    // 자정(날짜가 바뀌는 지점)에 원을 하나씩 찍어서 캘린더 앱처럼 날짜별로 표시한다. 툴팁도 같은
+    // event.start(자정) 기준으로 위치를 잡으므로 원과 툴팁이 항상 같은 x 위치에 온다.
     var allDayEventDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] {
         let calendar = Calendar.current
         return viewModel.calendarEventRanges
@@ -139,9 +140,7 @@ extension HRVAnalysisView {
             .flatMap { event -> [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] in
                 let dayCount = max(calendar.dateComponents([.day], from: event.start, to: event.end).day ?? 1, 1)
                 return (0..<dayCount).compactMap { offset in
-                    guard let dayStart = calendar.date(byAdding: .day, value: offset, to: event.start),
-                          let noon = calendar.date(byAdding: .hour, value: 12, to: dayStart) else { return nil }
-                    return (day: noon, event: event)
+                    calendar.date(byAdding: .day, value: offset, to: event.start).map { (day: $0, event: event) }
                 }
             }
     }
