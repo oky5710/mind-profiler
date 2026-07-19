@@ -3,18 +3,6 @@ import SwiftUI
 
 // 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
 extension HRVAnalysisView {
-    // position()은 항상 뷰의 중앙을 그 좌표에 맞추기 때문에, 툴팁의 "위쪽 끝"을 특정 y에 맞추려면
-    // 높이를 미리 알아야 한다. 크기를 재는 대신, 폭 0짜리 점을 그 y에 정확히 놓고 overlay(alignment: .top)로
-    // 툴팁을 그 점의 위쪽 기준으로 붙이면 — 툴팁 실제 높이와 무관하게 항상 위쪽 끝이 그 y에 온다.
-    private func topAligned(x: CGFloat, topY: CGFloat, @ViewBuilder content: () -> some View) -> some View {
-        Color.clear
-            .frame(width: 0, height: 0)
-            .position(x: x, y: topY)
-            .overlay(alignment: .top) {
-                content()
-            }
-    }
-
     // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
     // 그 결과 두 차트 사이 간격(레이아웃상 유지하고 싶은 여백) 부분에서 그리드 선이 끊겨 보이므로,
     // 그 간격만큼을 이어주는 짧은 선을 배경에 덧그려서 세로 그리드가 끊기지 않고 이어진 것처럼 보이게 한다.
@@ -38,29 +26,6 @@ extension HRVAnalysisView {
                 }
             }
         }
-        // 캘린더/수면 툴팁은 간트 차트 자체(세로 폭이 좁음)가 아니라 라인+간트를 합친 이 스택 전체를
-        // 덮는 오버레이에서 그린다 — 세로 공간이 훨씬 넉넉해서 내용이 길어도 잘리지 않는다. x 좌표는
-        // 간트 차트의 드래그 핸들러(HRVAnalysisView+Axes.swift)가 계산해서 넘겨준다. y는 x축이 그려지는
-        // 지점(간트 차트 바로 아래)에 툴팁의 "위쪽 끝"이 오도록 맞춘다(중앙이 아님).
-        .overlay(alignment: .topLeading) {
-            let tooltipY = lineChartHeight + 8 + ganttChartHeight
-            ZStack(alignment: .topLeading) {
-                if let x = calendarTooltipAnchorX, let event = tooltipCalendarEvent {
-                    topAligned(x: x, topY: tooltipY) {
-                        tooltipLabel(for: event)
-                    }
-                }
-                if let x = sleepTooltipAnchorX, let sleepRange = tooltipSleepRange {
-                    topAligned(x: x, topY: tooltipY) {
-                        tooltipLabel(for: sleepRange)
-                    }
-                }
-            }
-            .allowsHitTesting(false)
-        }
-        // 이 오버레이가 아래쪽 범례(legend)와 겹칠 수 있는데, 선언 순서상 legend가 나중에 그려져
-        // 툴팁을 가리므로 zIndex로 항상 위에 오도록 고정한다.
-        .zIndex(1)
     }
 
     var baseLineChart: some View {

@@ -105,10 +105,9 @@ extension HRVAnalysisView {
                         .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
                 }
 
-                // 캘린더/수면 툴팁은 간트 차트 안(세로 폭이 아주 좁음)이 아니라 lineAndGanttChartsStack
-                // 전체를 덮는 바깥쪽 오버레이에서 그린다 — 안에서 그리면 내용이 길 때 위아래로 잘린다.
-                // 여기서는 x 좌표만 calendarTooltipAnchorX/sleepTooltipAnchorX에 저장해서 바깥쪽
-                // 오버레이(HRVAnalysisView+Charts.swift의 lineAndGanttChartsStack)에 넘겨준다.
+                // 캘린더/수면 툴팁은 간트 차트 안에 그리지 않는다 — 어떤 일정/수면 구간이 선택됐는지만
+                // (tooltipCalendarEvent/tooltipSleepRange) 여기서 판정하고, 실제 상세 패널은
+                // HRVAnalysisView.swift의 selectedItemDetailPanel이 간트 차트 아래 전체 폭으로 그린다.
 
                 Rectangle()
                     .fill(.clear)
@@ -138,8 +137,6 @@ extension HRVAnalysisView {
                                     tooltipPoint = nil
                                     tooltipCalendarEvent = nil
                                     tooltipSleepRange = nil
-                                    calendarTooltipAnchorX = nil
-                                    sleepTooltipAnchorX = nil
                                     return
                                 }
 
@@ -176,30 +173,13 @@ extension HRVAnalysisView {
                                     }
 
                                     tooltipCalendarEvent = matchedEvent
-                                    if let matchedEvent, let x = proxy.position(forX: matchedEvent.start) {
-                                        calendarTooltipAnchorX = plotRect.minX + min(
-                                            max(x, estimatedTooltipHalfWidth),
-                                            max(plotWidth - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
-                                        )
-                                    } else {
-                                        calendarTooltipAnchorX = nil
-                                    }
                                 }
 
                                 if !tooltipSleepRanges.isEmpty {
                                     let localX = value.location.x - plotRect.minX
                                     if let touchedDate: Date = proxy.value(atX: localX) {
-                                        let matchedRange = tooltipSleepRanges.first {
+                                        tooltipSleepRange = tooltipSleepRanges.first {
                                             $0.start <= touchedDate && touchedDate <= $0.end
-                                        }
-                                        tooltipSleepRange = matchedRange
-                                        if let matchedRange, let x = proxy.position(forX: matchedRange.start) {
-                                            sleepTooltipAnchorX = plotRect.minX + min(
-                                                max(x, estimatedTooltipHalfWidth),
-                                                max(plotWidth - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
-                                            )
-                                        } else {
-                                            sleepTooltipAnchorX = nil
                                         }
                                     }
                                 }

@@ -73,10 +73,6 @@ struct HRVAnalysisView: View {
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
     @State var tooltipSleepRange: HRVAnalysisViewModel.SleepRange?
-    // 간트 차트는 세로 폭이 좁아 캘린더/수면 툴팁을 그 안에 그리면 잘리므로, x 좌표만 여기 저장해두고
-    // lineAndGanttChartsStack 바깥쪽 오버레이(세로 공간이 넉넉함)에서 그 위치에 그린다.
-    @State var calendarTooltipAnchorX: CGFloat?
-    @State var sleepTooltipAnchorX: CGFloat?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -173,8 +169,6 @@ struct HRVAnalysisView: View {
                     tooltipPoint = nil
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
-                    calendarTooltipAnchorX = nil
-                    sleepTooltipAnchorX = nil
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -198,8 +192,6 @@ struct HRVAnalysisView: View {
             tooltipPoint = nil
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
-            calendarTooltipAnchorX = nil
-            sleepTooltipAnchorX = nil
             recomputeRange()
         }
         .refreshable {
@@ -278,11 +270,11 @@ struct HRVAnalysisView: View {
         .foregroundStyle(.black)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white, in: RoundedRectangle(cornerRadius: 8))
         // 라이트 모드에서는 배경이 흰색에 가까워 테두리가 없으면 툴팁이 안 보일 수 있다.
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.15), lineWidth: 1))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-        .fixedSize()
     }
 
     private func calendarEventTimeRangeText(_ event: HRVAnalysisViewModel.CalendarEventRange) -> String {
@@ -331,10 +323,20 @@ struct HRVAnalysisView: View {
         .foregroundStyle(.black)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.15), lineWidth: 1))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-        .fixedSize()
+    }
+
+    // 간트 차트 아래 전체 폭을 채우는 상세 패널 — 캘린더 일정이나 수면 막대를 탭하면 뜬다.
+    @ViewBuilder
+    private var selectedItemDetailPanel: some View {
+        if let event = tooltipCalendarEvent {
+            tooltipLabel(for: event)
+        } else if let sleepRange = tooltipSleepRange {
+            tooltipLabel(for: sleepRange)
+        }
     }
 
     private var hrvChartBody: some View {
@@ -371,6 +373,7 @@ struct HRVAnalysisView: View {
                             .foregroundStyle(.secondary)
                     }
                     lineAndGanttChartsStack
+                    selectedItemDetailPanel
                 }
             }
 
