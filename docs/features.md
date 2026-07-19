@@ -25,8 +25,14 @@
 
 ### 달력보기 (`Views/Calendar`)
 - 월 달력 그리드, 날짜 탭 → bottom sheet로 유형 선택 후 입력.
-- 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`).
-- PRD에 있는 운동/약복용/이벤트 유형은 **폼 미구현**.
+- 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
+  운동(`ExerciseEntryForm`).
+- **운동 기록 입력**: mind-record 웹의 `ExerciseForm.tsx`와 동일한 필드 — 종류(유산소/근력 운동/직접
+  입력), 시간(분), 강도(1~5, "매우 쉬움~매우 힘듦" 라벨). `POST /exercises`에 `{date, type,
+  durationMinutes, intensity}`를 보낸다(date는 다른 유형과 동일하게 `yyyy-MM-dd`). HealthKit에서
+  자동으로 읽어오는 "오늘의 패턴"의 운동 구간과는 별개로, 사용자가 직접 기록하는 수동 입력이다.
+  달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면 "🏃×N")를 표시한다.
+- PRD에 있는 약복용/이벤트 유형은 **폼 미구현**.
 
 ### 보고서 (`Views/Report`)
 정신과 진료용 요약 보고서 — PRD의 "추후 계획"에 있던 "병원 진료일에 맞춰 보고할 내용 생성"에 해당하는
@@ -203,7 +209,6 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
 
 - **복용약 관리** 화면 및 아침/취침 퀵버튼 (`/medicine` 대응 화면 없음).
 - **이벤트 기록** (약 변경/대인관계/업무 스트레스/병원 진료/기타).
-- **운동 기록 입력 폼** (HealthKit에서 읽어오는 것과 별개로, 캘린더에서 수동 입력하는 기능).
 
 PRD의 "구글 캘린더 연동"(읽기 전용 일정 조회)은 웹 버전 전용 요구사항이었고, iOS는 대신 네이티브
 애플 캘린더(EventKit) 연동으로 같은 목적을 구현했다 — 위 "애플 캘린더 연동" 참고.

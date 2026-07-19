@@ -61,6 +61,9 @@
 		DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441617D9A1D63082D4432F0C /* DateKey.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
+		9CD347F437BB315AF5E68BB3 /* ExerciseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59197C66879A601A9A0A99AF /* ExerciseModels.swift */; };
+		5D19F5A91F7A12624AABB18C /* ExerciseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */; };
+		74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -119,6 +122,9 @@
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		59197C66879A601A9A0A99AF /* ExerciseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseModels.swift; sourceTree = "<group>"; };
+		7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseService.swift; sourceTree = "<group>"; };
+		2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEntryForm.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +168,7 @@
 				C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */,
 				400923908367E8D00165474D /* CoffeeEntryForm.swift */,
 				9FCDEABE829D5B4188733280 /* ExamEntryForm.swift */,
+				2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -282,6 +289,7 @@
 				9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */,
 				9B1F4A2C5E6D7089ABCDEF06 /* SleepAnalysisService.swift */,
 				9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */,
+				7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -321,6 +329,7 @@
 				156BA80323127255242AD216 /* EntryType.swift */,
 				983D87F35A4B0F9CE144B7C4 /* DailyValue.swift */,
 				661F32A272362CA8CF1CA9C9 /* ExamModels.swift */,
+				59197C66879A601A9A0A99AF /* ExerciseModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -451,6 +460,9 @@
 				9B1F4A2C5E6D7089ABCDEF09 /* SleepDetailPanel.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF0B /* ReportView.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF0D /* ReportViewModel.swift in Sources */,
+				9CD347F437BB315AF5E68BB3 /* ExerciseModels.swift in Sources */,
+				5D19F5A91F7A12624AABB18C /* ExerciseService.swift in Sources */,
+				74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

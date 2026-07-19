@@ -92,6 +92,7 @@ struct CalendarView: View {
         let day = Calendar.current.component(.day, from: date)
         let mood = viewModel.mood(on: date)
         let coffeeCount = viewModel.coffees(on: date).count
+        let exerciseCount = viewModel.exercises(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
         return Button {
@@ -112,6 +113,10 @@ struct CalendarView: View {
                     Text(coffeeCount > 1 ? "☕×\(coffeeCount)" : "☕")
                         .font(.caption2)
                         .foregroundStyle(.brown)
+                }
+                if exerciseCount > 0 {
+                    Text(exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃")
+                        .font(.caption2)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 64)

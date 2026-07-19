@@ -10,6 +10,7 @@ final class CalendarViewModel {
 
     private var moodsByDate: [String: MoodLogEntry] = [:]
     private var coffeesByDate: [String: [CoffeeLogEntry]] = [:]
+    private var exercisesByDate: [String: [ExerciseLogEntry]] = [:]
     private var hasLoaded = false
 
     init(referenceDate: Date = Date()) {
@@ -31,7 +32,8 @@ final class CalendarViewModel {
         do {
             async let moods = MoodService.allMoods()
             async let coffees = CoffeeService.allCoffees()
-            let (moodList, coffeeList) = try await (moods, coffees)
+            async let exercises = ExerciseService.allExercises()
+            let (moodList, coffeeList, exerciseList) = try await (moods, coffees, exercises)
 
             var moodMap: [String: MoodLogEntry] = [:]
             for entry in moodList {
@@ -46,6 +48,13 @@ final class CalendarViewModel {
                 coffeeMap[DateKey.string(from: date), default: []].append(entry)
             }
             coffeesByDate = coffeeMap
+
+            var exerciseMap: [String: [ExerciseLogEntry]] = [:]
+            for entry in exerciseList {
+                guard let date = DateKey.parseISODate(entry.date) else { continue }
+                exerciseMap[DateKey.string(from: date), default: []].append(entry)
+            }
+            exercisesByDate = exerciseMap
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -98,5 +107,9 @@ final class CalendarViewModel {
 
     func coffees(on date: Date) -> [CoffeeLogEntry] {
         coffeesByDate[DateKey.string(from: date)] ?? []
+    }
+
+    func exercises(on date: Date) -> [ExerciseLogEntry] {
+        exercisesByDate[DateKey.string(from: date)] ?? []
     }
 }
