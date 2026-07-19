@@ -13,6 +13,14 @@ enum Theme {
     static let holiday = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
     static let vacation = Color(red: 0.9686, green: 0.4196, blue: 0.0824) // orange-9 #f76b15
 
+    // 수면 단계 도넛 차트 전용 카테고리컬 팔레트 — dataviz 스킬의 검증된 기본 팔레트(블루/그린/
+    // 마젠타/옐로 순서, 처음 4슬롯이 CVD 전 쌍 검증을 통과)를 그대로 썼다. 이 4개는 서로 다른
+    // 지표 색과 겹치지 않는 새 색이라 Radix 스케일 대신 이 팔레트를 그대로 가져왔다.
+    static let sleepStageDeep = Color(red: 0.1647, green: 0.4706, blue: 0.8392) // blue #2a78d6
+    static let sleepStageREM = Color(red: 0.0, green: 0.5137, blue: 0.0) // green #008300
+    static let sleepStageCore = Color(red: 0.9098, green: 0.4824, blue: 0.6431) // magenta #e87ba4
+    static let sleepStageUnspecified = Color(red: 0.9294, green: 0.6314, blue: 0.0) // yellow #eda100
+
     // Apple 표준 시스템 색상(HIG). 라이트/다크/대비 높음 4가지 모두 대응하는 값이라 UIKit 없이
     // Assets.xcassets의 컬러셋(SystemColors 그룹)으로 넣어뒀다 — 하드코딩된 단일 RGB가 아니라
     // 시스템 외형에 따라 자동으로 바뀐다.

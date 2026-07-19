@@ -32,6 +32,14 @@
 일반 캘린더 일정(공휴일/휴가가 아닌 것)과 SDNN 참고 라인은 지표 전용 색이 아니라 Apple 시스템 색
 (`Theme.systemBlue`, `Theme.systemGray4`)을 쓴다 — 아래 "시스템 색상 팔레트" 참고.
 
+### 수면 단계 도넛 팔레트
+
+수면 상세 패널의 단계별(코어/깊은/렘/미상) 도넛 차트는 위 지표 색과 별개로 `Theme.sleepStageDeep`/
+`sleepStageREM`/`sleepStageCore`/`sleepStageUnspecified`(블루/그린/마젠타/옐로)를 쓴다. 이 4개는
+Radix 스케일이 아니라 `dataviz` 스킬의 검증된 카테고리컬 팔레트에서 순서 그대로 가져온 것이다 —
+서로 다른 지표와 안 겹치는 새 카테고리 색이 필요했고, 이 팔레트는 4개 전 쌍 CVD 검증(`validate_palette.js`)을
+이미 통과해서다. 각성(수면 중 깬 시간)은 단계가 아니라 "나머지"라 무채색(`.gray`)으로 별도 처리한다.
+
 ### 시스템 색상 팔레트
 
 위 지표 색과 별개로, `Theme.systemRed`~`Theme.systemGray6`(Apple HIG 표준 색상 12개 + 회색조 6단계)도

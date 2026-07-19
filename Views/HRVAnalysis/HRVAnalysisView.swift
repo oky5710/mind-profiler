@@ -10,6 +10,15 @@ private extension HealthKitService.SleepStage {
         case .unspecified: "수면(단계 미상)"
         }
     }
+
+    var donutColor: Color {
+        switch self {
+        case .deep: Theme.sleepStageDeep
+        case .rem: Theme.sleepStageREM
+        case .core: Theme.sleepStageCore
+        case .unspecified: Theme.sleepStageUnspecified
+        }
+    }
 }
 
 enum HRVChartMode: String, CaseIterable {
@@ -295,12 +304,32 @@ struct HRVAnalysisView: View {
         }
     }
 
+    private struct SleepDonutSlice: Identifiable {
+        let id: String
+        let label: String
+        let duration: TimeInterval
+        let color: Color
+    }
+
+    // 각성(수면 중 깬 시간)은 수면 단계가 아니라 "그 나머지"라서, 단계 색과 헷갈리지 않게 무채색으로 둔다.
+    private func sleepDonutSlices(for sleepRange: HRVAnalysisViewModel.SleepRange) -> [SleepDonutSlice] {
+        var slices = Self.sleepStageDisplayOrder.compactMap { stage -> SleepDonutSlice? in
+            guard let duration = sleepRange.stageDurations[stage], duration > 0 else { return nil }
+            return SleepDonutSlice(id: stage.rawValue, label: stage.label, duration: duration, color: stage.donutColor)
+        }
+        let totalDuration = sleepRange.end.timeIntervalSince(sleepRange.start)
+        let awakeDuration = max(0, totalDuration - sleepRange.stageDurations.values.reduce(0, +))
+        if awakeDuration >= 60 {
+            slices.append(SleepDonutSlice(id: "awake", label: "깨어있음", duration: awakeDuration, color: .gray))
+        }
+        return slices
+    }
+
     func tooltipLabel(for sleepRange: HRVAnalysisViewModel.SleepRange) -> some View {
         let totalDuration = sleepRange.end.timeIntervalSince(sleepRange.start)
-        let trackedDuration = sleepRange.stageDurations.values.reduce(0, +)
-        let awakeDuration = max(0, totalDuration - trackedDuration)
+        let slices = sleepDonutSlices(for: sleepRange)
 
-        return VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 6) {
             // 애플 Health 앱이 보여주는 수면 점수는 HealthKit으로 못 받아와서, 애플이 공개한 가중치
             // 구성(수면시간+취침 일관성+각성)을 흉내 낸 추정치라는 걸 "추정"으로 명시한다.
             Text("추정 수면 점수 \(sleepRange.estimatedScore)점 · \(sleepScoreLabel(sleepRange.estimatedScore))")
@@ -309,15 +338,31 @@ struct HRVAnalysisView: View {
                 "\(formattedDuration(totalDuration)) · \(Self.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(Self.hourMinuteFormatter.string(from: sleepRange.end))"
             )
             .font(.caption2)
-            ForEach(Self.sleepStageDisplayOrder, id: \.self) { stage in
-                if let duration = sleepRange.stageDurations[stage] {
-                    Text("\(stage.label) \(formattedDuration(duration))")
-                        .font(.caption2)
+
+            HStack(alignment: .center, spacing: 16) {
+                Chart(slices) { slice in
+                    SectorMark(
+                        angle: .value("시간", slice.duration),
+                        innerRadius: .ratio(0.6),
+                        angularInset: 1.5
+                    )
+                    .foregroundStyle(slice.color)
+                    .cornerRadius(3)
                 }
-            }
-            if awakeDuration >= 60 {
-                Text("깨어있음 \(formattedDuration(awakeDuration))")
-                    .font(.caption2)
+                .frame(width: 84, height: 84)
+
+                // 도넛은 비율을 한눈에 보여주고, 옆의 색점+숫자 목록이 정확한 분 단위 값과 범례를 겸한다.
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(slices) { slice in
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(slice.color)
+                                .frame(width: 7, height: 7)
+                            Text("\(slice.label) \(formattedDuration(slice.duration))")
+                                .font(.caption2)
+                        }
+                    }
+                }
             }
         }
         .foregroundStyle(.black)
