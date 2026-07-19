@@ -1,13 +1,17 @@
 import SwiftUI
 
 enum Theme {
-    static let heart = Color(red: 0.9765, green: 0.3098, blue: 0.3882) // #F94F63
-    static let mood = Color(red: 0.9608, green: 0.6196, blue: 0.0431) // #f59e0b
-    static let coffee = Color(red: 0.5725, green: 0.2510, blue: 0.0549) // #92400e
-    static let examRmssd = Color(red: 0.1333, green: 0.7725, blue: 0.3686) // #22c55e
-    static let exercise = Color(red: 0.0863, green: 0.6392, blue: 0.2902) // #16a34a
-    static let sleep = Color(red: 0.3882, green: 0.4000, blue: 0.9451) // #6366f1
-    static let rmssd = Color(red: 0.5451, green: 0.3608, blue: 0.9647) // #8b5cf6
+    // Radix UI Colors(radix-ui.com/colors) 팔레트로 통일 — 기존 Tailwind 기반 하드코딩 값들을
+    // 색상 거리가 가장 가까운 Radix 스케일 단계로 교체했다.
+    static let heart = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
+    static let mood = Color(red: 1.0000, green: 0.7294, blue: 0.0941) // amber-10 #ffba18
+    static let coffee = Color(red: 0.6706, green: 0.3922, blue: 0.0000) // amber-11 #ab6400
+    static let examRmssd = Color(red: 0.1882, green: 0.6431, blue: 0.4235) // green-9 #30a46c
+    static let exercise = Color(red: 0.1686, green: 0.6039, blue: 0.4000) // green-10 #2b9a66
+    static let sleep = Color(red: 0.2431, green: 0.3882, blue: 0.8667) // indigo-9 #3e63dd
+    static let rmssd = Color(red: 0.4314, green: 0.3373, blue: 0.8118) // violet-9 #6e56cf
+    static let holiday = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
+    static let vacation = Color(red: 0.9686, green: 0.4196, blue: 0.0824) // orange-9 #f76b15
 
     // Apple 표준 시스템 색상(HIG). 라이트/다크/대비 높음 4가지 모두 대응하는 값이라 UIKit 없이
     // Assets.xcassets의 컬러셋(SystemColors 그룹)으로 넣어뒀다 — 하드코딩된 단일 RGB가 아니라
