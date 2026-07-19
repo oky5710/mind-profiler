@@ -280,15 +280,15 @@ extension HRVAnalysisView {
                     .lineStyle(StrokeStyle(lineWidth: 1.5))
                     .foregroundStyle(rmssdColor.opacity(0.5))
 
-                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로 — 심지 위에 겹쳐 그리도록
-                    // 충분히 불투명하게 채워서 박스 구간의 심지가 가려지게 한다.
+                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로 — 연보라(Theme.rmssdRange)로
+                    // 불투명하게 채워서 심지 위에 겹쳐도 박스 구간의 심지가 완전히 가려진다.
                     RectangleMark(
                         x: .value("월", stat.monthStart, unit: .month),
                         yStart: .value("1Q", stat.q1),
                         yEnd: .value("3Q", stat.q3),
                         width: .fixed(monthlyBarWidth)
                     )
-                    .foregroundStyle(rmssdColor.opacity(0.6))
+                    .foregroundStyle(Theme.rmssdRange)
                     .cornerRadius(4)
 
                     // 중앙값 선은 값(y축) 범위가 아니라 고정 픽셀 두께(2px)로 그려서, y축 스케일과

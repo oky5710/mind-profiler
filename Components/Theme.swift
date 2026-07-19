@@ -10,6 +10,9 @@ enum Theme {
     static let exercise = Color(red: 0.1686, green: 0.6039, blue: 0.4000) // green-10 #2b9a66
     static let sleep = Color(red: 0.2431, green: 0.3882, blue: 0.8667) // indigo-9 #3e63dd
     static let rmssd = Color(red: 0.4314, green: 0.3373, blue: 0.8118) // violet-9 #6e56cf
+    // 월별 캔들스틱 박스(1Q~3Q) 전용 연보라 — rmssd와 같은 violet 스케일의 옅은 단계라 계열은
+    // 유지하면서 불투명하게 채워도 무겁지 않다.
+    static let rmssdRange = Color(red: 0.8314, green: 0.7922, blue: 0.9961) // violet-6 #d4cafe
     static let holiday = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
     static let vacation = Color(red: 0.9686, green: 0.4196, blue: 0.0824) // orange-9 #f76b15
 
