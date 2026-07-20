@@ -50,6 +50,10 @@
   달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면 "🏃×N")를 표시한다.
 - **커피 종류 목록**: mind-record 웹 `CoffeeForm.tsx`의 `COFFEE_TYPES`와 동일 — 아메리카노/라떼/
   카푸치노/에스프레소/콜드브루(`CoffeeService.typeOptions`).
+- **커피 기록 삭제**: `CoffeeEntryForm`을 열면 새로 입력하는 폼 위에 "이 날의 기록" 목록이 먼저
+  보인다(`GET /coffee?date=`) — 잘못 입력한 기록을 스와이프로 삭제할 수 있다(`DELETE /coffee/:id`).
+  삭제 후에는 새 기록을 저장했을 때와 같은 `onSaved` 콜백을 그대로 태워서 캘린더 배지도 같이
+  갱신된다.
 - **기분 하루 1건 제약**: 백엔드가 같은 날 중복 기록을 409로 거부한다 — mind-record 웹과 동일하게
   "오늘 기분은 이미 입력됐어요" 문구로 안내한다(`MoodEntryForm`).
 - **약복용 (`MedicationEntryForm`)**: 약 등록과 그날의 복용 체크를 한 화면에서 처리한다. "오늘 복용

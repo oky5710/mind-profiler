@@ -24,9 +24,10 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | GET | `/moods?date=yyyy-MM-dd` | 특정 날짜 기분 기록 조회 | `MoodService.todayMood` |
 | GET | `/moods` | 전체 기분 기록 조회 | `MoodService.allMoods` |
 | POST | `/moods` | 기분 기록 생성/기록 | `MoodService.logMood` |
-| GET | `/coffee?date=yyyy-MM-dd` | 특정 날짜 커피 기록 조회 (오늘 잔 수 배지용) | `CoffeeService.todayCount` |
+| GET | `/coffee?date=yyyy-MM-dd` | 특정 날짜 커피 기록 조회 (오늘 잔 수 배지·`CoffeeEntryForm` 목록용) | `CoffeeService.todayCount` / `entries` |
 | GET | `/coffee` | 전체 커피 기록 조회 | `CoffeeService.allCoffees` |
 | POST | `/coffee` | 커피 기록 생성 | `CoffeeService.logCoffee` / `logQuickCoffee` |
+| DELETE | `/coffee/:id` | 커피 기록 삭제 | `CoffeeService.removeCoffee` |
 | GET | `/exercises` | 전체 운동 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑) | `ExerciseService.allExercises` |
 | POST | `/exercises` | 운동 기록 생성 | `ExerciseService.logExercise` |
 | GET | `/medications` | 등록된 약 전체 조회 | `MedicationService.allMedications` |

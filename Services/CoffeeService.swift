@@ -14,6 +14,14 @@ enum CoffeeService {
         try await APIClient.shared.get("/coffee")
     }
 
+    static func entries(on date: Date) async throws -> [CoffeeLogEntry] {
+        try await APIClient.shared.get("/coffee?date=\(DateKey.string(from: date))")
+    }
+
+    static func removeCoffee(id: String) async throws {
+        let _: CoffeeLogEntry = try await APIClient.shared.delete("/coffee/\(id)")
+    }
+
     static func logQuickCoffee() async throws {
         try await logCoffee(dateTime: Date(), type: "아메리카노", memo: nil)
     }

@@ -6,7 +6,7 @@ struct CoffeeLogRequest: Encodable {
     let memo: String?
 }
 
-struct CoffeeLogEntry: Decodable {
+struct CoffeeLogEntry: Decodable, Identifiable {
     let id: String
     let date: String
     let type: String?
