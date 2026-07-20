@@ -101,10 +101,13 @@ final class HomeViewModel {
     func logMedicationQuick(_ timing: MedicationTiming) async {
         medicationErrorMessage = nil
         do {
-            try await MedicationService.logTiming(timing, date: Date())
+            let result = try await MedicationService.logTiming(timing, date: Date())
             // 퀵로그는 그 시간대로 등록된 약 전부를 처리하는 거라, 등록된 약이 없으면 호출은
-            // 성공해도 실제로 "복용됨" 상태가 안 될 수 있다 — 낙관적으로 갱신하지 않고 다시 조회해서
-            // 진짜 상태를 반영한다.
+            // 성공해도 로그가 하나도 안 생긴다 — 체크마크가 안 뜨는 게 버그가 아니라 이 경우라는 걸
+            // 안내한다(그 전까진 아무 피드백 없이 조용히 실패하는 것처럼 보였다).
+            if result.isEmpty {
+                medicationErrorMessage = "\(timing.label)에 복용하도록 등록된 약이 없어요. 캘린더에서 약을 등록해보세요."
+            }
             await refreshTodayMedicationLogs()
         } catch {
             medicationErrorMessage = error.localizedDescription

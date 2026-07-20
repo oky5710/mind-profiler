@@ -50,9 +50,11 @@ enum MedicationService {
     }
 
     // 해당 시간대에 복용하는 것으로 등록된 약 전부를 한 번에 복용 처리 — 등록된 약이 없으면
-    // 백엔드가 아무 로그도 만들지 않는다(약 없는데 눌러도 무해).
-    static func logTiming(_ timing: MedicationTiming, date: Date) async throws {
-        let _: [MedicationLogEntry] = try await APIClient.shared.post(
+    // 백엔드가 아무 로그도 만들지 않고 빈 배열을 반환한다(호출부에서 그 경우를 구분해 안내할 수 있게
+    // 반환값을 그대로 넘긴다).
+    @discardableResult
+    static func logTiming(_ timing: MedicationTiming, date: Date) async throws -> [MedicationLogEntry] {
+        try await APIClient.shared.post(
             "/medications/logs/quick",
             body: MedicationQuickLogRequest(timing: timing.rawValue, date: DateKey.string(from: date))
         )
