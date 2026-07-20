@@ -71,6 +71,8 @@
 		8AF1FB4557169DFB2FD06F0E /* LifeEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E922C72C21453864B098F86 /* LifeEventModels.swift */; };
 		A0DB1FCE4A61A20127D9E5CA /* LifeEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */; };
 		076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */; };
+		1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */; };
+		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -139,6 +141,8 @@
 		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
 		103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventService.swift; sourceTree = "<group>"; };
 		11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventEntryForm.swift; sourceTree = "<group>"; };
+		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
+		7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -327,6 +331,8 @@
 			isa = PBXGroup;
 			children = (
 				2CA6D2394987B7B159269517 /* SettingsView.swift */,
+				7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */,
+				C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -444,6 +450,8 @@
 				0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */,
 				F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */,
 				78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */,
+				C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */,
+				1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */,
 				76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */,
 				8DA0F4F86D994BB6BD8C4885 /* KeychainService.swift in Sources */,
 				CEB820D33F1D6C3BFD06BFF6 /* APIClient.swift in Sources */,

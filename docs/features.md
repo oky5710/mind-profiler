@@ -56,20 +56,12 @@
   갱신된다.
 - **기분 하루 1건 제약**: 백엔드가 같은 날 중복 기록을 409로 거부한다 — mind-record 웹과 동일하게
   "오늘 기분은 이미 입력됐어요" 문구로 안내한다(`MoodEntryForm`).
-- **약복용 (`MedicationEntryForm`)**: 약 등록과 그날의 복용 체크를 한 화면에서 처리한다. "오늘 복용
-  처리"가 가장 자주 쓰는 동작이라 맨 위에 오고, 그 아래 등록된 약 목록·새 약 등록 순서다.
-  - 등록: `DrugSearchSheet`에서 식약처 낱알식별정보(`GET /drugs/search?name=`)를 검색하고, 결과를
-    선택한 뒤 복용 시간대(아침/점심/저녁/취침전/필요시, `MedicationTiming`)를 골라 `POST /medications`로
-    저장한다 — mind-record 웹의 `MedicinePage.tsx` `DrugSearchSheet`와 동일한 2단계 흐름(검색·목록 →
-    시간대 선택 → 등록)이고, 이름을 직접 입력해 등록하는 수단은 웹에도 없어서 iOS도 지원하지 않는다.
-    검색 결과 중 이미 등록된 약(`itemSeq` 일치)은 "복용 중"으로 비활성화해서 중복 등록을 막는다.
-    mind-record 웹은 이 등록을 별도 "복용약 관리" 화면에서 하지만 iOS엔 그 화면이 아직 없어서 캘린더
-    폼에 함께 넣었다. 등록된 약 목록(`GET /medications`)을 같이 보여주고 스와이프로 삭제
-    (`DELETE /medications/:id`)할 수 있다.
-  - 복용 체크: mind-record 웹 캘린더용 `MedicationForm.tsx`와 동일하게 아침/취침/필요시 세 가지만
-    체크박스로 노출하고(`MedicationService.quickLogTimings`), 선택한 시간대마다
-    `POST /medications/logs/quick`를 호출한다 — 이 엔드포인트는 그 시간대로 등록된 약 전부를 한 번에
-    복용 처리하므로(`medicationId`를 안 받음), 등록된 약이 없으면 눌러도 아무 로그도 안 생긴다(무해).
+- **약복용 (`MedicationEntryForm`)**: 그날의 복용 체크만 한다 — mind-record 웹 캘린더용
+  `MedicationForm.tsx`와 동일하게 아침/취침/필요시 세 가지만 체크박스로 노출하고
+  (`MedicationService.quickLogTimings`), 선택한 시간대마다 `POST /medications/logs/quick`를
+  호출한다 — 이 엔드포인트는 그 시간대로 등록된 약 전부를 한 번에 복용 처리하므로(`medicationId`를
+  안 받음), 등록된 약이 없으면 눌러도 아무 로그도 안 생긴다(무해). 약 등록 자체는 설정의
+  `MedicationManagementView`로 옮겼다(아래 "설정" 참고).
 - **이벤트 기록 (`LifeEventEntryForm`)**: mind-record 웹 `EventForm.tsx`와 동일한 필드 — 유형(약 변경/
   대인관계 문제/업무 스트레스/병원 진료/기타, `LifeEventType`. "기타"만 제목 직접 입력), 시간,
   설명(선택). `POST /events`에 `{date, type, title, description?}`를 보낸다 — 커피와 동일하게
@@ -241,11 +233,25 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
 - **x축 라벨 겹침 생략**: 인접한 라벨의 픽셀 간격이 10px 미만이면 뒤쪽 라벨은 생략한다(그리드 선은 유지).
 
 ### 설정 (`Views/Settings`)
-- **SDNN vs rMSSD 분석**: 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍을 찾아 평균 SDNN·평균 rMSSD·
-  SDNN/rMSSD 비율·Pearson 상관계수를 계산해서 보여준다 (`HealthKitService.fetchSDNNRMSSDPairs`,
-  `HRVCorrelationViewModel`). 짝(쌍) 데이터를 CSV(`date,sdnn_ms,rmssd_ms`)로 내보내 `ShareLink`로
-  공유(AirDrop/Files/메시지 등)할 수도 있다 — 앱이 SDNN(HealthKit 제공)과 rMSSD(원시 박동에서 직접
-  계산)를 둘 다 갖고 있어서만 가능한, mind-record 웹에는 없던 분석.
+`SettingsView`는 목록 두 항목(분석 / 약 등록)만 있는 메뉴 화면이고, 실제 내용은 각각 별도 화면으로
+푸시된다 — 둘 다 `SettingsView`의 `NavigationStack` 안에서 열리므로 자기 자신은 새
+`NavigationStack`을 만들지 않는다.
+
+- **분석 (`AnalysisSettingsView`)**: SDNN vs rMSSD 분석. 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍을
+  찾아 평균 SDNN·평균 rMSSD·SDNN/rMSSD 비율·Pearson 상관계수를 계산해서 보여준다
+  (`HealthKitService.fetchSDNNRMSSDPairs`, `HRVCorrelationViewModel`). 짝(쌍) 데이터를
+  CSV(`date,sdnn_ms,rmssd_ms`)로 내보내 `ShareLink`로 공유(AirDrop/Files/메시지 등)할 수도 있다 —
+  앱이 SDNN(HealthKit 제공)과 rMSSD(원시 박동에서 직접 계산)를 둘 다 갖고 있어서만 가능한,
+  mind-record 웹에는 없던 분석.
+- **약 등록 (`MedicationManagementView`)**: `DrugSearchSheet`에서 식약처 낱알식별정보
+  (`GET /drugs/search?name=`)를 검색하고, 결과를 선택한 뒤 복용 시간대(아침/점심/저녁/취침전/필요시,
+  `MedicationTiming`)를 골라 `POST /medications`로 저장한다 — mind-record 웹의 `MedicinePage.tsx`
+  `DrugSearchSheet`와 동일한 2단계 흐름(검색·목록 → 시간대 선택 → 등록)이고, 이름을 직접 입력해
+  등록하는 수단은 웹에도 없어서 iOS도 지원하지 않는다. 검색 결과 중 이미 등록된 약(`itemSeq` 일치)은
+  "복용 중"으로 비활성화해서 중복 등록을 막는다. 등록된 약 목록(`GET /medications`)을 같이 보여주고
+  스와이프로 삭제(`DELETE /medications/:id`)할 수 있다. 등록은 날짜와 무관한 전역 작업이라 여기
+  있고, 그날그날의 복용 체크(아침/취침/필요시 퀵버튼)는 캘린더의 `MedicationEntryForm`에 그대로
+  남아 있다 — mind-record 웹이 등록(전용 화면)과 체크(캘린더 폼)를 나눠 둔 것과 같은 구조다.
 
 ## 설계 목표 (설계는 됐지만 아직 코드에 없음)
 
