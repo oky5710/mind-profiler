@@ -45,8 +45,13 @@ enum MedicationService {
     // 식약처 낱알식별정보 검색 — mind-record 웹의 /drugs/search와 동일. 인증 불필요한 공개
     // 엔드포인트지만 APIClient가 항상 붙이는 Bearer 헤더는 백엔드가 무시하므로 문제 없다.
     static func searchDrugs(name: String) async throws -> DrugSearchResponse {
-        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
-        return try await APIClient.shared.get("/drugs/search?name=\(encodedName)")
+        // .urlQueryAllowed는 &, =, + 같은 문자를 "허용"으로 쳐서 인코딩하지 않는다 — 검색어에 그런
+        // 문자가 들어있으면 query parameter 경계가 깨진다. URLComponents가 값 단위로 올바르게
+        // percent-encode 해준다.
+        var components = URLComponents()
+        components.queryItems = [URLQueryItem(name: "name", value: name)]
+        let query = components.percentEncodedQuery ?? ""
+        return try await APIClient.shared.get("/drugs/search?\(query)")
     }
 
     // 해당 시간대에 복용하는 것으로 등록된 약 전부를 한 번에 복용 처리 — 등록된 약이 없으면
