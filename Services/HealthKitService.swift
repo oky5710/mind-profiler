@@ -103,7 +103,16 @@ enum HealthKitService {
         async let sdnnSamples = fetchSDNNSamples()
         async let rmssdSamples = fetchRMSSDSamples()
         let (sdnn, rmssd) = try await (sdnnSamples, rmssdSamples)
+        return pairSDNNAndRMSSD(sdnn: sdnn, rmssd: rmssd)
+    }
 
+    // fetchSDNNRMSSDPairs()의 짝짓기 로직만 뺀 순수 함수 — 이미 두 샘플을 따로 가지고 있는 호출부
+    // (ReportViewModel)는 fetchSDNNRMSSDPairs()를 다시 부르면 rMSSD/SDNN을 통째로 한 번 더
+    // 조회하게 되므로, 이미 가진 배열을 그대로 넘겨서 짝만 짓는다.
+    static func pairSDNNAndRMSSD(
+        sdnn: [(date: Date, value: Double)],
+        rmssd: [(date: Date, value: Double)]
+    ) -> [(date: Date, sdnn: Double, rmssd: Double)] {
         let sortedSDNN = sdnn.sorted { $0.date < $1.date }
         var pairs: [(date: Date, sdnn: Double, rmssd: Double)] = []
         var sdnnIndex = 0

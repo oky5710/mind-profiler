@@ -110,7 +110,6 @@ final class ReportViewModel {
             async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples()
             async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples()
             async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples()
-            async let pairsTask = HealthKitService.fetchSDNNRMSSDPairs()
             async let workoutsTask = HealthKitService.fetchWorkoutRanges()
             async let moodsTask = MoodService.allMoods()
             async let coffeesTask = CoffeeService.allCoffees()
@@ -118,11 +117,14 @@ final class ReportViewModel {
 
             let (
                 allSleepSamples, allRMSSDSamples, allSDNNSamples, allRestingHeartRateSamples,
-                allPairs, allWorkouts, allMoods, allCoffees, calendarEvents
+                allWorkouts, allMoods, allCoffees, calendarEvents
             ) = try await (
                 sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, restingHeartRateSamplesTask,
-                pairsTask, workoutsTask, moodsTask, coffeesTask, calendarEventsTask
+                workoutsTask, moodsTask, coffeesTask, calendarEventsTask
             )
+            // rMSSD/SDNN을 이미 위에서 받아왔으니, fetchSDNNRMSSDPairs()를 또 불러서 HealthKit을
+            // 중복 조회하는 대신 이미 가진 배열로 짝만 짓는다.
+            let allPairs = HealthKitService.pairSDNNAndRMSSD(sdnn: allSDNNSamples, rmssd: allRMSSDSamples)
 
             // 수면은 기간 경계에 걸친 밤이 중간에 잘리지 않도록 전체 샘플을 먼저 병합한 뒤,
             // 그 기간에 "시작하는" 밤만 추린다.
