@@ -74,8 +74,20 @@ final class HRVAnalysisViewModel {
     private(set) var isLoadingCalendar = false
     private(set) var calendarErrorMessage: String?
 
+    // HealthKit(rMSSD 등)을 "전체 이력"이 아니라 화면에 보이는 구간의 loadWindowMultiplier배만
+    // 불러온다 — rMSSD 계산이 원시 박동 시리즈를 전부 순회하는 무거운 연산이라, 데이터가 몇 년치
+    // 쌓여도 매번 전부 다시 계산하지 않기 위함. 스크롤/핀치로 보이는 구간이 이 범위의 안전 여백
+    // (prefetchMarginMultiplier배) 밖으로 나가려고 하면 새 위치를 중심으로 다시 불러온다.
+    static let loadWindowMultiplier: Double = 5
+    // 로드된 구간의 양쪽 여유(각각 (loadWindowMultiplier-1)/2배)를 이만큼 다 쓰면 미리 다음 구간을
+    // 불러온다 — 사용자가 실제 가장자리에 닿기 전에 백그라운드 로딩이 끝나 있도록 여유를 준다.
+    static let prefetchMarginMultiplier: Double = 1
+    // 지금까지 불러온 HealthKit 데이터가 커버하는 실제 기간.
+    private var loadedHealthKitRange: ClosedRange<Date>?
+    private var isLoadingHealthKitWindow = false
+
     private var hasLoaded = false
-    private var hasCheckedHealthKit = false
+    private var hasCheckedRecentMedian = false
     private var hasCheckedCalendar = false
 
     func loadIfNeeded() async {
@@ -104,19 +116,66 @@ final class HRVAnalysisViewModel {
         isLoading = false
     }
 
-    func loadWearableHRVIfNeeded() async {
-        guard !hasCheckedHealthKit else { return }
-        hasCheckedHealthKit = true
-        isLoadingHealthKit = true
-        defer { isLoadingHealthKit = false }
+    // 최근 30일 중앙값은 스크롤 위치와 무관하게 항상 "오늘 기준"이어야 해서, 아래 windowed 로딩과
+    // 별도로 그 30일 구간만 따로 가볍게 조회한다 — 사용자가 몇 달/몇 년 전으로 스크롤해도 이 값은
+    // 계속 최신을 유지한다.
+    func loadRecentThirtyDayMedianIfNeeded() async {
+        guard !hasCheckedRecentMedian else { return }
+        hasCheckedRecentMedian = true
+
+        do {
+            try await HealthKitService.requestAuthorization()
+            let now = Date()
+            let thirtyDaysAgo = now.addingTimeInterval(-30 * 24 * 60 * 60)
+            let recentSamples = try await HealthKitService.fetchRMSSDSamples(start: thirtyDaysAgo, end: now)
+            recentThirtyDayRMSSDMedian = recentSamples.isEmpty ? nil : HRVStatistics.median(recentSamples.map(\.value))
+        } catch {
+            healthKitErrorMessage = error.localizedDescription
+            hasCheckedRecentMedian = false
+        }
+    }
+
+    // 화면에 보이는 구간(visibleStart~visibleEnd)의 loadWindowMultiplier배를 불러온다. 이미 그 구간이
+    // prefetchMarginMultiplier배만큼 여유 있게 로드되어 있으면 아무 것도 하지 않는다 — 스크롤/핀치
+    // 때마다 호출해도 실제 HealthKit 조회는 가장자리에 가까워질 때만 드물게 일어난다.
+    // force가 true면(pull-to-refresh) 이미 로드된 범위와 무관하게 현재 위치 기준으로 무조건 다시 불러온다.
+    // 새로 데이터를 불러왔으면 true, 이미 로드되어 있어 아무 것도 안 했으면 false를 반환한다 —
+    // 호출부가 그 값을 보고 recomputeRange() 같은 비싼 후처리를 실제로 갱신됐을 때만 하게 한다.
+    @discardableResult
+    func ensureHealthKitDataLoaded(visibleStart: Date, visibleEnd: Date, force: Bool = false) async -> Bool {
+        let visibleDomain = visibleEnd.timeIntervalSince(visibleStart)
+        guard visibleDomain > 0 else { return false }
+
+        if !force, let loadedHealthKitRange {
+            let margin = visibleDomain * Self.prefetchMarginMultiplier
+            let safeStart = loadedHealthKitRange.lowerBound.addingTimeInterval(margin)
+            let safeEnd = loadedHealthKitRange.upperBound.addingTimeInterval(-margin)
+            if visibleStart >= safeStart, visibleEnd <= safeEnd {
+                return false
+            }
+        }
+        guard !isLoadingHealthKitWindow else { return false }
+        isLoadingHealthKitWindow = true
+        defer { isLoadingHealthKitWindow = false }
+
+        // 최초 로딩(아직 데이터가 하나도 없음)일 때만 전체 화면 스피너를 보여준다 — 스크롤 중
+        // 미리 불러오는 건 눈에 안 띄어야 하므로, 기존 데이터를 그대로 보여준 채 조용히 교체한다.
+        let isInitialLoad = loadedHealthKitRange == nil
+        if isInitialLoad { isLoadingHealthKit = true }
+        defer { if isInitialLoad { isLoadingHealthKit = false } }
+
+        let center = visibleStart.addingTimeInterval(visibleDomain / 2)
+        let windowDomain = visibleDomain * Self.loadWindowMultiplier
+        let windowStart = center.addingTimeInterval(-windowDomain / 2)
+        let windowEnd = center.addingTimeInterval(windowDomain / 2)
 
         do {
             try await HealthKitService.requestAuthorization()
 
-            async let workouts = HealthKitService.fetchWorkoutRanges()
-            async let sleep = HealthKitService.fetchSleepStageSamples()
-            async let rmssd = HealthKitService.fetchRMSSDSamples()
-            async let sdnn = HealthKitService.fetchSDNNSamples()
+            async let workouts = HealthKitService.fetchWorkoutRanges(start: windowStart, end: windowEnd)
+            async let sleep = HealthKitService.fetchSleepStageSamples(start: windowStart, end: windowEnd)
+            async let rmssd = HealthKitService.fetchRMSSDSamples(start: windowStart, end: windowEnd)
+            async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
             let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples) = try await (workouts, sleep, rmssd, sdnn)
 
             let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
@@ -128,9 +187,6 @@ final class HRVAnalysisViewModel {
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
-            let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-            let recentRMSSDValues = rawRMSSDSamples.filter { $0.0 >= thirtyDaysAgo }.map(\.1)
-            recentThirtyDayRMSSDMedian = recentRMSSDValues.isEmpty ? nil : HRVStatistics.median(recentRMSSDValues)
             exerciseRanges = workoutRanges.map {
                 WorkoutRange(
                     start: $0.start,
@@ -142,11 +198,13 @@ final class HRVAnalysisViewModel {
             }
             sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
             isHealthKitAuthorized = true
+            loadedHealthKitRange = windowStart...windowEnd
+            return true
         } catch {
             healthKitErrorMessage = error.localizedDescription
-            // "확인함" 표시를 되돌려서, 다음 pull-to-refresh 때 다시 시도할 수 있게 한다 — 안 그러면
-            // 이 뷰모델이 살아있는 한 이 화면에서 HealthKit 데이터를 영영 다시 불러오지 않는다.
-            hasCheckedHealthKit = false
+            // loadedHealthKitRange는 건드리지 않는다 — 다음 스크롤/새로고침 때 "아직 로드 안 됨"
+            // 취급으로 자연히 다시 시도된다(별도 재시도 플래그가 필요 없다).
+            return false
         }
     }
 

@@ -77,10 +77,14 @@ enum HealthKitService {
     }
 
     // rMSSD보다 덜 중요한 참고값이라 화면에서는 옅게(회색 반투명) 보여주기만 한다.
-    static func fetchSDNNSamples() async throws -> [(date: Date, value: Double)] {
+    // start/end를 주면 그 구간만 조회한다 — "오늘의 패턴"이 보이는 구간의 5배만 불러오는 용도.
+    // 기본값(nil)은 기존처럼 전체 이력을 조회한다(보고서 등 다른 화면은 그대로 전체가 필요).
+    static func fetchSDNNSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
         try await fetchQuantitySamples(
             type: HKQuantityType(.heartRateVariabilitySDNN),
-            unit: .secondUnit(with: .milli)
+            unit: .secondUnit(with: .milli),
+            start: start,
+            end: end
         )
     }
 
@@ -131,9 +135,17 @@ enum HealthKitService {
 
     // HealthKit은 SDNN만 직접 주고 rMSSD는 없음 — 애플워치가 SDNN을 잴 때 같이 남기는 원시 박동
     // 시리즈(HKHeartbeatSeriesSample)에서 박동 간 간격을 직접 계산해서 구한다.
-    static func fetchRMSSDSamples() async throws -> [(date: Date, value: Double)] {
+    // start/end를 주면 그 구간의 시리즈만 조회한다 — 시리즈 하나하나가 박동 전체를 순회하는 값비싼
+    // 계산이라, "오늘의 패턴"에서는 전체 이력이 아니라 보이는 구간의 5배만 계산하면 된다.
+    static func fetchRMSSDSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
+        let predicate: HKSamplePredicate<HKHeartbeatSeriesSample>
+        if let start, let end {
+            predicate = .heartbeatSeries(HKQuery.predicateForSamples(withStart: start, end: end, options: []))
+        } else {
+            predicate = .heartbeatSeries()
+        }
         let descriptor = HKSampleQueryDescriptor(
-            predicates: [.heartbeatSeries()],
+            predicates: [predicate],
             sortDescriptors: [SortDescriptor(\.startDate, order: .forward)]
         )
         let seriesSamples = try await descriptor.result(for: store)
@@ -202,15 +214,16 @@ enum HealthKitService {
         return (sumOfSquaredDiffs / Double(diffCount)).squareRoot()
     }
 
-    static func fetchWorkoutRanges() async throws -> [
+    static func fetchWorkoutRanges(start: Date? = nil, end: Date? = nil) async throws -> [
         (start: Date, end: Date, activityType: HKWorkoutActivityType, energyBurnedKcal: Double?, distanceMeters: Double?)
     ] {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let predicate = dateRangePredicate(start: start, end: end)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: .workoutType(),
-                predicate: nil,
+                predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sort]
             ) { _, samples, error in
@@ -240,14 +253,15 @@ enum HealthKitService {
     // 수면 단계(코어/깊은/렘/미상)가 붙은 상태로 원시 샘플을 그대로 반환한다 — 각성/침대에 누움 값은
     // SleepStage(categoryValue:)가 nil을 반환해 자동으로 걸러진다. 막대 구간 병합과 단계별 시간 집계는
     // 호출부(HRVAnalysisViewModel)에서 처리한다.
-    static func fetchSleepStageSamples() async throws -> [(start: Date, end: Date, stage: SleepStage)] {
+    static func fetchSleepStageSamples(start: Date? = nil, end: Date? = nil) async throws -> [(start: Date, end: Date, stage: SleepStage)] {
         let sleepType = HKCategoryType(.sleepAnalysis)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let predicate = dateRangePredicate(start: start, end: end)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: sleepType,
-                predicate: nil,
+                predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sort]
             ) { _, samples, error in
@@ -268,14 +282,17 @@ enum HealthKitService {
 
     private static func fetchQuantitySamples(
         type: HKQuantityType,
-        unit: HKUnit
+        unit: HKUnit,
+        start: Date? = nil,
+        end: Date? = nil
     ) async throws -> [(date: Date, value: Double)] {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let predicate = dateRangePredicate(start: start, end: end)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: type,
-                predicate: nil,
+                predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sort]
             ) { _, samples, error in
@@ -290,5 +307,11 @@ enum HealthKitService {
             }
             store.execute(query)
         }
+    }
+
+    // start/end 둘 다 있을 때만 구간 predicate를 만들고, 아니면 nil(=제한 없음)을 그대로 둔다.
+    private static func dateRangePredicate(start: Date?, end: Date?) -> NSPredicate? {
+        guard let start, let end else { return nil }
+        return HKQuery.predicateForSamples(withStart: start, end: end, options: [])
     }
 }

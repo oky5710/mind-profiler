@@ -211,11 +211,32 @@ struct HRVAnalysisView: View {
             recomputeRange()
         }
         .task {
-            await viewModel.loadWearableHRVIfNeeded()
-            recomputeRange()
+            if await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd) {
+                recomputeRange()
+            }
+        }
+        .task {
+            await viewModel.loadRecentThirtyDayMedianIfNeeded()
         }
         .task {
             await viewModel.loadCalendarEventsIfNeeded()
+        }
+        // 스크롤(드래그)이나 핀치 줌으로 보이는 구간이 바뀔 때마다 호출하지만, 이미 여유 있게
+        // 로드된 범위 안이면 ensureHealthKitDataLoaded가 그냥 바로 반환하므로 실제 HealthKit
+        // 조회는 가장자리에 가까워질 때만 드물게 일어난다.
+        .onChange(of: hrvScrollPosition) { _, _ in
+            Task {
+                if await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd) {
+                    recomputeRange()
+                }
+            }
+        }
+        .onChange(of: visibleDomain) { _, _ in
+            Task {
+                if await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd) {
+                    recomputeRange()
+                }
+            }
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
@@ -227,13 +248,16 @@ struct HRVAnalysisView: View {
         }
         .refreshable {
             await viewModel.reload()
-            // HealthKit/캘린더는 loadIfNeeded 계열이라 이전에 성공했으면 그냥 바로 반환되고,
-            // 이전에 실패했을 때만(hasChecked가 리셋된 경우) 실제로 재시도한다.
-            await viewModel.loadWearableHRVIfNeeded()
+            // 지금 보이는 구간은 pull-to-refresh니까 이미 로드돼 있어도(force) 무조건 다시 불러온다 —
+            // 워치에서 새로 동기화된 데이터가 있을 수 있어서다.
+            await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
             await viewModel.loadCalendarEventsIfNeeded()
             recomputeRange()
         }
     }
+
+    private var visibleStart: Date { hrvScrollPosition }
+    private var visibleEnd: Date { hrvScrollPosition.addingTimeInterval(visibleDomain) }
 
     // 핀치 줌 상태를 mode의 기본 배율(1배)로 되돌리고, 스크롤 위치도 그 모드의 "가장 최근 구간"으로
     // 되돌린다 — 모드 전환 시(onChange)와 왼쪽 리셋 버튼 탭 시 둘 다 여기서 처리한다.
