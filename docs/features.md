@@ -49,11 +49,15 @@
   `minHeight`가 아니라 고정 `height`(`CalendarView.dayCellHeight`, 배지 3개가 다 붙는 최악의
   경우까지 잘리지 않을 만큼 넉넉하게)로 둬서, 그날의 배지 개수와 무관하게 같은 주의 칸들은 물론
   달력 전체 모든 주가 항상 같은 높이로 보인다. 요일 헤더(일~토) 글자도 날짜 칸과 같이 좌측 정렬한다.
-- **운동 기록 입력**: mind-record 웹의 `ExerciseForm.tsx`와 동일한 필드 — 종류(유산소/근력 운동/직접
-  입력), 시간(분), 강도(1~5, "매우 쉬움~매우 힘듦" 라벨). `POST /exercises`에 `{date, type,
-  durationMinutes, intensity}`를 보낸다(date는 다른 유형과 동일하게 `yyyy-MM-dd`). HealthKit에서
-  자동으로 읽어오는 "오늘의 패턴"의 운동 구간과는 별개로, 사용자가 직접 기록하는 수동 입력이다.
-  달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면 "🏃×N")를 표시한다.
+- **운동 기록 입력**: 종류(유산소/근력 운동/직접 입력), 강도(1~5, "매우 쉬움~매우 힘듦" 라벨)는
+  mind-record 웹 `ExerciseForm.tsx`와 동일. 시작 시각(필수, 24시간 표기 `DatePicker`)·운동 시간(분,
+  기본 60분)·종료 시각 세 값은 서로 자동으로 맞춰진다 — 셋 중 아무거나 바꾸면 나머지 두 값이 그에
+  맞게 재계산된다(캘린더 앱 일정 편집과 동일한 동작, `ExerciseEntryForm`). `POST /exercises`에
+  `{type, startedAt, endedAt, intensity}`(ISO 8601)를 보낸다 — 백엔드 `Exercise` 모델이 예전
+  `date`+`durationMinutes` 대신 `startedAt`/`endedAt`을 저장하도록 바뀌면서 mind-record 웹도 같이
+  이 필드로 옮겨갔다. 이 수동 입력은 "오늘의 패턴"의 Gantt 차트에도 HealthKit 운동과 함께
+  표시된다(아래 "운동 상세" 참고) — 달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면
+  "🏃×N")도 표시한다.
 - **커피 종류 목록**: mind-record 웹 `CoffeeForm.tsx`의 `COFFEE_TYPES`와 동일 — 아메리카노/라떼/
   카푸치노/에스프레소/콜드브루(`CoffeeService.typeOptions`).
 - **커피 기록 삭제**: `CoffeeEntryForm`을 열면 새로 입력하는 폼 위에 "이 날의 기록" 목록이 먼저
@@ -183,6 +187,10 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
 - 수면/운동은 Gantt 레인에 색으로 구분해 표시. 수면/운동 데이터가 하나도 없어도 Gantt 차트 자체(높이,
   x축)는 항상 그린다 — 데이터가 나중에 로딩돼서 갑자기 나타나면 차트 높이가 늘어나면서 아래 범례가
   밀려 내려가 보이는 문제가 있었다.
+- **운동 레인 = HealthKit + 수동 입력**: `HRVAnalysisViewModel.exerciseRanges`는 HealthKit
+  `HKWorkout`과 캘린더의 `ExerciseEntryForm`으로 수동 입력한 기록(`startedAt`/`endedAt` 기준)을
+  합쳐서 시간순으로 정렬한 것이다 — 원래는 HealthKit 전용이라 수동 입력이 이 차트에 전혀 안 보이는
+  버그가 있었다.
 - **애플 캘린더 연동 (`CalendarEventService`, EventKit)**: mind-record 웹의 "구글 캘린더 연동"에
   대응하는 기능을 iOS 네이티브인 애플 캘린더(EventKit)로 구현했다 — 기기의 모든 캘린더에서 일정을
   읽어와(과거 1년~미래 3개월, `NSCalendarsFullAccessUsageDescription` 권한 필요) 같은 Gantt 레인에
@@ -203,12 +211,15 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
   (수면시간 50 + 취침시간 일관성 30 + 각성 20)으로 흉내 낸 추정치다 — 애플의 정확한 채점 곡선은
   비공개라 실제 Health 앱 점수와는 다를 수 있고, 패널에 "추정"이라고 명시한다
   (`SleepAnalysisService`, `SleepDetailPanel` — "오늘의 패턴"과 "보고서"가 공유해서 쓴다).
-- **운동 상세 (탭)**: 운동 막대를 탭하면 종목명(`HealthKitService.workoutActivityTypeDisplayName` —
-  달리기/걷기/사이클 등 자주 쓰는 HKWorkoutActivityType만 매핑하고 나머지는 "기타 운동"), 날짜·소요
-  시간·시간 범위, 그리고 있으면 칼로리(kcal)·거리(km)를 카드로 보여준다. 칼로리/거리는
-  `HKWorkout.totalEnergyBurned`/`.totalDistance`(deprecated 프로퍼티)를 그대로 읽는다 —
-  `statistics(for:)`로 바꾸면 활동 에너지/거리 퀀티티 타입 권한을 새로 요청해야 해서, 운동을 기록한
-  앱이 저장 시점에 이미 넣어둔 이 값을 그대로 쓴다(워크아웃 타입 권한 외에 추가 권한 불필요).
+- **운동 상세 (탭)**: 운동 막대를 탭하면 종목명, 날짜·소요 시간·시간 범위, 그리고 있으면 칼로리
+  (kcal)·거리(km)를 카드로 보여준다(`WorkoutRange.displayName`). HealthKit 기록은
+  `HealthKitService.workoutActivityTypeDisplayName`(달리기/걷기/사이클 등 자주 쓰는
+  HKWorkoutActivityType만 매핑하고 나머지는 "기타 운동")로 이름을 만들고, 수동 입력 기록은
+  `ExerciseEntryForm`에서 고른 종류 문자열을 그대로 쓴다 — 수동 입력은 칼로리/거리 값이 없어서 그
+  줄은 생략된다. 칼로리/거리는 `HKWorkout.totalEnergyBurned`/`.totalDistance`(deprecated
+  프로퍼티)를 그대로 읽는다 — `statistics(for:)`로 바꾸면 활동 에너지/거리 퀀티티 타입 권한을 새로
+  요청해야 해서, 운동을 기록한 앱이 저장 시점에 이미 넣어둔 이 값을 그대로 쓴다(워크아웃 타입 권한
+  외에 추가 권한 불필요).
 - **캘린더/수면/운동 상세 패널**: 캘린더 일정·수면·운동 막대를 탭하면 Gantt 차트 바로 아래(x축 위치)에
   흰 배경 카드가 전체 폭으로 나타난다 — `lineAndGanttChartsStack`의 오버레이라 레이아웃 높이에는
   영향을 주지 않고(범례가 밀려 내려가지 않음) 그 위에 겹쳐 보인다. 선택된 막대에는 그림자를 줘서
