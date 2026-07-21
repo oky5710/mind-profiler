@@ -50,12 +50,17 @@ require_command() {
 review_has_no_actionable_findings() {
     # "no issues" 계열 문구를 파일 전체에서 찾는 방식은 위험하다 — 실제 지적의 설명 문장이 그
     # 문구를 예시로 인용하기만 해도(예: "API가 no findings를 반환하면 크래시한다") 오탐으로
-    # 진짜 지적을 놓친다. 실제로 이 방식 때문에 바로 이전 리뷰(scripts/ai-review-loop.sh를
-    # 다루는 P2 지적)가 그 지적 문장 안에 "no findings"라는 표현이 들어 있어서 조치할 게
-    # 없다고 잘못 판정되어 루프가 조용히 종료된 적이 있다.
-    # 대신 codex가 실제 조치 항목마다 반드시 붙이는 "- [P#] 제목 — 파일:줄" 형식의 불릿
-    # 자체가 있는지만 본다 — 이 불릿은 문장 안에 우연히 나타날 수 없는 구조적 표식이다.
-    ! grep -qE '^[[:space:]]*-[[:space:]]*\[P[0-9]+\]' "$review_dir/codex-review.md"
+    # 진짜 지적을 놓친다. 반대로 "- [P#] ..." 불릿 자체를 파일 전체에서 찾는 것도 위험하다 —
+    # 이 스크립트는 자기 자신의 리뷰 판정 로직을 계속 리뷰받으므로, "조치할 거 없음" 리뷰가
+    # 이 불릿 형식 자체를 설명하며 예시로 인용하면(예: "표준 형식이 `- [P2] example`이다") 그
+    # 예시 텍스트가 실제 지적으로 오판되어 불필요하게 Claude가 실행된다.
+    # codex는 실제 조치 항목이 있을 때만 "Review comment:" 섹션 뒤에 "- [P#] ..." 불릿을
+    # 붙인다 — 그 섹션 헤더 이후에서만 불릿을 찾아 예시 인용과 실제 지적을 구분한다.
+    if ! grep -qi '^Review comment:' "$review_dir/codex-review.md"; then
+        return 0
+    fi
+    ! awk '/^[Rr]eview comment:/{flag=1} flag' "$review_dir/codex-review.md" \
+        | grep -qE '^[[:space:]]*-[[:space:]]*\[P[0-9]+\]'
 }
 
 # git diff/--cached만 보면 새로 만든(아직 add 안 된 untracked) 파일은 안 잡힌다 — Claude가
