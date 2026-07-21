@@ -48,7 +48,17 @@ require_command() {
 }
 
 review_has_no_actionable_findings() {
-    grep -qiE "No actionable defects found|No actionable findings|No defects found|No findings" "$review_dir/codex-review.md"
+    # 진짜 신호는 특정 문구가 아니라 "Review comment:" 섹션(과 "- [P#] ..." 심각도 불릿)이
+    # 있는지다 — 지금까지 관찰된 모든 실제 조치 항목은 이 섹션을 달고 나왔고, 확인/칭찬성
+    # 코멘트(예: "기존 로직에 회귀 없이 잘 반영됨")는 이 섹션 자체가 없었다. 그 섹션이 없으면
+    # 문구가 뭐든 조치할 게 없는 것으로 본다.
+    if ! grep -qi "review comment:" "$review_dir/codex-review.md"; then
+        return 0
+    fi
+    # 혹시 "Review comment:" 섹션이 있어도 결론이 "문제 없음" 계열이면 보조로 잡는다.
+    grep -qiE \
+        "No actionable defects found|No actionable findings|No defects found|No findings|No issues found|No problems found|No bugs found|Nothing to fix|Looks good" \
+        "$review_dir/codex-review.md"
 }
 
 # git diff/--cached만 보면 새로 만든(아직 add 안 된 untracked) 파일은 안 잡힌다 — Claude가
