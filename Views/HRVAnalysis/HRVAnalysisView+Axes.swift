@@ -152,6 +152,9 @@ extension HRVAnalysisView {
                         // 툴팁/세로선이 뜬다. 이동량이 커지면(스크롤 의도) 아래에서 툴팁을 감춘다.
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
+                                // 핀치 줌이 진행 중일 때는 그 첫 손가락이 만든 드래그가 스크롤/툴팁과
+                                // 뒤섞이지 않도록 무시한다.
+                                guard !isZooming else { return }
                                 if dragAnchorPosition == nil {
                                     dragAnchorPosition = hrvScrollPosition
                                 }
@@ -247,6 +250,42 @@ extension HRVAnalysisView {
         }
     }
 
+    // MARK: - 핀치 줌
+    // 두 손가락 핀치로 visibleDomain을 chartMode 기본값의 0.5~5배 범위에서 연속적으로 조절한다.
+    // 확대/축소하는 동안 제스처 시작 시점의 "화면 중앙 시각"을 고정점으로 유지해서, 배율이 바뀌어도
+    // 보고 있던 지점이 화면 밖으로 튀지 않고 그 자리에서 확대/축소되는 것처럼 보인다.
+    // 라인/간트 차트가 각자 별도의 Chart(overlay)라서, 이 제스처를 그 안쪽 개별 오버레이에 붙이면
+    // 핀치의 두 손가락이 서로 다른 차트(다른 view) 위에 떨어졌을 때 한 번의 핀치로 인식되지 않고
+    // 각 차트가 손가락 하나짜리 드래그로 오인해서 서로 뒤섞인 채로 반응한다. 그래서 이 제스처는 proxy가
+    // 필요 없다는 점을 이용해 두 차트를 함께 감싸는 상위 컨테이너(lineAndGanttChartsStack/monthlyChart)에
+    // 딱 한 번만 붙인다 — 손가락이 어느 차트 위에 있든 같은 제스처 인식기가 처리한다.
+    var magnifyToZoomGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                if zoomAnchorScale == nil {
+                    zoomAnchorScale = zoomScale
+                    zoomAnchorCenterDate = hrvScrollPosition.addingTimeInterval(visibleDomain / 2)
+                    isZooming = true
+                    dragAnchorPosition = nil
+                    tooltipPoint = nil
+                    tooltipCalendarEvent = nil
+                    tooltipSleepRange = nil
+                    tooltipWorkoutRange = nil
+                }
+                guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
+                zoomScale = min(max(anchorScale * value, HRVAnalysisView.minZoomScale), HRVAnalysisView.maxZoomScale)
+
+                let newDomain = chartMode.visibleDomain / Double(zoomScale)
+                let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-newDomain)
+                hrvScrollPosition = min(centerDate.addingTimeInterval(-newDomain / 2), maxStart)
+            }
+            .onEnded { _ in
+                zoomAnchorScale = nil
+                zoomAnchorCenterDate = nil
+                isZooming = false
+            }
+    }
+
     // 라인 차트와 간트 차트가 같은 hrvScrollPosition/visibleDomain을 쓰더라도, 각자 알아서
     // "automatic" 눈금을 고르면 서로 다른 위치에 눈금이 생길 수 있어 명시적으로 동일한 눈금 배열을 계산해서 공유함.
     // 그리드 눈금은 "정시"에만 찍혀야 한다 — 일별은 자정(00시)에만, 시간별은 분이 00일 때만.
@@ -254,7 +293,7 @@ extension HRVAnalysisView {
     // 14:23, 18:23 처럼 어중간한 시각에 눈금이 찍히므로, 시작점을 가장 가까운 깨끗한 경계로 올림한다.
     var xAxisTickDates: [Date] {
         let calendar = Calendar.current
-        let end = hrvScrollPosition.addingTimeInterval(chartMode.visibleDomain)
+        let end = hrvScrollPosition.addingTimeInterval(visibleDomain)
 
         switch chartMode {
         case .hourly:
@@ -322,7 +361,7 @@ extension HRVAnalysisView {
     // "M월"만 표기하는 규칙(ui-style.md 날짜 표기 규칙)에 맞춰 달마다 하나씩 눈금을 찍는다.
     var monthlyTickDates: [Date] {
         let calendar = Calendar.current
-        let end = hrvScrollPosition.addingTimeInterval(chartMode.visibleDomain)
+        let end = hrvScrollPosition.addingTimeInterval(visibleDomain)
         var dates: [Date] = []
         var current = calendar.dateInterval(of: .month, for: hrvScrollPosition)?.start ?? hrvScrollPosition
         while current <= end {

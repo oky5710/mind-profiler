@@ -69,10 +69,19 @@ enum HRVSeries: String, CaseIterable, Identifiable {
 }
 
 struct HRVAnalysisView: View {
+    // 핀치 줌 배율 범위. 1.0이 chartMode의 기본 visibleDomain이고, 배율이 커질수록(최대 5배)
+    // 화면에 보이는 기간이 좁아지고(확대), 작아질수록(최소 0.5배) 넓어진다(축소).
+    static let minZoomScale: CGFloat = 0.5
+    static let maxZoomScale: CGFloat = 5.0
+
     @State var viewModel = HRVAnalysisViewModel()
     @State var chartMode: HRVChartMode = .hourly
     @State var hrvScrollPosition = Date().addingTimeInterval(-HRVChartMode.hourly.visibleDomain)
     @State var dragAnchorPosition: Date?
+    @State var zoomScale: CGFloat = 1.0
+    @State var zoomAnchorScale: CGFloat?
+    @State var zoomAnchorCenterDate: Date?
+    @State var isZooming = false
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
@@ -128,6 +137,11 @@ struct HRVAnalysisView: View {
         case .daily: viewModel.wearableRMSSDPointsDaily
         case .monthly: []
         }
+    }
+
+    // chartMode의 기본 기간을 zoomScale로 나눈 실제 표시 기간 — 핀치 줌으로 연속적으로 변한다.
+    var visibleDomain: TimeInterval {
+        chartMode.visibleDomain / Double(zoomScale)
     }
 
     private var hasAnyLineChartData: Bool {
@@ -194,7 +208,7 @@ struct HRVAnalysisView: View {
             await viewModel.loadCalendarEventsIfNeeded()
         }
         .onChange(of: chartMode) { _, newMode in
-            hrvScrollPosition = latestVisibleEnd(for: newMode).addingTimeInterval(-newMode.visibleDomain)
+            resetZoom(for: newMode)
             tooltipPoint = nil
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
@@ -205,6 +219,16 @@ struct HRVAnalysisView: View {
             await viewModel.reload()
             recomputeRange()
         }
+    }
+
+    // 핀치 줌 상태를 mode의 기본 배율(1배)로 되돌리고, 스크롤 위치도 그 모드의 "가장 최근 구간"으로
+    // 되돌린다 — 모드 전환 시(onChange)와 왼쪽 리셋 버튼 탭 시 둘 다 여기서 처리한다.
+    private func resetZoom(for mode: HRVChartMode) {
+        zoomScale = 1.0
+        zoomAnchorScale = nil
+        zoomAnchorCenterDate = nil
+        isZooming = false
+        hrvScrollPosition = latestVisibleEnd(for: mode).addingTimeInterval(-mode.visibleDomain)
     }
 
     private func recomputeRange() {
@@ -228,6 +252,19 @@ struct HRVAnalysisView: View {
             HStack {
                 Text("HRV Trend").font(.system(size: 13.6, weight: .semibold))
                 Spacer()
+                // 핀치로 확대/축소한 뒤 원래 배율(1배)로 되돌리는 버튼. 이미 원래 배율이면 눌러도
+                // 할 일이 없으니 흐리게 표시하고 탭을 막는다 — 그래도 자리는 계속 차지해서 픽커 옆
+                // 레이아웃이 줌 상태에 따라 흔들리지 않는다.
+                Button {
+                    resetZoom(for: chartMode)
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .disabled(zoomScale == 1.0)
+                .opacity(zoomScale == 1.0 ? 0.35 : 1)
+                .padding(.trailing, 8)
+
                 Picker("보기 단위", selection: $chartMode) {
                     ForEach(HRVChartMode.allCases, id: \.self) { mode in
                         Image(systemName: mode.iconName)
@@ -236,7 +273,7 @@ struct HRVAnalysisView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 220)
+                .frame(width: 160)
             }
             .padding(.bottom, 20)
 

@@ -16,7 +16,7 @@ extension HRVAnalysisView {
         .background(alignment: .topLeading) {
             GeometryReader { geo in
                 ForEach(xAxisTickDates, id: \.self) { date in
-                    let fraction = date.timeIntervalSince(hrvScrollPosition) / chartMode.visibleDomain
+                    let fraction = date.timeIntervalSince(hrvScrollPosition) / visibleDomain
                     let x = geo.size.width * fraction
                     Path { path in
                         path.move(to: CGPoint(x: x, y: lineChartHeight))
@@ -35,11 +35,15 @@ extension HRVAnalysisView {
         }
         // 겹치는 범례가 선언 순서상 나중에 그려져 패널을 가리므로, zIndex로 항상 위에 오도록 고정한다.
         .zIndex(1)
+        // 라인 차트와 간트 차트를 합친 전체 영역에 딱 한 번만 붙여서, 핀치의 두 손가락이 서로 다른
+        // 차트 위에 떨어져도 하나의 핀치로 인식되게 한다 (HRVAnalysisView+Axes.swift 참고).
+        .contentShape(Rectangle())
+        .simultaneousGesture(magnifyToZoomGesture)
     }
 
     var baseLineChart: some View {
         let range = cachedRange
-        let visibleDomain = chartMode.visibleDomain
+        let visibleDomain = visibleDomain
         let visibleStart = hrvScrollPosition
         let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
         // currentRMSSDPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
@@ -150,7 +154,7 @@ extension HRVAnalysisView {
     }
 
     var ganttChart: some View {
-        let visibleDomain = chartMode.visibleDomain
+        let visibleDomain = visibleDomain
 
         return Chart {
             if !hiddenSeries.contains(.sleep) {
@@ -259,13 +263,20 @@ extension HRVAnalysisView {
                     .onChange(of: geo.size.width) { _, newWidth in
                         updateMonthlyBarWidth(plotWidth: newWidth)
                     }
+                    // 핀치 줌으로 보이는 달의 개수가 바뀌면 bandwidth도 바뀌므로 막대 너비를 다시 계산한다.
+                    .onChange(of: visibleDomain) { _, _ in
+                        updateMonthlyBarWidth(plotWidth: geo.size.width)
+                    }
             }
         }
+        // lineAndGanttChartsStack과 같은 이유로, 캔들스틱+CV 차트를 합친 전체 영역에 한 번만 붙인다.
+        .contentShape(Rectangle())
+        .simultaneousGesture(magnifyToZoomGesture)
     }
 
     private var monthlyCandlestickChart: some View {
         let range = cachedRange
-        let visibleDomain = chartMode.visibleDomain
+        let visibleDomain = visibleDomain
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
@@ -339,7 +350,7 @@ extension HRVAnalysisView {
     }
 
     private var monthlyCVChart: some View {
-        let visibleDomain = chartMode.visibleDomain
+        let visibleDomain = visibleDomain
         let maxCV = viewModel.wearableRMSSDMonthlyStats.compactMap(\.cv).max() ?? 0
         // 막대 위에 값(annotation)을 적을 여백이 필요해서, 최댓값보다 넉넉하게 위쪽 여유를 둔다.
         let yAxisUpperBound = max(ceil(maxCV * 1.35 / 10) * 10, 10)
