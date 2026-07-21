@@ -51,12 +51,19 @@ review_has_no_actionable_findings() {
     grep -qiE "No actionable defects found|No actionable findings|No defects found|No findings" "$review_dir/codex-review.md"
 }
 
+# git diff/--cached만 보면 새로 만든(아직 add 안 된 untracked) 파일은 안 잡힌다 — Claude가
+# 새 파일로 고친 수정이 "변경 없음"으로 오판되어 커밋도 안 되고 통째로 유실된다.
+# status --porcelain은 untracked까지 포함해서 잡는다.
+has_uncommitted_changes() {
+    [ -n "$(git status --porcelain)" ]
+}
+
 require_command codex
 require_command claude
 
 cd "$repo_root"
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+if has_uncommitted_changes; then
     echo "작업 트리에 커밋되지 않은 변경사항이 있습니다. 먼저 커밋하거나 정리한 뒤 실행하세요." >&2
     exit 1
 fi
@@ -87,7 +94,7 @@ Write a concise Korean response addressed to Codex, including what you changed o
 change anything.
 " > "$review_dir/claude-response.md"
 
-    if git diff --quiet && git diff --cached --quiet; then
+    if ! has_uncommitted_changes; then
         echo "Claude가 커밋할 변경사항을 만들지 않았습니다. 루프를 종료합니다."
         exit 0
     fi
