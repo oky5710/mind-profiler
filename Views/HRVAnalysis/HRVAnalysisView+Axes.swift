@@ -414,11 +414,15 @@ extension HRVAnalysisView {
             if let plotFrame = proxy.plotFrame {
                 let plotRect = geo[plotFrame]
 
-                // 라벨 간격이 10px 이하로 겹칠 것 같으면 뒤쪽 라벨은 생략한다 (그리드 선은 계속 그림).
+                // 라벨 간격이 실제 라벨 텍스트 너비(9pt, "MM-dd"/"HH:mm" 기준 약 40px)보다 좁아져
+                // 겹칠 것 같으면 뒤쪽 라벨은 생략한다 (그리드 선은 계속 그림). 틱 간격은 시간 단위로
+                // 고정이라, 핀치로 축소해서 같은 폭에 더 넓은 기간이 들어오면 틱 사이 픽셀 간격이
+                // 좁아지는데 — 축소 방향에서도 이 규칙이 그대로 적용되어 라벨이 겹치지 않는다.
+                let minLabelSpacing: CGFloat = 40
                 var lastLabelX: CGFloat?
                 let visibleLabelDates: Set<Date> = Set(tickDates.compactMap { date -> Date? in
                     guard let x = proxy.position(forX: date) else { return nil }
-                    if let last = lastLabelX, x - last < 10 { return nil }
+                    if let last = lastLabelX, x - last < minLabelSpacing { return nil }
                     lastLabelX = x
                     return date
                 })
