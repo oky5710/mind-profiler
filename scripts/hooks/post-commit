@@ -12,5 +12,9 @@ set -euo pipefail
 repo_root=$(git rev-parse --show-toplevel)
 sha=$(git rev-parse HEAD)
 
+# .ai-review/는 gitignore돼 있어서 새로 클론한 직후엔 아직 없다 — 리다이렉트 대상 디렉터리가
+# 없으면 그 자체로 셸이 리다이렉트를 열지 못해 아래 명령이 아예 시작되지 않는다.
+mkdir -p "$repo_root/.ai-review"
+
 nohup "$repo_root/scripts/ai-review.sh" --commit "$sha" > "$repo_root/.ai-review/last-run.log" 2>&1 &
 disown
