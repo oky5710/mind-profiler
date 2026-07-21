@@ -135,6 +135,19 @@ final class HRVAnalysisViewModel {
         }
     }
 
+    // 지금 로딩 중일 때 새로 들어온 요청 — 버리지 않고 여기 남겨서, 지금 도는 로딩이 끝나면
+    // 그 사이에 스크롤이 더 진행됐는지 확인해 최신 위치로 이어서 불러오게 한다(가장 최신 요청만
+    // 의미가 있으므로 매번 덮어쓴다 — 중간 요청들을 다 큐잉할 필요는 없다).
+    private var pendingWindowRequest: (start: Date, end: Date)?
+
+    private func isWithinLoadedRange(start: Date, end: Date) -> Bool {
+        guard let loadedHealthKitRange else { return false }
+        let margin = end.timeIntervalSince(start) * Self.prefetchMarginMultiplier
+        let safeStart = loadedHealthKitRange.lowerBound.addingTimeInterval(margin)
+        let safeEnd = loadedHealthKitRange.upperBound.addingTimeInterval(-margin)
+        return start >= safeStart && end <= safeEnd
+    }
+
     // 화면에 보이는 구간(visibleStart~visibleEnd)의 loadWindowMultiplier배를 불러온다. 이미 그 구간이
     // prefetchMarginMultiplier배만큼 여유 있게 로드되어 있으면 아무 것도 하지 않는다 — 스크롤/핀치
     // 때마다 호출해도 실제 HealthKit 조회는 가장자리에 가까워질 때만 드물게 일어난다.
@@ -143,27 +156,46 @@ final class HRVAnalysisViewModel {
     // 호출부가 그 값을 보고 recomputeRange() 같은 비싼 후처리를 실제로 갱신됐을 때만 하게 한다.
     @discardableResult
     func ensureHealthKitDataLoaded(visibleStart: Date, visibleEnd: Date, force: Bool = false) async -> Bool {
-        let visibleDomain = visibleEnd.timeIntervalSince(visibleStart)
-        guard visibleDomain > 0 else { return false }
+        guard visibleEnd.timeIntervalSince(visibleStart) > 0 else { return false }
+        if !force, isWithinLoadedRange(start: visibleStart, end: visibleEnd) { return false }
 
-        if !force, let loadedHealthKitRange {
-            let margin = visibleDomain * Self.prefetchMarginMultiplier
-            let safeStart = loadedHealthKitRange.lowerBound.addingTimeInterval(margin)
-            let safeEnd = loadedHealthKitRange.upperBound.addingTimeInterval(-margin)
-            if visibleStart >= safeStart, visibleEnd <= safeEnd {
-                return false
-            }
+        guard !isLoadingHealthKitWindow else {
+            pendingWindowRequest = (visibleStart, visibleEnd)
+            return false
         }
-        guard !isLoadingHealthKitWindow else { return false }
         isLoadingHealthKitWindow = true
         defer { isLoadingHealthKitWindow = false }
 
+        var requestStart = visibleStart
+        var requestEnd = visibleEnd
+        var didReload = false
+
+        // 로딩하는 동안 더 최신 요청(pendingWindowRequest)이 들어왔으면, 이번 결과를 반영한 뒤
+        // 그 최신 위치를 이어서 불러온다 — 그렇게 안 하면 로딩 도중 스크롤된 요청이 통째로
+        // 사라지고, 그 뒤로 스크롤이 멈추면 다시 시도할 기회 자체가 없다.
+        while true {
+            if await fetchAndApplyHealthKitWindow(visibleStart: requestStart, visibleEnd: requestEnd) {
+                didReload = true
+            }
+            guard let pending = pendingWindowRequest else { break }
+            pendingWindowRequest = nil
+            if isWithinLoadedRange(start: pending.start, end: pending.end) { break }
+            requestStart = pending.start
+            requestEnd = pending.end
+        }
+        return didReload
+    }
+
+    // 실제 HealthKit 조회 + 배열 갱신 한 번. visibleStart/visibleEnd(1배 폭) 기준으로 그
+    // loadWindowMultiplier배 구간을 불러온다.
+    private func fetchAndApplyHealthKitWindow(visibleStart: Date, visibleEnd: Date) async -> Bool {
         // 최초 로딩(아직 데이터가 하나도 없음)일 때만 전체 화면 스피너를 보여준다 — 스크롤 중
         // 미리 불러오는 건 눈에 안 띄어야 하므로, 기존 데이터를 그대로 보여준 채 조용히 교체한다.
         let isInitialLoad = loadedHealthKitRange == nil
         if isInitialLoad { isLoadingHealthKit = true }
         defer { if isInitialLoad { isLoadingHealthKit = false } }
 
+        let visibleDomain = visibleEnd.timeIntervalSince(visibleStart)
         let center = visibleStart.addingTimeInterval(visibleDomain / 2)
         let windowDomain = visibleDomain * Self.loadWindowMultiplier
         let windowStart = center.addingTimeInterval(-windowDomain / 2)
