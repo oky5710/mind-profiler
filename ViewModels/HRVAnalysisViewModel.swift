@@ -138,7 +138,7 @@ final class HRVAnalysisViewModel {
     // 지금 로딩 중일 때 새로 들어온 요청 — 버리지 않고 여기 남겨서, 지금 도는 로딩이 끝나면
     // 그 사이에 스크롤이 더 진행됐는지 확인해 최신 위치로 이어서 불러오게 한다(가장 최신 요청만
     // 의미가 있으므로 매번 덮어쓴다 — 중간 요청들을 다 큐잉할 필요는 없다).
-    private var pendingWindowRequest: (start: Date, end: Date)?
+    private var pendingWindowRequest: (start: Date, end: Date, force: Bool)?
 
     private func isWithinLoadedRange(start: Date, end: Date) -> Bool {
         guard let loadedHealthKitRange else { return false }
@@ -160,7 +160,7 @@ final class HRVAnalysisViewModel {
         if !force, isWithinLoadedRange(start: visibleStart, end: visibleEnd) { return false }
 
         guard !isLoadingHealthKitWindow else {
-            pendingWindowRequest = (visibleStart, visibleEnd)
+            pendingWindowRequest = (visibleStart, visibleEnd, force)
             return false
         }
         isLoadingHealthKitWindow = true
@@ -179,7 +179,10 @@ final class HRVAnalysisViewModel {
             }
             guard let pending = pendingWindowRequest else { break }
             pendingWindowRequest = nil
-            if isWithinLoadedRange(start: pending.start, end: pending.end) { break }
+            // force로 큐잉된 요청은 이미 그 범위가 로드돼 있어도(예: 방금 끝난 로딩이 우연히
+            // 겹쳐서) 건너뛰지 않는다 — pull-to-refresh의 "무조건 새로 받아온다"는 의도를
+            // 큐잉 과정에서 잃어버리면 안 된다.
+            if !pending.force, isWithinLoadedRange(start: pending.start, end: pending.end) { break }
             requestStart = pending.start
             requestEnd = pending.end
         }
