@@ -265,7 +265,6 @@ extension HRVAnalysisView {
                 if zoomAnchorScale == nil {
                     zoomAnchorScale = zoomScale
                     zoomAnchorCenterDate = hrvScrollPosition.addingTimeInterval(visibleDomain / 2)
-                    isZooming = true
                     dragAnchorPosition = nil
                     tooltipPoint = nil
                     tooltipCalendarEvent = nil
@@ -274,31 +273,22 @@ extension HRVAnalysisView {
                 }
                 guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
                 let proposedScale = anchorScale * value
-                zoomScale = min(max(proposedScale, HRVAnalysisView.minZoomScale), HRVAnalysisView.maxZoomScale)
+                zoomScale = proposedScale.clamped(to: HRVAnalysisView.minZoomScale...HRVAnalysisView.maxZoomScale)
 
-                // 한계에 "새로 닿았을 때"만 토스트를 띄운다 — 안 그러면 한계에 붙어있는 동안 매 프레임
-                // 다시 띄워져서 애니메이션이 끊임없이 재시작된다.
-                let hitMax = proposedScale > HRVAnalysisView.maxZoomScale
-                let hitMin = proposedScale < HRVAnalysisView.minZoomScale
-                if hitMax, !isZoomAtMax {
+                // 한계에 붙어있는 동안 매 프레임 호출돼도, 같은 메시지가 이미 떠 있으면 ToastCenter가
+                // 애니메이션을 다시 재생하지 않고 사라지는 타이머만 연장해준다 — 여기서 "새로 닿았을
+                // 때"를 따로 추적할 필요가 없다.
+                if proposedScale > HRVAnalysisView.maxZoomScale {
                     toastCenter.show("최대로 확대되었습니다", type: .info)
-                }
-                if hitMin, !isZoomAtMin {
+                } else if proposedScale < HRVAnalysisView.minZoomScale {
                     toastCenter.show("최대로 축소되었습니다", type: .info)
                 }
-                isZoomAtMax = hitMax
-                isZoomAtMin = hitMin
 
-                let newDomain = chartMode.visibleDomain / Double(zoomScale)
-                let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-newDomain)
-                hrvScrollPosition = min(centerDate.addingTimeInterval(-newDomain / 2), maxStart)
+                let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-visibleDomain)
+                hrvScrollPosition = min(centerDate.addingTimeInterval(-visibleDomain / 2), maxStart)
             }
             .onEnded { _ in
-                zoomAnchorScale = nil
-                zoomAnchorCenterDate = nil
-                isZooming = false
-                isZoomAtMax = false
-                isZoomAtMin = false
+                clearZoomAnchor()
             }
     }
 

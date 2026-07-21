@@ -43,7 +43,6 @@ extension HRVAnalysisView {
 
     var baseLineChart: some View {
         let range = cachedRange
-        let visibleDomain = visibleDomain
         let visibleStart = hrvScrollPosition
         let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
         // currentRMSSDPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
@@ -112,7 +111,7 @@ extension HRVAnalysisView {
             }
         }
         .frame(height: lineChartHeight)
-        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
@@ -154,9 +153,7 @@ extension HRVAnalysisView {
     }
 
     var ganttChart: some View {
-        let visibleDomain = visibleDomain
-
-        return Chart {
+        Chart {
             if !hiddenSeries.contains(.sleep) {
                 ForEach(viewModel.sleepRanges) { interval in
                     let duration = interval.end.timeIntervalSince(interval.start)
@@ -228,7 +225,7 @@ extension HRVAnalysisView {
             }
         }
         .frame(height: ganttChartHeight)
-        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...1)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
@@ -263,8 +260,11 @@ extension HRVAnalysisView {
                     .onChange(of: geo.size.width) { _, newWidth in
                         updateMonthlyBarWidth(plotWidth: newWidth)
                     }
-                    // 핀치 줌으로 보이는 달의 개수가 바뀌면 bandwidth도 바뀌므로 막대 너비를 다시 계산한다.
-                    .onChange(of: visibleDomain) { _, _ in
+                    // 핀치 줌으로 "보이는 달의 개수"가 바뀌면 bandwidth도 바뀌므로 다시 계산한다.
+                    // visibleDomain 자체(연속값)가 아니라 개수(정수)로 감지해야, 핀치하는 동안 매
+                    // 프레임 눈금을 다시 계산하고 또 렌더링하는 낭비 없이 실제로 달 하나가 더 보이거나
+                    // 덜 보일 때만 갱신된다.
+                    .onChange(of: monthlyTickDates.count) { _, _ in
                         updateMonthlyBarWidth(plotWidth: geo.size.width)
                     }
             }
@@ -276,7 +276,6 @@ extension HRVAnalysisView {
 
     private var monthlyCandlestickChart: some View {
         let range = cachedRange
-        let visibleDomain = visibleDomain
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
 
         return Chart {
@@ -333,7 +332,7 @@ extension HRVAnalysisView {
             }
         }
         .frame(height: lineChartHeight)
-        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
@@ -350,7 +349,6 @@ extension HRVAnalysisView {
     }
 
     private var monthlyCVChart: some View {
-        let visibleDomain = visibleDomain
         let maxCV = viewModel.wearableRMSSDMonthlyStats.compactMap(\.cv).max() ?? 0
         // 막대 위에 값(annotation)을 적을 여백이 필요해서, 최댓값보다 넉넉하게 위쪽 여유를 둔다.
         let yAxisUpperBound = max(ceil(maxCV * 1.35 / 10) * 10, 10)
@@ -376,7 +374,7 @@ extension HRVAnalysisView {
             }
         }
         .frame(height: ganttChartHeight)
-        .chartXScale(domain: hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain))
+        .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
@@ -394,6 +392,6 @@ extension HRVAnalysisView {
     private func updateMonthlyBarWidth(plotWidth: CGFloat) {
         let bandCount = max(monthlyTickDates.count, 1)
         let bandwidth = plotWidth / CGFloat(bandCount)
-        monthlyBarWidth = min(max(bandwidth * 0.5, 10), 30) * 0.7
+        monthlyBarWidth = (bandwidth * 0.5).clamped(to: 10...30) * 0.7
     }
 }

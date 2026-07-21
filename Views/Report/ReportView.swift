@@ -213,7 +213,7 @@ struct ReportView: View {
 
     private func updateSleepBarWidth(plotWidth: CGFloat) {
         let bandwidth = plotWidth / CGFloat(sleepChartDayCount)
-        sleepBarWidth = min(max(bandwidth * 0.6, 10), 30)
+        sleepBarWidth = (bandwidth * 0.6).clamped(to: 10...30)
     }
 
     // BarMark(x: .value(_, range.start, unit: .day))는 그 날 전체 구간 중앙에 그려지므로,

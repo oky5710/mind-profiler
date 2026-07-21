@@ -34,6 +34,7 @@
 		9B1F4A2C5E6D7089ABCDEF07 /* HRVStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */; };
 		9B1F4A2C5E6D7089ABCDEF09 /* SleepDetailPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F4A6 /* Comparable+Clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */; };
 		9B1F4A2C5E6D7089ABCDEF0B /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF0C /* ReportView.swift */; };
 		9B1F4A2C5E6D7089ABCDEF0D /* ReportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */; };
 		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
@@ -128,6 +129,7 @@
 		9B1F4A2C5E6D7089ABCDEF08 /* HRVStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVStatistics.swift; sourceTree = "<group>"; };
 		9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDetailPanel.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamped.swift"; sourceTree = "<group>"; };
 		9B1F4A2C5E6D7089ABCDEF0C /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportViewModel.swift; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -326,6 +328,7 @@
 				CC8EB2D685ED1EB34689D7FE /* Theme.swift */,
 				9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */,
+				B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -491,6 +494,7 @@
 				9B1F4A2C5E6D7089ABCDEF07 /* HRVStatistics.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF09 /* SleepDetailPanel.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F3 /* Toast.swift in Sources */,
+				B2C3D4E5F6A7B8C9D0E1F4A6 /* Comparable+Clamped.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF0B /* ReportView.swift in Sources */,
 				9B1F4A2C5E6D7089ABCDEF0D /* ReportViewModel.swift in Sources */,
 				9CD347F437BB315AF5E68BB3 /* ExerciseModels.swift in Sources */,

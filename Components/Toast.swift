@@ -35,12 +35,17 @@ final class ToastCenter {
     private var dismissToken: UUID?
 
     func show(_ message: String, type: ToastType = .info, duration: Duration = .milliseconds(900)) {
+        // 같은 메시지가 이미 떠 있으면 등장 애니메이션을 다시 재생하지 않고 사라지는 타이머만
+        // 연장한다 — 호출하는 쪽이 제스처처럼 매 프레임 반복 호출해도 깜빡이지 않는다.
+        let isSameToast = self.message == message && self.type == type
+        if !isSameToast {
+            withAnimation(.easeOut(duration: 0.15)) {
+                self.message = message
+                self.type = type
+            }
+        }
         let token = UUID()
         dismissToken = token
-        withAnimation(.easeOut(duration: 0.15)) {
-            self.message = message
-            self.type = type
-        }
         Task {
             try? await Task.sleep(for: duration)
             guard dismissToken == token else { return }

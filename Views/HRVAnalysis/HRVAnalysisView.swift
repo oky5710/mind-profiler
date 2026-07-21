@@ -81,11 +81,6 @@ struct HRVAnalysisView: View {
     @State var zoomScale: CGFloat = 1.0
     @State var zoomAnchorScale: CGFloat?
     @State var zoomAnchorCenterDate: Date?
-    @State var isZooming = false
-    // 핀치가 배율 한계(0.5~5배)에 닿아 있는 동안 계속 토스트를 새로 띄우지 않도록, 이미 한계에
-    // 닿은 상태인지를 기억해 "새로 닿았을 때"만 토스트를 보여준다.
-    @State var isZoomAtMax = false
-    @State var isZoomAtMin = false
     @Environment(ToastCenter.self) var toastCenter
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
@@ -147,6 +142,16 @@ struct HRVAnalysisView: View {
     // chartMode의 기본 기간을 zoomScale로 나눈 실제 표시 기간 — 핀치 줌으로 연속적으로 변한다.
     var visibleDomain: TimeInterval {
         chartMode.visibleDomain / Double(zoomScale)
+    }
+
+    // 각 차트의 `.chartXScale(domain:)`가 전부 이 범위를 그대로 쓴다.
+    var visibleDateRange: ClosedRange<Date> {
+        hrvScrollPosition...hrvScrollPosition.addingTimeInterval(visibleDomain)
+    }
+
+    // zoomAnchorScale이 있다는 것 자체가 핀치가 진행 중이라는 뜻이라 별도 상태로 안 둔다.
+    var isZooming: Bool {
+        zoomAnchorScale != nil
     }
 
     private var hasAnyLineChartData: Bool {
@@ -230,12 +235,14 @@ struct HRVAnalysisView: View {
     // 되돌린다 — 모드 전환 시(onChange)와 왼쪽 리셋 버튼 탭 시 둘 다 여기서 처리한다.
     private func resetZoom(for mode: HRVChartMode) {
         zoomScale = 1.0
+        clearZoomAnchor()
+        hrvScrollPosition = latestVisibleEnd(for: mode).addingTimeInterval(-mode.visibleDomain)
+    }
+
+    // 핀치가 끝났을 때(onEnded)와 리셋할 때 둘 다 앵커를 지워야 해서 공통으로 뺐다.
+    func clearZoomAnchor() {
         zoomAnchorScale = nil
         zoomAnchorCenterDate = nil
-        isZooming = false
-        isZoomAtMax = false
-        isZoomAtMin = false
-        hrvScrollPosition = latestVisibleEnd(for: mode).addingTimeInterval(-mode.visibleDomain)
     }
 
     private func recomputeRange() {
