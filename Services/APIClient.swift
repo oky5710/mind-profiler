@@ -24,6 +24,10 @@ private nonisolated struct EmptyBody: Encodable {}
 actor APIClient {
     static let shared = APIClient()
 
+    // 저장된 JWT가 만료/폐기됐을 때 서버가 401을 주면, 그걸로 로그아웃시켜야 하는 건 AuthViewModel의
+    // 책임이라 APIClient가 직접 상태를 바꾸는 대신 콜백만 호출한다 — AuthViewModel.init()에서 등록한다.
+    nonisolated(unsafe) static var onUnauthorized: (@Sendable () -> Void)?
+
     private let baseURL = URL(string: "https://mind-profiler-backend.onrender.com")!
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -69,6 +73,9 @@ actor APIClient {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
+            if httpResponse.statusCode == 401 {
+                Self.onUnauthorized?()
+            }
             throw APIError.server(statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
         }
 
