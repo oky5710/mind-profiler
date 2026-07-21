@@ -9,6 +9,7 @@ import SwiftUI
 @main
 struct MindProfilerApp: App {
     @State private var authViewModel = AuthViewModel()
+    @State private var toastCenter = ToastCenter()
 
     init() {
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(
@@ -27,6 +28,13 @@ struct MindProfilerApp: App {
                 }
             }
             .environment(authViewModel)
+            .environment(toastCenter)
+            // 어느 화면이든 environment의 toastCenter.show(...)만 호출하면 여기 붙은 오버레이가
+            // 화면 위쪽에 띄워준다 — environment가 overlay보다 먼저 있어야 오버레이 내용도 상속받는다.
+            .overlay(alignment: .top) {
+                ToastOverlay()
+                    .padding(.top, 8)
+            }
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }

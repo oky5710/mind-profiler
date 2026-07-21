@@ -86,8 +86,7 @@ struct HRVAnalysisView: View {
     // 닿은 상태인지를 기억해 "새로 닿았을 때"만 토스트를 보여준다.
     @State var isZoomAtMax = false
     @State var isZoomAtMin = false
-    @State var zoomLimitMessage: String?
-    @State var zoomLimitMessageToken: UUID?
+    @Environment(ToastCenter.self) var toastCenter
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
@@ -237,23 +236,6 @@ struct HRVAnalysisView: View {
         isZoomAtMax = false
         isZoomAtMin = false
         hrvScrollPosition = latestVisibleEnd(for: mode).addingTimeInterval(-mode.visibleDomain)
-    }
-
-    // 짧게 떴다가 사라지는 토스트. 연달아 호출돼도 가장 최근 호출만 사라지게 토큰으로 구분한다 —
-    // 안 그러면 먼저 예약된 delay가 나중 메시지를 지워버릴 수 있다.
-    func showZoomLimitMessage(_ text: String) {
-        let token = UUID()
-        zoomLimitMessageToken = token
-        withAnimation(.easeOut(duration: 0.15)) {
-            zoomLimitMessage = text
-        }
-        Task {
-            try? await Task.sleep(for: .milliseconds(900))
-            guard zoomLimitMessageToken == token else { return }
-            withAnimation(.easeOut(duration: 0.25)) {
-                zoomLimitMessage = nil
-            }
-        }
     }
 
     private func recomputeRange() {
@@ -463,25 +445,6 @@ struct HRVAnalysisView: View {
 
             legend
         }
-        .overlay(alignment: .top) {
-            zoomLimitToast
-                .padding(.top, 4)
-        }
-    }
-
-    // 핀치 줌이 배율 한계(0.5~5배)에 닿았을 때 잠깐 떴다가 사라지는 안내.
-    @ViewBuilder
-    private var zoomLimitToast: some View {
-        if let message = zoomLimitMessage {
-            Text(message)
-                .font(.caption.bold())
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.black.opacity(0.75), in: Capsule())
-                .transition(.opacity)
-                .allowsHitTesting(false)
-        }
     }
 
     // 범례 한 칸. 월별 rMSSD는 박스(1Q~3Q)/심지(최소~최대) 두 칸으로 나뉘지만 둘 다 같은 series를
@@ -621,4 +584,5 @@ struct HRVAnalysisView: View {
 
 #Preview {
     HRVAnalysisView()
+        .environment(ToastCenter())
 }

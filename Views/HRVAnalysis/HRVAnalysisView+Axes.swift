@@ -281,10 +281,10 @@ extension HRVAnalysisView {
                 let hitMax = proposedScale > HRVAnalysisView.maxZoomScale
                 let hitMin = proposedScale < HRVAnalysisView.minZoomScale
                 if hitMax, !isZoomAtMax {
-                    showZoomLimitMessage("최대로 확대되었습니다")
+                    toastCenter.show("최대로 확대되었습니다", type: .info)
                 }
                 if hitMin, !isZoomAtMin {
-                    showZoomLimitMessage("최대로 축소되었습니다")
+                    toastCenter.show("최대로 축소되었습니다", type: .info)
                 }
                 isZoomAtMax = hitMax
                 isZoomAtMin = hitMin
