@@ -144,6 +144,9 @@ final class HRVAnalysisViewModel {
             isHealthKitAuthorized = true
         } catch {
             healthKitErrorMessage = error.localizedDescription
+            // "확인함" 표시를 되돌려서, 다음 pull-to-refresh 때 다시 시도할 수 있게 한다 — 안 그러면
+            // 이 뷰모델이 살아있는 한 이 화면에서 HealthKit 데이터를 영영 다시 불러오지 않는다.
+            hasCheckedHealthKit = false
         }
     }
 
@@ -170,6 +173,7 @@ final class HRVAnalysisViewModel {
             isCalendarAuthorized = true
         } catch {
             calendarErrorMessage = error.localizedDescription
+            hasCheckedCalendar = false
         }
     }
 

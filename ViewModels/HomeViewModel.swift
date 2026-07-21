@@ -57,6 +57,9 @@ final class HomeViewModel {
             todayMoodScore = try await MoodService.todayMood()?.score
         } catch {
             moodErrorMessage = error.localizedDescription
+            // 실패하면 "확인함" 표시를 되돌려서, 다음에 홈 탭에 다시 들어왔을 때(onAppear) 재시도된다 —
+            // 안 그러면 이 뷰모델이 살아있는 한(탭을 벗어났다 돌아와도) 영영 다시 시도하지 않는다.
+            hasCheckedMood = false
         }
     }
 
@@ -78,6 +81,7 @@ final class HomeViewModel {
             todayCoffeeCount = try await CoffeeService.todayCount()
         } catch {
             coffeeErrorMessage = error.localizedDescription
+            hasCheckedCoffee = false
         }
     }
 
@@ -94,7 +98,9 @@ final class HomeViewModel {
     func loadTodayMedicationLogsIfNeeded() async {
         guard !hasCheckedMedicationLogs else { return }
         hasCheckedMedicationLogs = true
-        await refreshTodayMedicationLogs()
+        if !(await refreshTodayMedicationLogs()) {
+            hasCheckedMedicationLogs = false
+        }
     }
 
     // mind-record 웹의 홈 화면 퀵버튼(EntryScreen.tsx)과 동일하게 아침/취침만 지원한다.
@@ -114,13 +120,16 @@ final class HomeViewModel {
         }
     }
 
-    private func refreshTodayMedicationLogs() async {
+    @discardableResult
+    private func refreshTodayMedicationLogs() async -> Bool {
         do {
             let logs = try await MedicationService.logs(on: Date())
             hasMorningMedicationTaken = logs.contains { $0.timing == MedicationTiming.morning.rawValue && $0.taken }
             hasBedtimeMedicationTaken = logs.contains { $0.timing == MedicationTiming.bedtime.rawValue && $0.taken }
+            return true
         } catch {
             medicationErrorMessage = error.localizedDescription
+            return false
         }
     }
 }

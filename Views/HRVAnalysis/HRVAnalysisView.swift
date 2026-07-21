@@ -227,6 +227,10 @@ struct HRVAnalysisView: View {
         }
         .refreshable {
             await viewModel.reload()
+            // HealthKit/캘린더는 loadIfNeeded 계열이라 이전에 성공했으면 그냥 바로 반환되고,
+            // 이전에 실패했을 때만(hasChecked가 리셋된 경우) 실제로 재시도한다.
+            await viewModel.loadWearableHRVIfNeeded()
+            await viewModel.loadCalendarEventsIfNeeded()
             recomputeRange()
         }
     }

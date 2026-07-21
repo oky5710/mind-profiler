@@ -95,17 +95,15 @@ struct HomeView: View {
                 .padding(.bottom, 16)
             }
         }
+        // 홈 탭에 들어올 때마다(onAppear) 다시 확인한다 — .task였다면 이 뷰가 처음 나타났을 때 딱
+        // 한 번만 실행되고, 그때 네트워크 오류 등으로 실패하면 그 뒤로는 탭을 오가도 다시 시도되지
+        // 않는다. 각 IfNeeded 함수가 이미 "성공적으로 확인함" 상태를 스스로 추적하므로, 매번 다시
+        // 불러도 실제로 이미 성공한 항목은 그냥 바로 반환된다.
         .onAppear {
             Task { await viewModel.loadPhoto() }
-        }
-        .task {
-            await viewModel.loadTodayMoodIfNeeded()
-        }
-        .task {
-            await viewModel.loadTodayCoffeeCountIfNeeded()
-        }
-        .task {
-            await viewModel.loadTodayMedicationLogsIfNeeded()
+            Task { await viewModel.loadTodayMoodIfNeeded() }
+            Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
+            Task { await viewModel.loadTodayMedicationLogsIfNeeded() }
         }
     }
 
