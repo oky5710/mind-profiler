@@ -59,7 +59,7 @@ review_has_no_actionable_findings() {
     if ! grep -qi '^Review comment:' "$review_dir/codex-review.md"; then
         return 0
     fi
-    ! awk '/^[Rr]eview comment:/{flag=1} flag' "$review_dir/codex-review.md" \
+    ! awk 'tolower($0) ~ /^review comment:/{flag=1} flag' "$review_dir/codex-review.md" \
         | grep -qE '^[[:space:]]*-[[:space:]]*\[P[0-9]+\]'
 }
 
