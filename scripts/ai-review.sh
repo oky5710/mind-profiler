@@ -3,6 +3,8 @@ set -euo pipefail
 
 # codex CLI로 현재 변경사항을 리뷰받아 .ai-review/codex-review.md에 저장한다.
 # 이후 Claude가 그 파일을 읽고 .ai-review/claude-response.md에 응답을 쓰는 식으로 주고받는다.
+# git commit을 하면 scripts/hooks/post-commit(설치본: .git/hooks/post-commit)이 이 스크립트를
+# --commit <방금 만든 커밋>으로 자동 호출하므로, 보통은 직접 실행할 필요 없이 커밋만 하면 된다.
 #
 # 사용법:
 #   scripts/ai-review.sh                  # uncommitted 변경사항(staged+unstaged+untracked) 리뷰

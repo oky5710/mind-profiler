@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 커밋할 때마다 방금 만든 커밋을 codex에게 리뷰받는다. codex 리뷰가 수십 초씩 걸릴 수 있어서
+# git commit 자체를 막지 않도록 백그라운드로 돌리고, 결과는 평소처럼 .ai-review/codex-review.md에
+# 쌓인다 — 나중에 "codex-review.md 읽고 응답해줘"라고 하면 Claude가 확인해서 응답한다.
+#
+# git은 훅 자체를 커밋에 포함시켜 공유하지 않으므로, 이 파일은 참고용 원본이고 실제로 동작하는
+# 건 .git/hooks/post-commit(이 파일을 복사해 둔 것)이다 — 새로 클론했다면
+# `cp scripts/hooks/post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit`로 다시 설치한다.
+
+repo_root=$(git rev-parse --show-toplevel)
+sha=$(git rev-parse HEAD)
+
+nohup "$repo_root/scripts/ai-review.sh" --commit "$sha" > "$repo_root/.ai-review/last-run.log" 2>&1 &
+disown
