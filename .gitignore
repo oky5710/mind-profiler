@@ -1,0 +1,4 @@
+# codex ↔ claude 리뷰 교환 산출물 — scripts/ai-review.sh가 실행할 때마다 새로 써서,
+# 커밋할 내용이 아니고 untracked 상태로 두면 다음 --uncommitted 리뷰가 자기 자신을
+# 리뷰 대상으로 삼아버린다 (codex-review.md 참고).
+.ai-review/
