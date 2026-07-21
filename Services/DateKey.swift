@@ -8,6 +8,10 @@ enum DateKey {
         return formatter.string(from: date)
     }
 
+    static func isoString(from date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
+    }
+
     static func parseISODate(_ string: String) -> Date? {
         let withFraction = ISO8601DateFormatter()
         withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

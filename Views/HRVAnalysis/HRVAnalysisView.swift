@@ -374,7 +374,7 @@ struct HRVAnalysisView: View {
         let duration = workout.end.timeIntervalSince(workout.start)
 
         return VStack(alignment: .leading, spacing: 2) {
-            Text(HealthKitService.workoutActivityTypeDisplayName(workout.activityType))
+            Text(workout.displayName)
                 .font(.subheadline.bold())
             Text(
                 "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDuration(duration)) · " +

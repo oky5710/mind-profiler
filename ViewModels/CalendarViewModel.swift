@@ -51,8 +51,8 @@ final class CalendarViewModel {
 
             var exerciseMap: [String: [ExerciseLogEntry]] = [:]
             for entry in exerciseList {
-                guard let date = DateKey.parseISODate(entry.date) else { continue }
-                exerciseMap[DateKey.string(from: date), default: []].append(entry)
+                guard let start = DateKey.parseISODate(entry.startedAt) else { continue }
+                exerciseMap[DateKey.string(from: start), default: []].append(entry)
             }
             exercisesByDate = exerciseMap
         } catch {

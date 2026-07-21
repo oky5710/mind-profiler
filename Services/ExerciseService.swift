@@ -9,13 +9,13 @@ enum ExerciseService {
         try await APIClient.shared.get("/exercises")
     }
 
-    static func logExercise(date: Date, type: String, durationMinutes: Int, intensity: Int) async throws {
+    static func logExercise(start: Date, end: Date, type: String, intensity: Int) async throws {
         let _: ExerciseLogEntry = try await APIClient.shared.post(
             "/exercises",
             body: ExerciseLogRequest(
-                date: DateKey.string(from: date),
                 type: type,
-                durationMinutes: durationMinutes,
+                startedAt: DateKey.isoString(from: start),
+                endedAt: DateKey.isoString(from: end),
                 intensity: intensity
             )
         )

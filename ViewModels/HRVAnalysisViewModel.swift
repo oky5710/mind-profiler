@@ -32,7 +32,7 @@ final class HRVAnalysisViewModel {
         let id = UUID()
         let start: Date
         let end: Date
-        let activityType: HKWorkoutActivityType
+        let displayName: String
         let energyBurnedKcal: Double?
         let distanceMeters: Double?
     }
@@ -213,6 +213,10 @@ final class HRVAnalysisViewModel {
             async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
             let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples) = try await (workouts, sleep, rmssd, sdnn)
 
+            // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
+            // 표시는 막지 않도록 별도로 무시 가능한 에러 처리.
+            let manualRanges = (try? await ExerciseService.allExercises()) ?? []
+
             let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDPointsDaily = Self.segmentByGap(
@@ -222,15 +226,24 @@ final class HRVAnalysisViewModel {
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
-            exerciseRanges = workoutRanges.map {
+            let healthKitWorkouts = workoutRanges.map {
                 WorkoutRange(
                     start: $0.start,
                     end: $0.end,
-                    activityType: $0.activityType,
+                    displayName: HealthKitService.workoutActivityTypeDisplayName($0.activityType),
                     energyBurnedKcal: $0.energyBurnedKcal,
                     distanceMeters: $0.distanceMeters
                 )
             }
+            let manualWorkouts = manualRanges.compactMap { entry -> WorkoutRange? in
+                guard
+                    let start = DateKey.parseISODate(entry.startedAt),
+                    let end = DateKey.parseISODate(entry.endedAt),
+                    start >= windowStart, start <= windowEnd
+                else { return nil }
+                return WorkoutRange(start: start, end: end, displayName: entry.type, energyBurnedKcal: nil, distanceMeters: nil)
+            }
+            exerciseRanges = (healthKitWorkouts + manualWorkouts).sorted { $0.start < $1.start }
             sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
             isHealthKitAuthorized = true
             loadedHealthKitRange = windowStart...windowEnd
