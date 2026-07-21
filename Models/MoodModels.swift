@@ -5,7 +5,8 @@ struct MoodLogRequest: Encodable {
     let score: Int
 }
 
-struct MoodLogEntry: Decodable {
+struct MoodLogEntry: Decodable, Identifiable {
+    let id: String
     let date: String
     let score: Int
 }

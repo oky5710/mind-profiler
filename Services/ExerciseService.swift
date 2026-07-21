@@ -9,6 +9,14 @@ enum ExerciseService {
         try await APIClient.shared.get("/exercises")
     }
 
+    static func entries(on date: Date) async throws -> [ExerciseLogEntry] {
+        try await APIClient.shared.get("/exercises?date=\(DateKey.string(from: date))")
+    }
+
+    static func removeExercise(id: String) async throws {
+        let _: ExerciseLogEntry = try await APIClient.shared.delete("/exercises/\(id)")
+    }
+
     static func logExercise(start: Date, end: Date, type: String, intensity: Int) async throws {
         let _: ExerciseLogEntry = try await APIClient.shared.post(
             "/exercises",

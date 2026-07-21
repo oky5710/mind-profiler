@@ -59,39 +59,29 @@ struct DayEntrySheet: View {
         }
     }
 
+    // 저장은 시트를 닫지만(onSaved), 삭제는 "이 날의 기록" 목록만 새로고침하고 시트는 열어둔 채로
+    // 유지한다(onRefresh) — 여러 개를 연달아 지울 수 있어야 하는데 첫 삭제마다 시트가 닫히면 매번
+    // 다시 열어야 해서 불편하다.
+    private func dismissingSaved() async {
+        await onSaved()
+        dismiss()
+    }
+
     @ViewBuilder
     private func formView(for type: EntryType) -> some View {
         switch type {
         case .mood:
-            MoodEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            MoodEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .coffee:
-            CoffeeEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            CoffeeEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .exam:
-            ExamEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            ExamEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .exercise:
-            ExerciseEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            ExerciseEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .medication:
-            MedicationEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            MedicationEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .event:
-            LifeEventEntryForm(date: date) {
-                await onSaved()
-                dismiss()
-            }
+            LifeEventEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         }
     }
 }

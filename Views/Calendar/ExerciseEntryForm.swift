@@ -3,6 +3,7 @@ import SwiftUI
 struct ExerciseEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
+    var onRefresh: () async -> Void
 
     @State private var selectedType = ExerciseService.typeOptions[0]
     @State private var useCustomType = false
@@ -14,6 +15,17 @@ struct ExerciseEntryForm: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    @State private var entries: [ExerciseLogEntry] = []
+    @State private var isLoadingEntries = true
+    @State private var entriesErrorMessage: String?
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
     private var effectiveStart: Date {
         DateKey.combine(date: date, time: startTime)
     }
@@ -24,6 +36,34 @@ struct ExerciseEntryForm: View {
 
     var body: some View {
         Form {
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 기록된 운동이 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.type)
+                            if let start = DateKey.parseISODate(entry.startedAt),
+                               let end = DateKey.parseISODate(entry.endedAt) {
+                                Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
+
             Section("운동 종류") {
                 Picker("운동 종류", selection: $selectedType) {
                     ForEach(ExerciseService.typeOptions, id: \.self) { type in
@@ -81,6 +121,7 @@ struct ExerciseEntryForm: View {
             }
             .disabled(isSaving)
         }
+        .task { await loadEntries() }
         .onChange(of: durationMinutes) { _, _ in
             endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
@@ -91,6 +132,28 @@ struct ExerciseEntryForm: View {
             let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
             durationMinutes = min(300, max(1, minutes))
         }
+    }
+
+    private func loadEntries() async {
+        isLoadingEntries = true
+        do {
+            entries = try await ExerciseService.entries(on: date)
+        } catch {
+            entriesErrorMessage = error.localizedDescription
+        }
+        isLoadingEntries = false
+    }
+
+    private func removeEntries(at offsets: IndexSet) async {
+        for index in offsets {
+            do {
+                try await ExerciseService.removeExercise(id: entries[index].id)
+            } catch {
+                entriesErrorMessage = error.localizedDescription
+            }
+        }
+        await loadEntries()
+        await onRefresh()
     }
 
     private func save() async {

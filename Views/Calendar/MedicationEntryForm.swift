@@ -5,13 +5,46 @@ import SwiftUI
 struct MedicationEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
+    var onRefresh: () async -> Void
 
     @State private var selectedQuickTimings: Set<MedicationTiming> = []
     @State private var isSaving = false
     @State private var saveErrorMessage: String?
 
+    @State private var entries: [MedicationLogEntry] = []
+    @State private var isLoadingEntries = true
+    @State private var entriesErrorMessage: String?
+
     var body: some View {
         Form {
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 복용 기록이 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        HStack {
+                            Text(entry.medication?.name ?? "약")
+                            Spacer()
+                            if let timing = entry.timing.flatMap(MedicationTiming.init(rawValue:)) {
+                                Text(timing.label)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
+
             Section("오늘 복용 처리") {
                 ForEach(MedicationService.quickLogTimings) { timing in
                     Toggle(timing.label, isOn: timingBinding(timing))
@@ -31,6 +64,7 @@ struct MedicationEntryForm: View {
                 .disabled(isSaving)
             }
         }
+        .task { await loadEntries() }
     }
 
     private func timingBinding(_ timing: MedicationTiming) -> Binding<Bool> {
@@ -40,6 +74,28 @@ struct MedicationEntryForm: View {
                 if isOn { selectedQuickTimings.insert(timing) } else { selectedQuickTimings.remove(timing) }
             }
         )
+    }
+
+    private func loadEntries() async {
+        isLoadingEntries = true
+        do {
+            entries = try await MedicationService.logs(on: date)
+        } catch {
+            entriesErrorMessage = error.localizedDescription
+        }
+        isLoadingEntries = false
+    }
+
+    private func removeEntries(at offsets: IndexSet) async {
+        for index in offsets {
+            do {
+                try await MedicationService.removeLog(id: entries[index].id)
+            } catch {
+                entriesErrorMessage = error.localizedDescription
+            }
+        }
+        await loadEntries()
+        await onRefresh()
     }
 
     private func saveQuickLogs() async {

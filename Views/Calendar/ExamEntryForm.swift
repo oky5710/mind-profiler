@@ -3,6 +3,7 @@ import SwiftUI
 struct ExamEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
+    var onRefresh: () async -> Void
 
     @State private var time = Date()
     @State private var hospital = ""
@@ -26,8 +27,52 @@ struct ExamEntryForm: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    @State private var entries: [ExamEntry] = []
+    @State private var isLoadingEntries = true
+    @State private var entriesErrorMessage: String?
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
     var body: some View {
         Form {
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 기록된 검사가 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("RMSSD \(entry.rmssd, specifier: "%.1f")")
+                                if let examinedAt = DateKey.parseISODate(entry.examinedAt) {
+                                    Text(Self.timeFormatter.string(from: examinedAt))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Text(entry.result)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
+
             Section("Time Domain Analysis") {
                 numberField("MHR", $mhr)
                 numberField("SDNN", $sdnn)
@@ -74,6 +119,7 @@ struct ExamEntryForm: View {
             }
             .disabled(isSaving)
         }
+        .task { await loadEntries() }
     }
 
     private func numberField(_ label: String, _ binding: Binding<String>) -> some View {
@@ -85,6 +131,28 @@ struct ExamEntryForm: View {
                 .multilineTextAlignment(.trailing)
                 .frame(width: 100)
         }
+    }
+
+    private func loadEntries() async {
+        isLoadingEntries = true
+        do {
+            entries = try await ExamService.entries(on: date)
+        } catch {
+            entriesErrorMessage = error.localizedDescription
+        }
+        isLoadingEntries = false
+    }
+
+    private func removeEntries(at offsets: IndexSet) async {
+        for index in offsets {
+            do {
+                try await ExamService.removeExam(id: entries[index].id)
+            } catch {
+                entriesErrorMessage = error.localizedDescription
+            }
+        }
+        await loadEntries()
+        await onRefresh()
     }
 
     private func save() async {

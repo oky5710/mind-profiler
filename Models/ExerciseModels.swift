@@ -7,7 +7,7 @@ struct ExerciseLogRequest: Encodable {
     let intensity: Int
 }
 
-struct ExerciseLogEntry: Decodable {
+struct ExerciseLogEntry: Decodable, Identifiable {
     let id: String
     let type: String
     let startedAt: String

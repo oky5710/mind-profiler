@@ -5,6 +5,14 @@ enum LifeEventService {
         try await APIClient.shared.get("/events")
     }
 
+    static func entries(on date: Date) async throws -> [LifeEventEntry] {
+        try await APIClient.shared.get("/events?date=\(DateKey.string(from: date))")
+    }
+
+    static func removeEvent(id: String) async throws {
+        let _: LifeEventEntry = try await APIClient.shared.delete("/events/\(id)")
+    }
+
     static func logEvent(dateTime: Date, type: LifeEventType, title: String, description: String?) async throws {
         let _: LifeEventEntry = try await APIClient.shared.post(
             "/events",

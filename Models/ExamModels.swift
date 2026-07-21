@@ -20,7 +20,8 @@ struct ExamRequest: Encodable {
     let result: String
 }
 
-struct ExamEntry: Decodable {
+struct ExamEntry: Decodable, Identifiable {
+    let id: Int
     let examinedAt: String
     let rmssd: Double
     let result: String

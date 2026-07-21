@@ -42,6 +42,10 @@ enum MedicationService {
         let _: MedicationEntry = try await APIClient.shared.delete("/medications/\(id)")
     }
 
+    static func removeLog(id: String) async throws {
+        let _: MedicationLogEntry = try await APIClient.shared.delete("/medications/logs/\(id)")
+    }
+
     // 식약처 낱알식별정보 검색 — mind-record 웹의 /drugs/search와 동일. 인증 불필요한 공개
     // 엔드포인트지만 APIClient가 항상 붙이는 Bearer 헤더는 백엔드가 무시하므로 문제 없다.
     static func searchDrugs(name: String) async throws -> DrugSearchResponse {

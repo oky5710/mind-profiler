@@ -61,10 +61,17 @@ struct MedicationQuickLogRequest: Encodable {
     let date: String
 }
 
-struct MedicationLogEntry: Decodable {
+struct MedicationLogEntry: Decodable, Identifiable {
     let id: String
     let medicationId: String
     let date: String
     let timing: String?
     let taken: Bool
+    // 백엔드가 findLogs에서 medication을 include해서 항상 같이 온다 — "이 날의 기록" 목록에 약
+    // 이름을 보여주는 데만 쓴다.
+    let medication: MedicationSummary?
+}
+
+struct MedicationSummary: Decodable {
+    let name: String
 }

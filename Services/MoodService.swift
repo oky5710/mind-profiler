@@ -18,6 +18,14 @@ enum MoodService {
         try await APIClient.shared.get("/moods")
     }
 
+    static func entries(on date: Date) async throws -> [MoodLogEntry] {
+        try await APIClient.shared.get("/moods?date=\(DateKey.string(from: date))")
+    }
+
+    static func removeMood(id: String) async throws {
+        let _: MoodLogEntry = try await APIClient.shared.delete("/moods/\(id)")
+    }
+
     static func logMood(date: String, score: Int) async throws {
         let _: MoodLogEntry = try await APIClient.shared.post(
             "/moods",

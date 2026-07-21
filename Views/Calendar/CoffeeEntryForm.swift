@@ -3,6 +3,7 @@ import SwiftUI
 struct CoffeeEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
+    var onRefresh: () async -> Void
 
     @State private var time = Date()
     @State private var selectedType = CoffeeService.typeOptions[0]
@@ -121,7 +122,7 @@ struct CoffeeEntryForm: View {
             }
         }
         await loadEntries()
-        await onSaved()
+        await onRefresh()
     }
 
     private func save() async {

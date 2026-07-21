@@ -3,12 +3,19 @@ import SwiftUI
 struct MoodEntryForm: View {
     let date: Date
     var onSaved: () async -> Void
+    var onRefresh: () async -> Void
 
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    @State private var entries: [MoodLogEntry] = []
+    @State private var isLoadingEntries = true
+    @State private var entriesErrorMessage: String?
+
     var body: some View {
         VStack(spacing: 24) {
+            entryList
+
             Text("오늘 기분은 어땠나요?")
                 .font(.headline)
 
@@ -37,6 +44,54 @@ struct MoodEntryForm: View {
             Spacer()
         }
         .padding()
+        .task { await loadEntries() }
+    }
+
+    @ViewBuilder
+    private var entryList: some View {
+        if isLoadingEntries {
+            ProgressView()
+        } else if !entries.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("이 날의 기록")
+                    .font(.subheadline.bold())
+                ForEach(entries) { entry in
+                    HStack {
+                        Text(MoodService.options.first { $0.score == entry.score }?.emoji ?? "\(entry.score)")
+                        Spacer()
+                        Button(role: .destructive) {
+                            Task { await removeEntry(entry) }
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func loadEntries() async {
+        isLoadingEntries = true
+        do {
+            entries = try await MoodService.entries(on: date)
+        } catch {
+            entriesErrorMessage = error.localizedDescription
+        }
+        isLoadingEntries = false
+    }
+
+    private func removeEntry(_ entry: MoodLogEntry) async {
+        do {
+            try await MoodService.removeMood(id: entry.id)
+        } catch {
+            entriesErrorMessage = error.localizedDescription
+        }
+        await loadEntries()
+        await onRefresh()
     }
 
     private func save(score: Int) async {
