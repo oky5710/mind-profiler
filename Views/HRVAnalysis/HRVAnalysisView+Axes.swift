@@ -273,7 +273,21 @@ extension HRVAnalysisView {
                     tooltipWorkoutRange = nil
                 }
                 guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
-                zoomScale = min(max(anchorScale * value, HRVAnalysisView.minZoomScale), HRVAnalysisView.maxZoomScale)
+                let proposedScale = anchorScale * value
+                zoomScale = min(max(proposedScale, HRVAnalysisView.minZoomScale), HRVAnalysisView.maxZoomScale)
+
+                // 한계에 "새로 닿았을 때"만 토스트를 띄운다 — 안 그러면 한계에 붙어있는 동안 매 프레임
+                // 다시 띄워져서 애니메이션이 끊임없이 재시작된다.
+                let hitMax = proposedScale > HRVAnalysisView.maxZoomScale
+                let hitMin = proposedScale < HRVAnalysisView.minZoomScale
+                if hitMax, !isZoomAtMax {
+                    showZoomLimitMessage("최대로 확대되었습니다")
+                }
+                if hitMin, !isZoomAtMin {
+                    showZoomLimitMessage("최대로 축소되었습니다")
+                }
+                isZoomAtMax = hitMax
+                isZoomAtMin = hitMin
 
                 let newDomain = chartMode.visibleDomain / Double(zoomScale)
                 let maxStart = latestVisibleEnd(for: chartMode).addingTimeInterval(-newDomain)
@@ -283,6 +297,8 @@ extension HRVAnalysisView {
                 zoomAnchorScale = nil
                 zoomAnchorCenterDate = nil
                 isZooming = false
+                isZoomAtMax = false
+                isZoomAtMin = false
             }
     }
 
