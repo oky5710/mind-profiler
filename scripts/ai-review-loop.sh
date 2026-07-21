@@ -48,17 +48,14 @@ require_command() {
 }
 
 review_has_no_actionable_findings() {
-    # 진짜 신호는 특정 문구가 아니라 "Review comment:" 섹션(과 "- [P#] ..." 심각도 불릿)이
-    # 있는지다 — 지금까지 관찰된 모든 실제 조치 항목은 이 섹션을 달고 나왔고, 확인/칭찬성
-    # 코멘트(예: "기존 로직에 회귀 없이 잘 반영됨")는 이 섹션 자체가 없었다. 그 섹션이 없으면
-    # 문구가 뭐든 조치할 게 없는 것으로 본다.
-    if ! grep -qi "review comment:" "$review_dir/codex-review.md"; then
-        return 0
-    fi
-    # 혹시 "Review comment:" 섹션이 있어도 결론이 "문제 없음" 계열이면 보조로 잡는다.
-    grep -qiE \
-        "No actionable defects found|No actionable findings|No defects found|No findings|No issues found|No problems found|No bugs found|Nothing to fix|Looks good" \
-        "$review_dir/codex-review.md"
+    # "no issues" 계열 문구를 파일 전체에서 찾는 방식은 위험하다 — 실제 지적의 설명 문장이 그
+    # 문구를 예시로 인용하기만 해도(예: "API가 no findings를 반환하면 크래시한다") 오탐으로
+    # 진짜 지적을 놓친다. 실제로 이 방식 때문에 바로 이전 리뷰(scripts/ai-review-loop.sh를
+    # 다루는 P2 지적)가 그 지적 문장 안에 "no findings"라는 표현이 들어 있어서 조치할 게
+    # 없다고 잘못 판정되어 루프가 조용히 종료된 적이 있다.
+    # 대신 codex가 실제 조치 항목마다 반드시 붙이는 "- [P#] 제목 — 파일:줄" 형식의 불릿
+    # 자체가 있는지만 본다 — 이 불릿은 문장 안에 우연히 나타날 수 없는 구조적 표식이다.
+    ! grep -qE '^[[:space:]]*-[[:space:]]*\[P[0-9]+\]' "$review_dir/codex-review.md"
 }
 
 # git diff/--cached만 보면 새로 만든(아직 add 안 된 untracked) 파일은 안 잡힌다 — Claude가
