@@ -7,30 +7,19 @@ struct ExerciseEntryForm: View {
     @State private var selectedType = ExerciseService.typeOptions[0]
     @State private var useCustomType = false
     @State private var customType = ""
-    @State private var durationMinutes = 30
+    @State private var durationMinutes = 60
     @State private var intensity = 3
-    @State private var useTimeInput = false
     @State private var startTime = Date()
-    @State private var endTime = Date().addingTimeInterval(30 * 60)
+    @State private var endTime = Date().addingTimeInterval(60 * 60)
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    // 시각을 입력하지 않으면 그 날의 정오를 기준으로 저장한다 — 간트 차트 등 시간축 표시를 위해
-    // 시작/종료 시각이 항상 필요하지만, 정확한 시각을 모르는 기록도 허용해야 하기 때문.
-    private static let defaultHour = 12
-
     private var effectiveStart: Date {
-        useTimeInput ? DateKey.combine(date: date, time: startTime) : defaultStart
-    }
-
-    private var defaultStart: Date {
-        Calendar.current.date(bySettingHour: Self.defaultHour, minute: 0, second: 0, of: date) ?? date
+        DateKey.combine(date: date, time: startTime)
     }
 
     private var effectiveEnd: Date {
-        useTimeInput
-            ? DateKey.combine(date: date, time: endTime)
-            : defaultStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        DateKey.combine(date: date, time: endTime)
     }
 
     var body: some View {
@@ -49,23 +38,18 @@ struct ExerciseEntryForm: View {
                 }
             }
 
+            // 운동 시간을 따로 건드리지 않으면 기본 60분짜리 운동으로 저장된다.
             Section("운동 시간") {
                 Stepper("\(durationMinutes)분", value: $durationMinutes, in: 1...300, step: 5)
             }
 
             Section("시작/종료 시각") {
-                Toggle("시각 입력", isOn: $useTimeInput.animation())
-                if useTimeInput {
-                    DatePicker("시작 시각", selection: $startTime, displayedComponents: .hourAndMinute)
-                        .environment(\.locale, Locale(identifier: "en_GB")) // 24시간 표기 강제
-                        .datePickerStyle(.compact)
-                    DatePicker("종료 시각", selection: $endTime, displayedComponents: .hourAndMinute)
-                        .environment(\.locale, Locale(identifier: "en_GB"))
-                        .datePickerStyle(.compact)
-                }
-                Text("\(Self.timeFormatter.string(from: effectiveStart)) ~ \(Self.timeFormatter.string(from: effectiveEnd))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                DatePicker("시작 시각", selection: $startTime, displayedComponents: .hourAndMinute)
+                    .environment(\.locale, Locale(identifier: "en_GB")) // 24시간 표기 강제
+                    .datePickerStyle(.compact)
+                DatePicker("종료 시각", selection: $endTime, displayedComponents: .hourAndMinute)
+                    .environment(\.locale, Locale(identifier: "en_GB"))
+                    .datePickerStyle(.compact)
             }
 
             Section("운동 강도") {
@@ -97,32 +81,17 @@ struct ExerciseEntryForm: View {
             }
             .disabled(isSaving)
         }
-        .onChange(of: useTimeInput) { _, isOn in
-            guard isOn else { return }
-            startTime = Date()
-            endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
-        }
         .onChange(of: durationMinutes) { _, _ in
-            guard useTimeInput else { return }
             endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
         .onChange(of: startTime) { _, newStart in
-            guard useTimeInput else { return }
             endTime = newStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
         .onChange(of: endTime) { _, newEnd in
-            guard useTimeInput else { return }
             let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
             durationMinutes = min(300, max(1, minutes))
         }
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_GB")
-        return formatter
-    }()
 
     private func save() async {
         errorMessage = nil
