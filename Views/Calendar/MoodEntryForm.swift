@@ -14,8 +14,6 @@ struct MoodEntryForm: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            entryList
-
             Text("오늘 기분은 어땠나요?")
                 .font(.headline)
 
@@ -40,6 +38,8 @@ struct MoodEntryForm: View {
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
             }
+
+            entryList
 
             Spacer()
         }

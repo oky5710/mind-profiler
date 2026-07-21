@@ -25,33 +25,6 @@ struct LifeEventEntryForm: View {
 
     var body: some View {
         Form {
-            Section("이 날의 기록") {
-                if isLoadingEntries {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    Text("이 날 기록된 이벤트가 없어요.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(entries) { entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.title)
-                            if let eventDate = DateKey.parseISODate(entry.date) {
-                                Text(Self.timeFormatter.string(from: eventDate))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await removeEntries(at: offsets) }
-                    }
-                }
-                if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
-                }
-            }
-
             Section("유형") {
                 Picker("유형", selection: $selectedType) {
                     ForEach(LifeEventType.allCases) { type in
@@ -91,6 +64,33 @@ struct LifeEventEntryForm: View {
                 }
             }
             .disabled(isSaving)
+
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 기록된 이벤트가 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.title)
+                            if let eventDate = DateKey.parseISODate(entry.date) {
+                                Text(Self.timeFormatter.string(from: eventDate))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
         }
         .task { await loadEntries() }
     }

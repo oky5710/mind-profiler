@@ -36,34 +36,6 @@ struct ExerciseEntryForm: View {
 
     var body: some View {
         Form {
-            Section("이 날의 기록") {
-                if isLoadingEntries {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    Text("이 날 기록된 운동이 없어요.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(entries) { entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.type)
-                            if let start = DateKey.parseISODate(entry.startedAt),
-                               let end = DateKey.parseISODate(entry.endedAt) {
-                                Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await removeEntries(at: offsets) }
-                    }
-                }
-                if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
-                }
-            }
-
             Section("운동 종류") {
                 Picker("운동 종류", selection: $selectedType) {
                     ForEach(ExerciseService.typeOptions, id: \.self) { type in
@@ -120,6 +92,34 @@ struct ExerciseEntryForm: View {
                 }
             }
             .disabled(isSaving)
+
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 기록된 운동이 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.type)
+                            if let start = DateKey.parseISODate(entry.startedAt),
+                               let end = DateKey.parseISODate(entry.endedAt) {
+                                Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
         }
         .task { await loadEntries() }
         .onChange(of: durationMinutes) { _, _ in

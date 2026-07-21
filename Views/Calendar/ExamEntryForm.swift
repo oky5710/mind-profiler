@@ -40,39 +40,6 @@ struct ExamEntryForm: View {
 
     var body: some View {
         Form {
-            Section("이 날의 기록") {
-                if isLoadingEntries {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    Text("이 날 기록된 검사가 없어요.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(entries) { entry in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("RMSSD \(entry.rmssd, specifier: "%.1f")")
-                                if let examinedAt = DateKey.parseISODate(entry.examinedAt) {
-                                    Text(Self.timeFormatter.string(from: examinedAt))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            Text(entry.result)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .onDelete { offsets in
-                        Task { await removeEntries(at: offsets) }
-                    }
-                }
-                if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
-                }
-            }
-
             Section("Time Domain Analysis") {
                 numberField("MHR", $mhr)
                 numberField("SDNN", $sdnn)
@@ -118,6 +85,39 @@ struct ExamEntryForm: View {
                 }
             }
             .disabled(isSaving)
+
+            Section("이 날의 기록") {
+                if isLoadingEntries {
+                    ProgressView()
+                } else if entries.isEmpty {
+                    Text("이 날 기록된 검사가 없어요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entries) { entry in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("RMSSD \(entry.rmssd, specifier: "%.1f")")
+                                if let examinedAt = DateKey.parseISODate(entry.examinedAt) {
+                                    Text(Self.timeFormatter.string(from: examinedAt))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Text(entry.result)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onDelete { offsets in
+                        Task { await removeEntries(at: offsets) }
+                    }
+                }
+                if let entriesErrorMessage {
+                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                }
+            }
         }
         .task { await loadEntries() }
     }
