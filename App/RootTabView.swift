@@ -33,4 +33,5 @@ struct RootTabView: View {
 
 #Preview {
     RootTabView()
+        .environment(ToastCenter())
 }
