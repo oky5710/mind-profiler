@@ -9,8 +9,9 @@ struct ExerciseEntryForm: View {
     @State private var customType = ""
     @State private var durationMinutes = 30
     @State private var intensity = 3
-    @State private var useStartTime = false
+    @State private var useTimeInput = false
     @State private var startTime = Date()
+    @State private var endTime = Date().addingTimeInterval(30 * 60)
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -19,7 +20,7 @@ struct ExerciseEntryForm: View {
     private static let defaultHour = 12
 
     private var effectiveStart: Date {
-        useStartTime ? DateKey.combine(date: date, time: startTime) : defaultStart
+        useTimeInput ? DateKey.combine(date: date, time: startTime) : defaultStart
     }
 
     private var defaultStart: Date {
@@ -27,7 +28,9 @@ struct ExerciseEntryForm: View {
     }
 
     private var effectiveEnd: Date {
-        effectiveStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        useTimeInput
+            ? DateKey.combine(date: date, time: endTime)
+            : defaultStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
     }
 
     var body: some View {
@@ -50,11 +53,14 @@ struct ExerciseEntryForm: View {
                 Stepper("\(durationMinutes)분", value: $durationMinutes, in: 1...300, step: 5)
             }
 
-            Section("시작 시각") {
-                Toggle("시각 입력", isOn: $useStartTime.animation())
-                if useStartTime {
+            Section("시작/종료 시각") {
+                Toggle("시각 입력", isOn: $useTimeInput.animation())
+                if useTimeInput {
                     DatePicker("시작 시각", selection: $startTime, displayedComponents: .hourAndMinute)
                         .environment(\.locale, Locale(identifier: "en_GB")) // 24시간 표기 강제
+                        .datePickerStyle(.compact)
+                    DatePicker("종료 시각", selection: $endTime, displayedComponents: .hourAndMinute)
+                        .environment(\.locale, Locale(identifier: "en_GB"))
                         .datePickerStyle(.compact)
                 }
                 Text("\(Self.timeFormatter.string(from: effectiveStart)) ~ \(Self.timeFormatter.string(from: effectiveEnd))")
@@ -90,6 +96,24 @@ struct ExerciseEntryForm: View {
                 }
             }
             .disabled(isSaving)
+        }
+        .onChange(of: useTimeInput) { _, isOn in
+            guard isOn else { return }
+            startTime = Date()
+            endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        }
+        .onChange(of: durationMinutes) { _, _ in
+            guard useTimeInput else { return }
+            endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        }
+        .onChange(of: startTime) { _, newStart in
+            guard useTimeInput else { return }
+            endTime = newStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        }
+        .onChange(of: endTime) { _, newEnd in
+            guard useTimeInput else { return }
+            let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
+            durationMinutes = min(300, max(1, minutes))
         }
     }
 
