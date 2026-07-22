@@ -3,24 +3,32 @@ import SwiftUI
 struct CalendarView: View {
     @State private var viewModel = CalendarViewModel()
     @State private var selectedDay: SelectedDay?
+    // UIKit(UIScreen) 없이 실제 레이아웃 높이를 구하기 위해 GeometryReader로 실측한다
+    // (AGENTS.md: UIKit 사용 금지) — 실측 전에는 대략적인 기본값으로 잠깐 대체한다.
+    @State private var headerHeight: CGFloat = 44
+    @State private var weekdayHeaderHeight: CGFloat = 36
 
     private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                header
-                weekdayHeader
-                calendarGrid
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    header
+                        .measureHeight { headerHeight = $0 }
+                    weekdayHeader
+                        .measureHeight { weekdayHeaderHeight = $0 }
+                    calendarGrid(rowHeight: rowHeight(forTotalHeight: geo.size.height))
 
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding()
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .padding()
+                    }
+
+                    Spacer(minLength: 0)
                 }
-
-                Spacer()
             }
             .navigationTitle("캘린더")
             .navigationBarTitleDisplayMode(.inline)
@@ -71,31 +79,35 @@ struct CalendarView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.vertical, 10)
     }
 
-    // 달력 전체 높이가 항상 최대 800pt를 넘지 않도록, 그 주 수에 맞춰 칸 높이를 나눠 계산한다 —
-    // 주가 적은 달(4주)은 칸이 커지고, 많은 달(6주)은 칸이 작아지지만 전체 높이는 항상 같다.
-    private static let maxCalendarGridHeight: CGFloat = 800
     private static let rowSpacing: CGFloat = 4
+    private static let columnSpacing: CGFloat = 4
     private static let dateCircleSize: CGFloat = 24
     // 배지 한 줄(이모지+캡션 폰트)의 대략적인 높이 — 칸에 몇 줄까지 들어갈 수 있는지 계산하는 데만 쓴다.
     private static let badgeLineHeight: CGFloat = 16
+    private static let minRowHeight: CGFloat = 40
+    // 실제 그 달의 주 수(4~6주)와 무관하게 항상 6주 기준으로 칸 높이를 나눈다 — 달마다 칸 크기가
+    // 들쭉날쭉해지지 않고, 6주짜리 달이 와도 제목줄/하단 탭바를 침범하지 않는다.
+    private static let fixedRowCount: CGFloat = 6
 
-    private var dayCellHeight: CGFloat {
-        let rows = max(viewModel.weeks.count, 1)
-        let available = Self.maxCalendarGridHeight - Self.rowSpacing * CGFloat(rows - 1)
-        return available / CGFloat(rows)
+    // 상단 헤더(월 이동)와 요일 줄이 차지하는 실측 높이를 뺀 나머지를 6등분한다.
+    private func rowHeight(forTotalHeight totalHeight: CGFloat) -> CGFloat {
+        let available = totalHeight - headerHeight - weekdayHeaderHeight
+        let gridHeight = available - Self.rowSpacing * (Self.fixedRowCount - 1)
+        return max(gridHeight / Self.fixedRowCount, Self.minRowHeight)
     }
 
-    private var calendarGrid: some View {
+    private func calendarGrid(rowHeight: CGFloat) -> some View {
         VStack(spacing: Self.rowSpacing) {
             ForEach(Array(viewModel.weeks.enumerated()), id: \.offset) { _, week in
-                HStack(spacing: 4) {
+                HStack(spacing: Self.columnSpacing) {
                     ForEach(Array(week.enumerated()), id: \.offset) { index, date in
                         if let date {
-                            dayCell(date: date, columnIndex: index)
+                            dayCell(date: date, columnIndex: index, cellHeight: rowHeight)
                         } else {
-                            Color.clear.frame(maxWidth: .infinity).frame(height: dayCellHeight)
+                            Color.clear.frame(maxWidth: .infinity).frame(height: rowHeight)
                         }
                     }
                 }
@@ -123,7 +135,7 @@ struct CalendarView: View {
         return result
     }
 
-    private func dayCell(date: Date, columnIndex: Int) -> some View {
+    private func dayCell(date: Date, columnIndex: Int, cellHeight: CGFloat) -> some View {
         let day = Calendar.current.component(.day, from: date)
         let mood = viewModel.mood(on: date)
         let coffeeCount = viewModel.coffees(on: date).count
@@ -131,9 +143,9 @@ struct CalendarView: View {
         let isToday = Calendar.current.isDateInToday(date)
 
         let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount)
-        // 칸 높이(주 수에 따라 달라짐)에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면
-        // 마지막 한 자리를 "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
-        let maxBadgeLines = max(Int((dayCellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
+        // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면 마지막 한 자리를
+        // "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
+        let maxBadgeLines = max(Int((cellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
         let visibleBadges = allBadges.count > maxBadgeLines ? Array(allBadges.prefix(max(maxBadgeLines - 1, 0))) : allBadges
         let overflowCount = allBadges.count - visibleBadges.count
 
@@ -159,7 +171,7 @@ struct CalendarView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .frame(height: dayCellHeight, alignment: .topLeading)
+            .frame(height: cellHeight, alignment: .topLeading)
         }
         .buttonStyle(.plain)
     }
@@ -176,6 +188,26 @@ struct CalendarView: View {
 private struct SelectedDay: Identifiable {
     let date: Date
     var id: Date { date }
+}
+
+private struct HeightMeasuring: ViewModifier {
+    let onChange: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        content.background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { onChange(proxy.size.height) }
+                    .onChange(of: proxy.size.height) { _, newValue in onChange(newValue) }
+            }
+        )
+    }
+}
+
+private extension View {
+    func measureHeight(_ onChange: @escaping (CGFloat) -> Void) -> some View {
+        modifier(HeightMeasuring(onChange: onChange))
+    }
 }
 
 #Preview {
