@@ -109,6 +109,12 @@ extension HRVAnalysisView {
                     .foregroundStyle(.gray)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
         }
         .frame(height: lineChartHeight)
         .chartXScale(domain: visibleDateRange)
@@ -223,6 +229,12 @@ extension HRVAnalysisView {
                     .foregroundStyle(allDayEventColor(for: marker.event.category))
                 }
             }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
         }
         .frame(height: ganttChartHeight)
         .chartXScale(domain: visibleDateRange)
@@ -230,17 +242,20 @@ extension HRVAnalysisView {
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
-            chartOverlay(
-                proxy: proxy,
-                visibleDomain: visibleDomain,
-                yAxisTickValues: [],
-                xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
-                tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
-                tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
-                tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayEventDayMarkers
-            )
+            ZStack {
+                chartOverlay(
+                    proxy: proxy,
+                    visibleDomain: visibleDomain,
+                    yAxisTickValues: [],
+                    xAxisTickDates: xAxisTickDates,
+                    xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                    tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
+                    tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
+                    tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
+                    tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayEventDayMarkers
+                )
+                ganttBorderOverlay(proxy: proxy)
+            }
         }
     }
 

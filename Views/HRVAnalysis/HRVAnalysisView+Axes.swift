@@ -84,6 +84,49 @@ extension HRVAnalysisView {
         }
     }
 
+    // Gantt 레인에서 겹치거나 인접한 막대끼리 구분되도록 흰 테두리를 준다 — RectangleMark는
+    // stroke를 지원하지 않아서, 선택 그림자와 같은 방식으로 실제 도형을 겹쳐 그린다. 보이는
+    // 구간의 막대만(스크롤/줌마다 다시 계산) 그려서 비용을 낮춘다.
+    func ganttBorderOverlay(proxy: ChartProxy) -> some View {
+        let visibleStart = hrvScrollPosition
+        let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
+
+        let sleepBorders = hiddenSeries.contains(.sleep)
+            ? [] : viewModel.sleepRanges.filter { $0.start < visibleEnd && $0.end > visibleStart }
+        let exerciseBorders = hiddenSeries.contains(.exercise)
+            ? [] : viewModel.exerciseRanges.filter { $0.start < visibleEnd && $0.end > visibleStart }
+        let calendarBorders = hiddenSeries.contains(.calendarEvent)
+            ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay && $0.start < visibleEnd && $0.end > visibleStart }
+
+        return GeometryReader { geo in
+            ZStack {
+                ForEach(sleepBorders) { range in
+                    borderRect(start: range.start, end: range.end, proxy: proxy, geo: geo)
+                }
+                ForEach(exerciseBorders) { range in
+                    borderRect(start: range.start, end: range.end, proxy: proxy, geo: geo)
+                }
+                ForEach(calendarBorders) { event in
+                    borderRect(start: event.start, end: event.end, proxy: proxy, geo: geo)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func borderRect(start: Date, end: Date, proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        if let plotFrame = proxy.plotFrame,
+           let x0 = proxy.position(forX: start), let x1 = proxy.position(forX: end),
+           let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+            let plotRect = geo[plotFrame]
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.white, lineWidth: 1)
+                .frame(width: abs(x1 - x0), height: abs(y1 - y0))
+                .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
+                .allowsHitTesting(false)
+        }
+    }
+
     // MARK: - 직접 구현한 드래그 스크롤
     // Swift Charts 내장 chartScrollableAxes가 이 환경에서 잘 반응하지 않아,
     // 드래그 위치를 직접 계산해서 hrvScrollPosition(보이는 구간의 시작 시각)을 갱신함.
