@@ -25,8 +25,10 @@ struct CalendarView: View {
             .navigationTitle("캘린더")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .task {
-            await viewModel.loadIfNeeded()
+        // 캘린더 탭을 다시 들어올 때마다(다른 기기/화면에서 바뀌었을 수도 있으니) 매번 새로
+        // 불러온다 — .task는 TabView에서 탭을 오갈 때 다시 실행된다는 보장이 없어 .onAppear를 쓴다.
+        .onAppear {
+            Task { await viewModel.reload() }
         }
         .sheet(item: $selectedDay) { day in
             DayEntrySheet(date: day.date) {

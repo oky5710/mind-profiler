@@ -96,6 +96,9 @@ struct HRVAnalysisView: View {
     @State var availableHeight: CGFloat = 850
     // 월별 막대 너비 = bandwidth(월 하나가 차지하는 폭)의 50%, 10~30px로 clamp. 실측 전 기본값.
     @State var monthlyBarWidth: CGFloat = 20
+    // 처음 나타날 때는 아래 .task들이 이미 최초 로딩을 하니, onAppear의 강제 재조회는 그 다음
+    // 탭 재진입부터만 하면 된다 — 최초 진입에서 두 번 불러오는 낭비를 막는다.
+    @State var hasAppearedBefore = false
 
     let rmssdColor = Theme.rmssd
     let examRmssdColor = Theme.examRmssd
@@ -253,6 +256,20 @@ struct HRVAnalysisView: View {
             await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
             await viewModel.loadCalendarEventsIfNeeded()
             recomputeRange()
+        }
+        // 탭을 나갔다가 다시 들어올 때마다 pull-to-refresh와 같은 강제 새로고침을 한다 — 캘린더에서
+        // 운동/이벤트를 새로 입력하고 이 탭으로 돌아와도 예전에 로드해둔 값을 그대로 보여주던 문제.
+        .onAppear {
+            guard hasAppearedBefore else {
+                hasAppearedBefore = true
+                return
+            }
+            Task {
+                await viewModel.reload()
+                await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
+                await viewModel.loadCalendarEventsIfNeeded()
+                recomputeRange()
+            }
         }
     }
 

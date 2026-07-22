@@ -11,18 +11,11 @@ final class CalendarViewModel {
     private var moodsByDate: [String: MoodLogEntry] = [:]
     private var coffeesByDate: [String: [CoffeeLogEntry]] = [:]
     private var exercisesByDate: [String: [ExerciseLogEntry]] = [:]
-    private var hasLoaded = false
 
     init(referenceDate: Date = Date()) {
         let components = Calendar.current.dateComponents([.year, .month], from: referenceDate)
         year = components.year ?? 2026
         month = components.month ?? 1
-    }
-
-    func loadIfNeeded() async {
-        guard !hasLoaded else { return }
-        hasLoaded = true
-        await reload()
     }
 
     func reload() async {
