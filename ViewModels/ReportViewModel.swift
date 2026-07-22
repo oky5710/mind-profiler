@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 
 // 정신과 진료용 요약 보고서 — 이전 진료일부터 이번 진료일까지 기간을 골라 "분석"을 누르면
 // 그 기간의 수면/rMSSD/SDNN 비교/기분·운동·커피 상관관계를 한 번에 계산해서 보여준다.
@@ -22,6 +23,17 @@ final class ReportViewModel {
         let previousNightDuration: TimeInterval?
         let sameNightDuration: TimeInterval?
         let eventTitles: [String]
+    }
+
+    // rMSSD가 낮았던 날 상위 N개를 표로 보여주기 위한 한 행 — 전날 수면/전날 운동은 회복에
+    // 영향을 주는 "그 전"의 요인, 스케줄은 그날 자체에 있었던 일정(원인 쪽에 가깝다는 가정).
+    struct RMSSDLowestDayRow: Identifiable {
+        let date: Date
+        let rmssd: Double
+        let previousNightSleepDuration: TimeInterval?
+        let scheduleTitles: [String]
+        let previousDayExerciseSummary: String?
+        var id: Date { date }
     }
 
     struct SDNNRMSSDDifference: Identifiable {
@@ -58,6 +70,9 @@ final class ReportViewModel {
         // 이진값이라 두 그룹 평균 비교가 더 읽기 쉽다).
         let exerciseDayAverageRMSSD: Double?
         let restDayAverageRMSSD: Double?
+        // 운동 여부(0/1)와 rMSSD의 점-이연 상관계수 — 위 평균 비교는 텍스트 설명용이고, 이 값은
+        // 기분/커피와 같은 기준(|r|)으로 정렬하기 위한 것.
+        let exerciseRMSSDCorrelation: Double?
     }
 
     // 선택 기간 동안의 안정시 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서
@@ -83,6 +98,7 @@ final class ReportViewModel {
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var correlationFindings: CorrelationFindings?
     private(set) var vitalMedians: VitalMedians?
+    private(set) var rmssdLowestDayRows: [RMSSDLowestDayRow] = []
 
     init() {
         let now = Date()
@@ -114,13 +130,15 @@ final class ReportViewModel {
             async let moodsTask = MoodService.allMoods()
             async let coffeesTask = CoffeeService.allCoffees()
             async let calendarEventsTask = Self.fetchCalendarEventsSafely()
+            async let lifeEventsTask = Self.fetchLifeEventsSafely()
+            async let manualExercisesTask = Self.fetchManualExercisesSafely()
 
             let (
                 allSleepSamples, allRMSSDSamples, allSDNNSamples, allRestingHeartRateSamples,
-                allWorkouts, allMoods, allCoffees, calendarEvents
+                allWorkouts, allMoods, allCoffees, calendarEvents, lifeEvents, manualExercises
             ) = try await (
                 sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, restingHeartRateSamplesTask,
-                workoutsTask, moodsTask, coffeesTask, calendarEventsTask
+                workoutsTask, moodsTask, coffeesTask, calendarEventsTask, lifeEventsTask, manualExercisesTask
             )
             // rMSSD/SDNN을 이미 위에서 받아왔으니, fetchSDNNRMSSDPairs()를 또 불러서 HealthKit을
             // 중복 조회하는 대신 이미 가진 배열로 짝만 짓는다.
@@ -176,6 +194,15 @@ final class ReportViewModel {
                 workouts: periodWorkouts,
                 moods: periodMoods,
                 coffees: periodCoffees
+            )
+
+            let workoutSummaries = Self.mergedWorkoutSummaries(healthKitWorkouts: allWorkouts, manualExercises: manualExercises)
+            rmssdLowestDayRows = Self.computeLowestDayRows(
+                dailyMedians: HRVStatistics.dailyMedian(periodRMSSD),
+                sleepRanges: allRanges,
+                calendarEvents: calendarEvents,
+                lifeEvents: lifeEvents,
+                workoutSummaries: workoutSummaries
             )
 
             hasAnalyzed = true
@@ -321,6 +348,86 @@ final class ReportViewModel {
         }
     }
 
+    // 직접 입력한 생활 이벤트(약 변경/대인관계 문제 등)도 "스케줄"에 같이 보여준다 — 실패해도
+    // 나머지 보고서에는 영향 없게 한다.
+    private static func fetchLifeEventsSafely() async -> [LifeEventEntry] {
+        (try? await LifeEventService.allEvents()) ?? []
+    }
+
+    // 전날 운동은 HealthKit 자동 기록뿐 아니라 캘린더에서 수동으로 남긴 운동 기록도 포함한다.
+    private static func fetchManualExercisesSafely() async -> [ExerciseLogEntry] {
+        (try? await ExerciseService.allExercises()) ?? []
+    }
+
+    private struct WorkoutSummary {
+        let start: Date
+        let end: Date
+        let label: String
+    }
+
+    private static func mergedWorkoutSummaries(
+        healthKitWorkouts: [(start: Date, end: Date, activityType: HKWorkoutActivityType, energyBurnedKcal: Double?, distanceMeters: Double?)],
+        manualExercises: [ExerciseLogEntry]
+    ) -> [WorkoutSummary] {
+        let fromHealthKit = healthKitWorkouts.map {
+            WorkoutSummary(start: $0.start, end: $0.end, label: HealthKitService.workoutActivityTypeDisplayName($0.activityType))
+        }
+        let fromManual = manualExercises.compactMap { entry -> WorkoutSummary? in
+            guard let start = DateKey.parseISODate(entry.startedAt), let end = DateKey.parseISODate(entry.endedAt) else { return nil }
+            return WorkoutSummary(start: start, end: end, label: entry.type)
+        }
+        return (fromHealthKit + fromManual).sorted { $0.start < $1.start }
+    }
+
+    // rMSSD가 가장 낮았던 상위 N일을 표로 보여준다 — 일자별로 전날 수면/그날 스케줄/전날 운동을
+    // 나란히 붙여, 그 날 유독 낮았던 이유를 짐작할 단서를 준다.
+    private static let lowestDayRowCount = 5
+
+    private static func computeLowestDayRows(
+        dailyMedians: [(date: Date, value: Double)],
+        sleepRanges: [SleepRange],
+        calendarEvents: [CalendarEventService.Event],
+        lifeEvents: [LifeEventEntry],
+        workoutSummaries: [WorkoutSummary]
+    ) -> [RMSSDLowestDayRow] {
+        let calendar = Calendar.current
+        let lowestDays = dailyMedians.sorted { $0.value < $1.value }.prefix(lowestDayRowCount)
+
+        return lowestDays.map { entry in
+            let previousDay = calendar.date(byAdding: .day, value: -1, to: entry.date)
+
+            let previousNightSleepDuration = previousDay
+                .flatMap { prev in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: prev) } }
+                .map { $0.end.timeIntervalSince($0.start) }
+
+            let calendarTitles = calendarEvents
+                .filter { calendar.isDate($0.start, inSameDayAs: entry.date) }
+                .map(\.title)
+            let lifeEventTitles = lifeEvents.compactMap { life -> String? in
+                guard let eventDate = DateKey.parseISODate(life.date), calendar.isDate(eventDate, inSameDayAs: entry.date) else {
+                    return nil
+                }
+                return life.title
+            }
+
+            let previousDayExercise = previousDay.flatMap { prev in
+                workoutSummaries.first { calendar.isDate($0.start, inSameDayAs: prev) }
+            }
+            let previousDayExerciseSummary = previousDayExercise.map { workout in
+                let minutes = Int(workout.end.timeIntervalSince(workout.start) / 60)
+                return "\(workout.label) \(minutes)분"
+            }
+
+            return RMSSDLowestDayRow(
+                date: entry.date,
+                rmssd: entry.value,
+                previousNightSleepDuration: previousNightSleepDuration,
+                scheduleTitles: calendarTitles + lifeEventTitles,
+                previousDayExerciseSummary: previousDayExerciseSummary
+            )
+        }
+    }
+
     private static func computeCorrelations(
         dailyRMSSD: [(date: Date, value: Double)],
         workouts: [(start: Date, end: Date)],
@@ -343,11 +450,14 @@ final class ReportViewModel {
         let exerciseDays = Set(workouts.map { calendar.startOfDay(for: $0.start) })
         var exerciseValues: [Double] = []
         var restValues: [Double] = []
+        var exercisePairs: [(Double, Double)] = []
         for (day, value) in rmssdByDay {
             if exerciseDays.contains(day) {
                 exerciseValues.append(value)
+                exercisePairs.append((1, value))
             } else {
                 restValues.append(value)
+                exercisePairs.append((0, value))
             }
         }
 
@@ -355,7 +465,8 @@ final class ReportViewModel {
             moodRMSSDCorrelation: HRVStatistics.pearsonCorrelation(moodPairs),
             coffeeRMSSDCorrelation: HRVStatistics.pearsonCorrelation(coffeePairs),
             exerciseDayAverageRMSSD: exerciseValues.isEmpty ? nil : exerciseValues.reduce(0, +) / Double(exerciseValues.count),
-            restDayAverageRMSSD: restValues.isEmpty ? nil : restValues.reduce(0, +) / Double(restValues.count)
+            restDayAverageRMSSD: restValues.isEmpty ? nil : restValues.reduce(0, +) / Double(restValues.count),
+            exerciseRMSSDCorrelation: HRVStatistics.pearsonCorrelation(exercisePairs)
         )
     }
 

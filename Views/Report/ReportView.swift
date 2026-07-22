@@ -57,6 +57,7 @@ struct ReportView: View {
                         sleepSection
                         cvSection
                         rmssdSection
+                        rmssdLowestDaysTableSection
                         sdnnRmssdSection
                         correlationSection
                     }
@@ -233,8 +234,10 @@ struct ReportView: View {
            let yTop = proxy.position(forY: hours),
            let yBottom = proxy.position(forY: 0) {
             let plotRect = geo[plotFrame]
+            // 선택 안 된 막대는 Theme.sleep.opacity(0.7)라 반투명 위에 반투명을 겹치면 뿌옇게
+            // 흐려 보인다 — 선택된 막대는 불투명 단색으로 확실히 구분되게 그린다.
             RoundedRectangle(cornerRadius: 4)
-                .fill(Theme.sleep.opacity(0.7))
+                .fill(Theme.sleep)
                 .frame(width: sleepBarWidth, height: abs(yBottom - yTop))
                 .position(x: plotRect.minX + x, y: plotRect.minY + (yTop + yBottom) / 2)
                 .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
@@ -339,6 +342,37 @@ struct ReportView: View {
         .foregroundStyle(.secondary)
     }
 
+    private var rmssdLowestDaysTableSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(.system(size: 13.6, weight: .semibold))
+
+            if viewModel.rmssdLowestDayRows.isEmpty {
+                Text("해당 기간에 비교할 데이터가 없어요")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+                    GridRow {
+                        Text("일자").font(.caption2).foregroundStyle(.secondary)
+                        Text("전날 수면시간").font(.caption2).foregroundStyle(.secondary)
+                        Text("스케줄").font(.caption2).foregroundStyle(.secondary)
+                        Text("전날 운동").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    ForEach(viewModel.rmssdLowestDayRows) { row in
+                        GridRow {
+                            Text(Self.dateFormatter.string(from: row.date)).font(.caption2)
+                            Text(row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration) ?? "—")
+                                .font(.caption2)
+                            Text(row.scheduleTitles.isEmpty ? "—" : row.scheduleTitles.joined(separator: ", "))
+                                .font(.caption2)
+                            Text(row.previousDayExerciseSummary ?? "—").font(.caption2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - SDNN vs rMSSD
 
     private var sdnnRmssdSection: some View {
@@ -372,39 +406,65 @@ struct ReportView: View {
 
     // MARK: - 기분/운동/커피 상관관계
 
+    private struct CorrelationRow: Identifiable {
+        let id = UUID()
+        // |r| — 정렬 기준. 비교할 데이터 자체가 부족한 항목은 맨 아래로 밀리게 -1을 준다.
+        let strength: Double
+        let text: String
+        let isMissing: Bool
+    }
+
+    // 상관관계 강한 순으로 보여준다 — 기분/커피는 실제 Pearson r, 운동은 운동 여부(0/1)와
+    // rMSSD의 점-이연 상관계수로 같은 기준(|r|)에 놓는다.
+    private var correlationRows: [CorrelationRow] {
+        guard let findings = viewModel.correlationFindings else { return [] }
+        var rows: [CorrelationRow] = []
+
+        if let r = findings.moodRMSSDCorrelation {
+            rows.append(CorrelationRow(
+                strength: abs(r),
+                text: "기분 점수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
+                isMissing: false
+            ))
+        } else {
+            rows.append(CorrelationRow(strength: -1, text: "기분 상관관계: 같은 날짜의 기분·rMSSD 기록이 부족해요", isMissing: true))
+        }
+
+        if let r = findings.coffeeRMSSDCorrelation {
+            rows.append(CorrelationRow(
+                strength: abs(r),
+                text: "커피 잔 수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
+                isMissing: false
+            ))
+        } else {
+            rows.append(CorrelationRow(strength: -1, text: "커피 상관관계: 같은 날짜의 커피·rMSSD 기록이 부족해요", isMissing: true))
+        }
+
+        if let r = findings.exerciseRMSSDCorrelation,
+           let exerciseAvg = findings.exerciseDayAverageRMSSD,
+           let restAvg = findings.restDayAverageRMSSD {
+            rows.append(CorrelationRow(
+                strength: abs(r),
+                text: "운동한 날 평균 rMSSD \(String(format: "%.0f", exerciseAvg))ms · " +
+                    "운동 안 한 날 평균 \(String(format: "%.0f", restAvg))ms (r = \(String(format: "%.2f", r)))",
+                isMissing: false
+            ))
+        } else {
+            rows.append(CorrelationRow(strength: -1, text: "운동 비교: 운동한 날과 안 한 날이 둘 다 있어야 비교할 수 있어요", isMissing: true))
+        }
+
+        return rows.sorted { $0.strength > $1.strength }
+    }
+
     private var correlationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("기분·운동·커피와 rMSSD 관계").font(.system(size: 13.6, weight: .semibold))
 
-            if let findings = viewModel.correlationFindings {
-                if let r = findings.moodRMSSDCorrelation {
-                    Text("기분 점수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))")
+            if viewModel.correlationFindings != nil {
+                ForEach(correlationRows) { row in
+                    Text(row.text)
                         .font(.footnote)
-                } else {
-                    Text("기분 상관관계: 같은 날짜의 기분·rMSSD 기록이 부족해요")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let r = findings.coffeeRMSSDCorrelation {
-                    Text("커피 잔 수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))")
-                        .font(.footnote)
-                } else {
-                    Text("커피 상관관계: 같은 날짜의 커피·rMSSD 기록이 부족해요")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let exerciseAvg = findings.exerciseDayAverageRMSSD, let restAvg = findings.restDayAverageRMSSD {
-                    Text(
-                        "운동한 날 평균 rMSSD \(String(format: "%.0f", exerciseAvg))ms · " +
-                            "운동 안 한 날 평균 \(String(format: "%.0f", restAvg))ms"
-                    )
-                    .font(.footnote)
-                } else {
-                    Text("운동 비교: 운동한 날과 안 한 날이 둘 다 있어야 비교할 수 있어요")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(row.isMissing ? .secondary : .primary)
                 }
             } else {
                 Text("해당 기간에 비교할 데이터가 없어요")
