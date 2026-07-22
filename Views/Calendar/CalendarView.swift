@@ -71,26 +71,54 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    // 날짜 칸 높이를 고정값으로 둬서(가변 minHeight가 아니라) 그 날의 배지 개수(기분/커피/운동)와
-    // 무관하게 같은 주의 모든 칸, 나아가 달력 전체의 모든 주가 항상 같은 높이로 보이게 한다.
-    // 하루에 배지가 다 붙는 최악의 경우(날짜 원 + 배지 3줄)까지 잘리지 않을 만큼 넉넉하게 잡았다.
-    private static let dayCellHeight: CGFloat = 80
+    // 달력 전체 높이가 항상 최대 800pt를 넘지 않도록, 그 주 수에 맞춰 칸 높이를 나눠 계산한다 —
+    // 주가 적은 달(4주)은 칸이 커지고, 많은 달(6주)은 칸이 작아지지만 전체 높이는 항상 같다.
+    private static let maxCalendarGridHeight: CGFloat = 800
+    private static let rowSpacing: CGFloat = 4
+    private static let dateCircleSize: CGFloat = 24
+    // 배지 한 줄(이모지+캡션 폰트)의 대략적인 높이 — 칸에 몇 줄까지 들어갈 수 있는지 계산하는 데만 쓴다.
+    private static let badgeLineHeight: CGFloat = 16
+
+    private var dayCellHeight: CGFloat {
+        let rows = max(viewModel.weeks.count, 1)
+        let available = Self.maxCalendarGridHeight - Self.rowSpacing * CGFloat(rows - 1)
+        return available / CGFloat(rows)
+    }
 
     private var calendarGrid: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Self.rowSpacing) {
             ForEach(Array(viewModel.weeks.enumerated()), id: \.offset) { _, week in
                 HStack(spacing: 4) {
                     ForEach(Array(week.enumerated()), id: \.offset) { index, date in
                         if let date {
                             dayCell(date: date, columnIndex: index)
                         } else {
-                            Color.clear.frame(maxWidth: .infinity).frame(height: Self.dayCellHeight)
+                            Color.clear.frame(maxWidth: .infinity).frame(height: dayCellHeight)
                         }
                     }
                 }
             }
         }
         .padding(.horizontal)
+    }
+
+    private struct DayBadge {
+        let text: String
+        let color: Color
+    }
+
+    private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int) -> [DayBadge] {
+        var result: [DayBadge] = []
+        if let mood {
+            result.append(DayBadge(text: MoodService.options.first { $0.score == mood.score }?.emoji ?? "", color: .primary))
+        }
+        if coffeeCount > 0 {
+            result.append(DayBadge(text: coffeeCount > 1 ? "☕×\(coffeeCount)" : "☕", color: .brown))
+        }
+        if exerciseCount > 0 {
+            result.append(DayBadge(text: exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃", color: .primary))
+        }
+        return result
     }
 
     private func dayCell(date: Date, columnIndex: Int) -> some View {
@@ -100,6 +128,13 @@ struct CalendarView: View {
         let exerciseCount = viewModel.exercises(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
+        let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount)
+        // 칸 높이(주 수에 따라 달라짐)에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면
+        // 마지막 한 자리를 "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
+        let maxBadgeLines = max(Int((dayCellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
+        let visibleBadges = allBadges.count > maxBadgeLines ? Array(allBadges.prefix(max(maxBadgeLines - 1, 0))) : allBadges
+        let overflowCount = allBadges.count - visibleBadges.count
+
         return Button {
             selectedDay = SelectedDay(date: date)
         } label: {
@@ -107,25 +142,22 @@ struct CalendarView: View {
                 Text("\(day)")
                     .font(.footnote.bold())
                     .foregroundStyle(color(forColumn: columnIndex))
-                    .frame(width: 24, height: 24)
+                    .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
                     .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
 
-                if let mood {
-                    Text(MoodService.options.first { $0.score == mood.score }?.emoji ?? "")
+                ForEach(Array(visibleBadges.enumerated()), id: \.offset) { _, badge in
+                    Text(badge.text)
                         .font(.caption2)
+                        .foregroundStyle(badge.color)
                 }
-                if coffeeCount > 0 {
-                    Text(coffeeCount > 1 ? "☕×\(coffeeCount)" : "☕")
+                if overflowCount > 0 {
+                    Text("+\(overflowCount)")
                         .font(.caption2)
-                        .foregroundStyle(.brown)
-                }
-                if exerciseCount > 0 {
-                    Text(exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃")
-                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .frame(height: Self.dayCellHeight, alignment: .topLeading)
+            .frame(height: dayCellHeight, alignment: .topLeading)
         }
         .buttonStyle(.plain)
     }
