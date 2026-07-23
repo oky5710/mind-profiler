@@ -135,6 +135,11 @@ extension HRVAnalysisView {
 
     static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
+    // Gantt 막대를 y축(0...1) 전체가 아니라 중간에 오도록 — 위아래 여백을 남겨서 x축(아래)과
+    // 위 라인차트 사이 어중간한 자리가 아니라 레인 한가운데 떠 있는 것처럼 보이게 한다.
+    static let ganttBarYStart: Double = 0.25
+    static let ganttBarYEnd: Double = 0.75
+
     func allDayEventColor(for category: CalendarEventCategory) -> Color {
         switch category {
         case .holiday: Theme.holiday
@@ -168,8 +173,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("수면 시작", interval.start),
                         xEnd: .value("수면 끝", interval.end),
-                        yStart: .value("아래", 0),
-                        yEnd: .value("위", 1)
+                        yStart: .value("아래", Self.ganttBarYStart),
+                        yEnd: .value("위", Self.ganttBarYEnd)
                     )
                     .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
                     .cornerRadius(4)
@@ -188,8 +193,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("운동 시작", interval.start),
                         xEnd: .value("운동 끝", interval.end),
-                        yStart: .value("아래", 0),
-                        yEnd: .value("위", 1)
+                        yStart: .value("아래", Self.ganttBarYStart),
+                        yEnd: .value("위", Self.ganttBarYEnd)
                     )
                     .foregroundStyle(exerciseColor.opacity(0.7))
                     .cornerRadius(4)
@@ -204,8 +209,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("일정 시작", event.start),
                         xEnd: .value("일정 끝", event.end),
-                        yStart: .value("아래", 0),
-                        yEnd: .value("위", 1)
+                        yStart: .value("아래", Self.ganttBarYStart),
+                        yEnd: .value("위", Self.ganttBarYEnd)
                     )
                     .foregroundStyle(calendarEventColor.opacity(0.35))
                     .cornerRadius(4)

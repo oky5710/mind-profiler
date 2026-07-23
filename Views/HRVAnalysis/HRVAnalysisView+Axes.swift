@@ -73,7 +73,7 @@ extension HRVAnalysisView {
     private func selectionShadow(start: Date, end: Date, color: Color, proxy: ChartProxy, geo: GeometryProxy) -> some View {
         if let plotFrame = proxy.plotFrame,
            let x0 = proxy.position(forX: start), let x1 = proxy.position(forX: end),
-           let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+           let y0 = proxy.position(forY: Self.ganttBarYStart), let y1 = proxy.position(forY: Self.ganttBarYEnd) {
             let plotRect = geo[plotFrame]
             RoundedRectangle(cornerRadius: 4)
                 .fill(color)
@@ -117,7 +117,7 @@ extension HRVAnalysisView {
     private func borderRect(start: Date, end: Date, proxy: ChartProxy, geo: GeometryProxy) -> some View {
         if let plotFrame = proxy.plotFrame,
            let x0 = proxy.position(forX: start), let x1 = proxy.position(forX: end),
-           let y0 = proxy.position(forY: 0.0), let y1 = proxy.position(forY: 1.0) {
+           let y0 = proxy.position(forY: Self.ganttBarYStart), let y1 = proxy.position(forY: Self.ganttBarYEnd) {
             let plotRect = geo[plotFrame]
             RoundedRectangle(cornerRadius: 4)
                 .stroke(Color.white, lineWidth: 1)
