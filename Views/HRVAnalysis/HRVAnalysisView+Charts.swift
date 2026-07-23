@@ -135,10 +135,17 @@ extension HRVAnalysisView {
 
     static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
-    // Gantt 막대를 y축(0...1) 전체가 아니라 중간에 오도록 — 위아래 여백을 남겨서 x축(아래)과
-    // 위 라인차트 사이 어중간한 자리가 아니라 레인 한가운데 떠 있는 것처럼 보이게 한다.
-    static let ganttBarYStart: Double = 0.25
-    static let ganttBarYEnd: Double = 0.75
+    // Gantt 막대 위아래로 고정 10pt 여백을 남긴다 — 차트 높이(ganttChartHeight)는 그대로 두고,
+    // 그 안에서 막대가 위아래 가장자리에 딱 붙지 않게 실제 픽셀 여백만큼을 0...1 도메인의
+    // 비율로 환산한다(도메인 1 = ganttChartHeight pt이므로 10pt = 10/ganttChartHeight).
+    private static let ganttBarMarginPoints: CGFloat = 10
+
+    var ganttBarYStart: Double {
+        guard ganttChartHeight > 0 else { return 0 }
+        return Double(Self.ganttBarMarginPoints / ganttChartHeight)
+    }
+
+    var ganttBarYEnd: Double { 1 - ganttBarYStart }
 
     func allDayEventColor(for category: CalendarEventCategory) -> Color {
         switch category {
@@ -173,8 +180,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("수면 시작", interval.start),
                         xEnd: .value("수면 끝", interval.end),
-                        yStart: .value("아래", Self.ganttBarYStart),
-                        yEnd: .value("위", Self.ganttBarYEnd)
+                        yStart: .value("아래", ganttBarYStart),
+                        yEnd: .value("위", ganttBarYEnd)
                     )
                     .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
                     .cornerRadius(4)
@@ -193,8 +200,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("운동 시작", interval.start),
                         xEnd: .value("운동 끝", interval.end),
-                        yStart: .value("아래", Self.ganttBarYStart),
-                        yEnd: .value("위", Self.ganttBarYEnd)
+                        yStart: .value("아래", ganttBarYStart),
+                        yEnd: .value("위", ganttBarYEnd)
                     )
                     .foregroundStyle(exerciseColor.opacity(0.7))
                     .cornerRadius(4)
@@ -209,8 +216,8 @@ extension HRVAnalysisView {
                     RectangleMark(
                         xStart: .value("일정 시작", event.start),
                         xEnd: .value("일정 끝", event.end),
-                        yStart: .value("아래", Self.ganttBarYStart),
-                        yEnd: .value("위", Self.ganttBarYEnd)
+                        yStart: .value("아래", ganttBarYStart),
+                        yEnd: .value("위", ganttBarYEnd)
                     )
                     .foregroundStyle(calendarEventColor.opacity(0.35))
                     .cornerRadius(4)
