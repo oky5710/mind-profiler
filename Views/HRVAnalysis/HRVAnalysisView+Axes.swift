@@ -482,7 +482,7 @@ extension HRVAnalysisView {
                             if visibleLabelDates.contains(date), let labelX = proxy.position(forX: labelPositionDate(date)) {
                                 label(date)
                                     .padding(.horizontal, 3)
-                                    .position(x: plotRect.minX + labelX, y: plotRect.maxY - 10)
+                                    .position(x: plotRect.minX + labelX, y: plotRect.maxY + 10)
                             }
                         }
                     }
