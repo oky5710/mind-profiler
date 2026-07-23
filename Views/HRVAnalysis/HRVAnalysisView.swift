@@ -495,7 +495,9 @@ struct HRVAnalysisView: View {
                     .foregroundStyle(.red)
             }
 
+            // 이 VStack의 기본 spacing(8)에 8을 더해 차트와 범례 사이만 16pt로 띄운다.
             legend
+                .padding(.top, 8)
         }
     }
 
