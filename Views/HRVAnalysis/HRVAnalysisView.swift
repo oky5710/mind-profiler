@@ -165,13 +165,13 @@ struct HRVAnalysisView: View {
             || !viewModel.calendarEventRanges.isEmpty
     }
 
-    // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
+    // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 90%.
     var lineChartHeight: CGFloat {
         availableHeight * 0.4
     }
 
     var ganttChartHeight: CGFloat {
-        lineChartHeight / 2 * 0.7
+        lineChartHeight / 2 * 0.9
     }
 
     // 시간별/일별은 "지금"까지만 스크롤 가능하지만, 월별은 이번 달이 아직 안 끝났어도 이번 달 데이터가
