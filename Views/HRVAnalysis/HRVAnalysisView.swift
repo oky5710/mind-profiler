@@ -340,12 +340,25 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // SDNN은 시간별 모드에서만 그려지므로(hiddenSeries로 꺼져 있어도 마찬가지) 그 외에는 nil —
+    // 툴팁이 찾는 rMSSD 포인트와 정확히 같은 시각의 샘플이 없을 수 있어 가장 가까운 값을 쓴다.
+    private func nearestSDNNValue(to date: Date) -> Double? {
+        guard chartMode == .hourly, !hiddenSeries.contains(.sdnn) else { return nil }
+        return viewModel.wearableSDNNPointsHourly.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }?.value
+    }
+
     func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
         VStack(spacing: 2) {
             Text(Self.tooltipDateFormatter.string(from: point.date))
                 .font(.caption2)
-            Text("\(String(format: "%.0f", point.value))ms")
+            Text("rMSSD \(String(format: "%.0f", point.value))ms")
                 .font(.callout.bold())
+            if let sdnn = nearestSDNNValue(to: point.date) {
+                Text("SDNN \(String(format: "%.0f", sdnn))ms")
+                    .font(.caption)
+            }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
