@@ -355,14 +355,22 @@ struct HRVAnalysisView: View {
             ? Self.monthDayFormatter.string(from: point.date)
             : Self.tooltipDateFormatter.string(from: point.date)
 
-        return VStack(spacing: 2) {
+        return VStack(alignment: .leading, spacing: 2) {
             Text(dateText)
                 .font(.caption2)
-            Text("rMSSD \(String(format: "%.0f", point.value))ms")
-                .font(.callout.bold())
-            if let sdnn = nearestSDNNValue(to: point.date) {
-                Text("SDNN \(String(format: "%.0f", sdnn))ms")
-                    .font(.caption)
+            // 라벨(rMSSD/SDNN)은 작게, 숫자는 크게 — Grid로 두 줄의 라벨 칸 너비를 맞춰서
+            // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다.
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 4, verticalSpacing: 2) {
+                GridRow {
+                    Text("rMSSD").font(.caption2)
+                    Text("\(String(format: "%.0f", point.value))ms").font(.callout.bold())
+                }
+                if let sdnn = nearestSDNNValue(to: point.date) {
+                    GridRow {
+                        Text("SDNN").font(.caption2)
+                        Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
+                    }
+                }
             }
         }
         .foregroundStyle(.white)
