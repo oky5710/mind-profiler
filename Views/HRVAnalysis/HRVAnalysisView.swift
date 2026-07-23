@@ -350,8 +350,13 @@ struct HRVAnalysisView: View {
     }
 
     func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
-        VStack(spacing: 2) {
-            Text(Self.tooltipDateFormatter.string(from: point.date))
+        // 일별 모드는 하루 대표값(중앙값)이라 시각을 붙이면 의미 없는 00:00 같은 값이 나온다.
+        let dateText = chartMode == .daily
+            ? Self.monthDayFormatter.string(from: point.date)
+            : Self.tooltipDateFormatter.string(from: point.date)
+
+        return VStack(spacing: 2) {
+            Text(dateText)
                 .font(.caption2)
             Text("rMSSD \(String(format: "%.0f", point.value))ms")
                 .font(.callout.bold())
