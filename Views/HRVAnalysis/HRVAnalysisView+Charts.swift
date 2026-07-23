@@ -135,17 +135,24 @@ extension HRVAnalysisView {
 
     static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
-    // Gantt 막대 위아래로 고정 10pt 여백을 남긴다 — 차트 높이(ganttChartHeight)는 그대로 두고,
-    // 그 안에서 막대가 위아래 가장자리에 딱 붙지 않게 실제 픽셀 여백만큼을 0...1 도메인의
-    // 비율로 환산한다(도메인 1 = ganttChartHeight pt이므로 10pt = 10/ganttChartHeight).
+    // Gantt 막대는 "위에 있는 x축 라인"(라인차트 자신의 축 기준선, 간트 차트 위 8pt 간격 너머에
+    // 있음)과 "아래에 있는 x축 라인"(간트 차트 자신의 축 기준선) 사이 정중앙에 오게 한다.
+    // 아래쪽은 간트 차트 안에서 그 10pt를 그대로 남기면 되지만, 위쪽은 이미 baseLineChart와의
+    // 8pt VStack 간격이 여백으로 작용하고 있어서, 간트 차트 안에서는 그 차이(10-8=2pt)만 더
+    // 남기면 된다 — 안 그러면 위쪽 여백(8+10=18pt)이 아래쪽(10pt)보다 커 보인다.
     private static let ganttBarMarginPoints: CGFloat = 10
+    private static let ganttGapAboveChart: CGFloat = 8
 
     var ganttBarYStart: Double {
         guard ganttChartHeight > 0 else { return 0 }
         return Double(Self.ganttBarMarginPoints / ganttChartHeight)
     }
 
-    var ganttBarYEnd: Double { 1 - ganttBarYStart }
+    var ganttBarYEnd: Double {
+        guard ganttChartHeight > 0 else { return 1 }
+        let topMargin = max(Self.ganttBarMarginPoints - Self.ganttGapAboveChart, 0)
+        return 1 - Double(topMargin / ganttChartHeight)
+    }
 
     func allDayEventColor(for category: CalendarEventCategory) -> Color {
         switch category {
