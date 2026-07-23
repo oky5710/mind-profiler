@@ -3,35 +3,23 @@ import SwiftUI
 
 // 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
 extension HRVAnalysisView {
-    // baseLineChart/ganttChart는 각자 별도의 Chart라 세로 그리드도 각자 자기 plotRect 안에서만 그려진다.
-    // 그 결과 두 차트 사이 간격(레이아웃상 유지하고 싶은 여백) 부분에서 그리드 선이 끊겨 보이므로,
-    // 그 간격만큼을 이어주는 짧은 선을 배경에 덧그려서 세로 그리드가 끊기지 않고 이어진 것처럼 보이게 한다.
+    // baseLineChart/ganttChart 사이 간격을 아예 없앴다 — 간격이 있으면 라인차트의 x축 기준선과
+    // 간트 차트의 x축 기준선 사이에서 간트 막대를 정중앙에 두는 계산이 그 간격만큼 더 복잡해지고,
+    // 시각적으로도 위아래 여백을 맞추기 더 어려워진다. 간격이 없으면 간트 차트 안에서만 위아래
+    // 대칭으로 여백을 주면 그대로 두 기준선 사이 정중앙이 된다.
     // Gantt 차트는 데이터 유무와 상관없이 항상 그린다 (x축은 라인 차트와 동일) — 그래야 수면/운동
     // 데이터가 로딩 중간에 들어와도 차트 높이가 갑자기 늘어나면서 아래 범례가 밀려 내려가지 않는다.
     var lineAndGanttChartsStack: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             baseLineChart
             ganttChart
-        }
-        .background(alignment: .topLeading) {
-            GeometryReader { geo in
-                ForEach(xAxisTickDates, id: \.self) { date in
-                    let fraction = date.timeIntervalSince(hrvScrollPosition) / visibleDomain
-                    let x = geo.size.width * fraction
-                    Path { path in
-                        path.move(to: CGPoint(x: x, y: lineChartHeight))
-                        path.addLine(to: CGPoint(x: x, y: lineChartHeight + 8))
-                    }
-                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                }
-            }
         }
         // 상세 패널은 오버레이라 이 스택의 레이아웃 높이에 영향을 주지 않는다 — x축 위치(간트 차트
         // 바로 아래)에 붙여서 그 아래 범례 위에 겹쳐 보이게 한다. 히트 테스트는 켜둔 채로 둔다 —
         // 패널이 자기 영역의 탭을 그대로 흡수해야 뒤에 가려진 범례 버튼이 같이 눌리지 않는다.
         .overlay(alignment: .top) {
             selectedItemDetailPanel
-                .offset(y: lineChartHeight + 8 + ganttChartHeight)
+                .offset(y: lineChartHeight + ganttChartHeight)
         }
         // 겹치는 범례가 선언 순서상 나중에 그려져 패널을 가리므로, zIndex로 항상 위에 오도록 고정한다.
         .zIndex(1)
@@ -135,24 +123,17 @@ extension HRVAnalysisView {
 
     static var shortSleepThreshold: TimeInterval { 5 * 60 * 60 }
 
-    // Gantt 막대는 "위에 있는 x축 라인"(라인차트 자신의 축 기준선, 간트 차트 위 8pt 간격 너머에
-    // 있음)과 "아래에 있는 x축 라인"(간트 차트 자신의 축 기준선) 사이 정중앙에 오게 한다.
-    // 아래쪽은 간트 차트 안에서 그 10pt를 그대로 남기면 되지만, 위쪽은 이미 baseLineChart와의
-    // 8pt VStack 간격이 여백으로 작용하고 있어서, 간트 차트 안에서는 그 차이(10-8=2pt)만 더
-    // 남기면 된다 — 안 그러면 위쪽 여백(8+10=18pt)이 아래쪽(10pt)보다 커 보인다.
+    // baseLineChart와 ganttChart 사이 간격이 없으므로(spacing: 0), 간트 차트 안에서 위아래
+    // 대칭으로 10pt만 남기면 그대로 "위에 있는 x축 라인"(라인차트 축)과 "아래에 있는 x축 라인"
+    // (간트 자신의 축) 사이 정중앙이 된다.
     private static let ganttBarMarginPoints: CGFloat = 10
-    private static let ganttGapAboveChart: CGFloat = 8
 
     var ganttBarYStart: Double {
         guard ganttChartHeight > 0 else { return 0 }
         return Double(Self.ganttBarMarginPoints / ganttChartHeight)
     }
 
-    var ganttBarYEnd: Double {
-        guard ganttChartHeight > 0 else { return 1 }
-        let topMargin = max(Self.ganttBarMarginPoints - Self.ganttGapAboveChart, 0)
-        return 1 - Double(topMargin / ganttChartHeight)
-    }
+    var ganttBarYEnd: Double { 1 - ganttBarYStart }
 
     func allDayEventColor(for category: CalendarEventCategory) -> Color {
         switch category {
