@@ -126,7 +126,7 @@ extension HRVAnalysisView {
     // baseLineChart와 ganttChart 사이 간격이 없으므로(spacing: 0), 간트 차트 안에서 위아래
     // 대칭으로 10pt만 남기면 그대로 "위에 있는 x축 라인"(라인차트 축)과 "아래에 있는 x축 라인"
     // (간트 자신의 축) 사이 정중앙이 된다.
-    private static let ganttBarMarginPoints: CGFloat = 10
+    private static let ganttBarMarginPoints: CGFloat = 4
 
     var ganttBarYStart: Double {
         guard ganttChartHeight > 0 else { return 0 }
