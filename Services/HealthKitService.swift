@@ -348,6 +348,19 @@ enum HealthKitService {
 
         print("\n[rMSSD 실험 비교]")
 
+        // 0) 시리즈별로 gap을 반영할 때 vs 그 시리즈 안의 gap만 무시할 때 — 다른 시리즈와
+        // 합치지 않고, 딱 그 시리즈 내부에서만 gap 리셋 유무의 영향을 본다.
+        print("-- 0) 시리즈별 gap 반영 vs 무시 --")
+        for (index, beats) in beatsPerSeries.enumerated() {
+            guard !beats.isEmpty else { continue }
+            let respecting = rMSSD(from: beats, respectGap: true)
+            let ignoring = rMSSD(from: beats, respectGap: false)
+            print(
+                "  시리즈 \(index + 1) (\(timeFormatter.string(from: beats[0].date))): " +
+                    "gap 반영=\(fmt(respecting))  gap 무시=\(fmt(ignoring))"
+            )
+        }
+
         // 1) 연속된 시리즈 2개를 합쳐서 계산 — 두 시리즈 경계는 gap이 아닌 것으로 본다.
         print("-- 1) 연속 시리즈 2개 합쳐서 계산 --")
         if beatsPerSeries.count < 2 {
