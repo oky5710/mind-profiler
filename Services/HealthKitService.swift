@@ -338,6 +338,69 @@ enum HealthKitService {
         value.map { String(format: "%.1f", $0) } ?? "nil"
     }
 
+    private struct RMSSDDiagnostics {
+        let totalBeats: Int
+        let gapBeats: Int
+        let excludedByRange: Int
+        let excludedByRelative: Int
+        let usedDiffCount: Int
+        let value: Double?
+    }
+
+    // rMSSD(from:respectGap:)와 같은 계산이지만, 어느 필터가 실제로 몇 개를 걸러냈는지 정확한
+    // 개수를 같이 반환한다 — "이 필터를 완화하면 값이 바뀔까?"를 눈대중 대신 숫자로 확인하기 위함.
+    private static func rMSSDDiagnostics(from beats: [DebugBeat]) -> RMSSDDiagnostics {
+        var previousDate: Date?
+        var previousInterval: Double?
+        var sumOfSquaredDiffs = 0.0
+        var diffCount = 0
+        var gapBeats = 0
+        var excludedByRange = 0
+        var excludedByRelative = 0
+
+        for beat in beats {
+            defer { previousDate = beat.date }
+
+            guard let previousDate else {
+                previousInterval = nil
+                continue
+            }
+            if beat.precededByGap {
+                gapBeats += 1
+                previousInterval = nil
+                continue
+            }
+
+            let interval = beat.date.timeIntervalSince(previousDate) * 1000
+            guard plausibleIntervalRangeMs.contains(interval) else {
+                excludedByRange += 1
+                previousInterval = nil
+                continue
+            }
+
+            if let previousInterval {
+                let diff = interval - previousInterval
+                if abs(diff) / previousInterval <= maxRelativeIntervalChange {
+                    sumOfSquaredDiffs += diff * diff
+                    diffCount += 1
+                } else {
+                    excludedByRelative += 1
+                }
+            }
+            previousInterval = interval
+        }
+
+        let value: Double? = diffCount > 0 ? (sumOfSquaredDiffs / Double(diffCount)).squareRoot() : nil
+        return RMSSDDiagnostics(
+            totalBeats: beats.count,
+            gapBeats: gapBeats,
+            excludedByRange: excludedByRange,
+            excludedByRelative: excludedByRelative,
+            usedDiffCount: diffCount,
+            value: value
+        )
+    }
+
     // 요청받은 4가지 실험을 콘솔에 비교 출력한다: 연속 시리즈 2개 합쳐서 계산 / gap 무시하고 하루
     // 전체를 이어서 계산 / 30분 슬라이딩 윈도우 / 1시간 슬라이딩 윈도우. 다른 세 실험은 production과
     // 같은 필터(300~2000ms 범위 + 25% 상대변화)를 그대로 쓰고, "이어서 계산"만 gap 리셋을 끈다.
@@ -358,6 +421,20 @@ enum HealthKitService {
             print(
                 "  시리즈 \(index + 1) (\(timeFormatter.string(from: beats[0].date))): " +
                     "gap 반영=\(fmt(respecting))  gap 무시=\(fmt(ignoring))"
+            )
+        }
+
+        // 0-1) 시리즈별로 range 필터/상대변화 필터가 실제로 몇 개씩 걸러내는지 정확한 개수.
+        // 필터를 완화하면 값이 바뀔지 눈대중 대신 이 숫자로 판단한다 — 걸러진 개수가 0이면
+        // 그 필터를 완화해도 값은 그대로다.
+        print("-- 0-1) 시리즈별 필터링 개수 --")
+        for (index, beats) in beatsPerSeries.enumerated() {
+            guard !beats.isEmpty else { continue }
+            let diagnostics = rMSSDDiagnostics(from: beats)
+            print(
+                "  시리즈 \(index + 1): 박동 \(diagnostics.totalBeats)개, gap \(diagnostics.gapBeats)개, " +
+                    "범위필터로 제외 \(diagnostics.excludedByRange)개, 상대변화필터로 제외 \(diagnostics.excludedByRelative)개, " +
+                    "실제 사용된 diff \(diagnostics.usedDiffCount)개 → rMSSD=\(fmt(diagnostics.value))"
             )
         }
 
