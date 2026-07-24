@@ -215,9 +215,16 @@ enum HealthKitService {
     }
 
     #if DEBUG
-    // 디버그 전용 — 어제(자정~자정) 원시 박동 시리즈를 전부 콘솔에 찍는다(다른 앱이 계산한
-    // rMSSD와 비교 검증하기 위함). 필터 없이 각 박동의 시각과 직전 박동과의 RR 간격(ms), gap
-    // 여부를 그대로 보여준다. 앱 UI에는 없고 MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
+    private struct DebugBeat {
+        let date: Date
+        // 시리즈 경계를 이어붙일 때 원본 HealthKit 플래그를 덮어써야 할 때가 있어서(예: 두 시리즈를
+        // 이어붙여 계산할 때 그 경계는 gap이 아닌 것으로 취급) var로 둔다.
+        var precededByGap: Bool
+    }
+
+    // 디버그 전용 — 어제(자정~자정) 원시 박동 시리즈를 전부 콘솔에 찍고(다른 앱이 계산한 rMSSD와
+    // 비교 검증용), 이어서 rMSSD 계산 방식을 몇 가지 다르게 해본 값도 비교 출력한다. 앱 UI에는
+    // 없고 MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
     static func debugPrintRawRRIntervalsForToday() async {
         let calendar = Calendar.current
         guard
@@ -247,11 +254,13 @@ enum HealthKitService {
             timeFormatter.locale = Locale(identifier: "en_US_POSIX")
 
             print("[RR 원시데이터] 어제 시리즈 \(seriesSamples.count)개")
+            var beatsPerSeries: [[DebugBeat]] = []
             for (seriesIndex, series) in seriesSamples.enumerated() {
                 print("--- 시리즈 \(seriesIndex + 1)/\(seriesSamples.count) 시작: \(timeFormatter.string(from: series.startDate)) ---")
                 let queryDescriptor = HKHeartbeatSeriesQueryDescriptor(series)
                 var previousBeatTime: TimeInterval?
                 var beatIndex = 0
+                var seriesBeats: [DebugBeat] = []
 
                 for try await beat in queryDescriptor.results(for: store) {
                     let beatDate = series.startDate.addingTimeInterval(beat.timeIntervalSinceStart)
@@ -263,14 +272,142 @@ enum HealthKitService {
                         rrText = "-"
                     }
                     print("  [\(beatIndex)] \(timeFormatter.string(from: beatDate))  RR=\(rrText)  gap=\(beat.precededByGap)")
+                    seriesBeats.append(DebugBeat(date: beatDate, precededByGap: beat.precededByGap))
 
                     previousBeatTime = beat.timeIntervalSinceStart
                     beatIndex += 1
                 }
                 print("  (시리즈 박동 수: \(beatIndex))")
+                beatsPerSeries.append(seriesBeats)
             }
+
+            debugCompareRMSSDVariants(beatsPerSeries: beatsPerSeries)
         } catch {
             print("[RR 원시데이터] 실패: \(error)")
+        }
+    }
+
+    // rMSSD(for:)와 같은 계산이지만 임의의 DebugBeat 배열에 대해 동작하고, gap에서 리셋할지
+    // (respectGap) 켜고 끌 수 있다.
+    private static func rMSSD(
+        from beats: [DebugBeat],
+        respectGap: Bool,
+        applyRangeFilter: Bool = true,
+        applyRelativeFilter: Bool = true
+    ) -> Double? {
+        var previousDate: Date?
+        var previousInterval: Double?
+        var sumOfSquaredDiffs = 0.0
+        var diffCount = 0
+
+        for beat in beats {
+            defer { previousDate = beat.date }
+
+            guard let previousDate else {
+                previousInterval = nil
+                continue
+            }
+            if respectGap, beat.precededByGap {
+                previousInterval = nil
+                continue
+            }
+
+            let interval = beat.date.timeIntervalSince(previousDate) * 1000
+            if applyRangeFilter {
+                guard plausibleIntervalRangeMs.contains(interval) else {
+                    previousInterval = nil
+                    continue
+                }
+            }
+
+            if let previousInterval {
+                let diff = interval - previousInterval
+                if !applyRelativeFilter || abs(diff) / previousInterval <= maxRelativeIntervalChange {
+                    sumOfSquaredDiffs += diff * diff
+                    diffCount += 1
+                }
+            }
+            previousInterval = interval
+        }
+
+        guard diffCount > 0 else { return nil }
+        return (sumOfSquaredDiffs / Double(diffCount)).squareRoot()
+    }
+
+    private static func fmt(_ value: Double?) -> String {
+        value.map { String(format: "%.1f", $0) } ?? "nil"
+    }
+
+    // 요청받은 4가지 실험을 콘솔에 비교 출력한다: 연속 시리즈 2개 합쳐서 계산 / gap 무시하고 하루
+    // 전체를 이어서 계산 / 30분 슬라이딩 윈도우 / 1시간 슬라이딩 윈도우. 다른 세 실험은 production과
+    // 같은 필터(300~2000ms 범위 + 25% 상대변화)를 그대로 쓰고, "이어서 계산"만 gap 리셋을 끈다.
+    private static func debugCompareRMSSDVariants(beatsPerSeries: [[DebugBeat]]) {
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm:ss"
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        print("\n[rMSSD 실험 비교]")
+
+        // 1) 연속된 시리즈 2개를 합쳐서 계산 — 두 시리즈 경계는 gap이 아닌 것으로 본다.
+        print("-- 1) 연속 시리즈 2개 합쳐서 계산 --")
+        if beatsPerSeries.count < 2 {
+            print("  시리즈가 2개 미만이라 비교할 수 없어요.")
+        } else {
+            for index in 0..<(beatsPerSeries.count - 1) {
+                let first = beatsPerSeries[index]
+                var second = beatsPerSeries[index + 1]
+                guard !first.isEmpty, !second.isEmpty else { continue }
+                second[0].precededByGap = false
+                let merged = first + second
+
+                let soloFirst = rMSSD(from: first, respectGap: true)
+                let soloSecond = rMSSD(from: second, respectGap: true)
+                let mergedValue = rMSSD(from: merged, respectGap: true)
+                print(
+                    "  시리즈 \(index + 1)+\(index + 2) (\(timeFormatter.string(from: first[0].date)) / " +
+                        "\(timeFormatter.string(from: second[0].date))): " +
+                        "개별=\(fmt(soloFirst))·\(fmt(soloSecond))  합쳐서=\(fmt(mergedValue))"
+                )
+            }
+        }
+
+        let allBeats = beatsPerSeries.flatMap { $0 }
+        guard !allBeats.isEmpty else {
+            print("[rMSSD 실험 비교] 박동 데이터가 없어 나머지 실험은 건너뜀.")
+            return
+        }
+
+        // 2) gap을 무시하고 하루 전체를 하나로 이어서 계산.
+        let ignoringGaps = rMSSD(from: allBeats, respectGap: false)
+        let respectingGaps = rMSSD(from: allBeats, respectGap: true)
+        print("-- 2) gap 무시하고 하루 전체 이어서 계산 --")
+        print("  gap 무시=\(fmt(ignoringGaps))  (참고: gap 그대로 적용=\(fmt(respectingGaps)))")
+
+        // 3), 4) 슬라이딩 윈도우 — 윈도우 폭의 1/3을 스텝으로 겹치면서 하루 전체를 훑는다.
+        func slidingWindows(windowSeconds: TimeInterval) -> [(start: Date, rmssd: Double?, beatCount: Int)] {
+            guard let firstDate = allBeats.first?.date, let lastDate = allBeats.last?.date else { return [] }
+            let stepSeconds = windowSeconds / 3
+            var results: [(Date, Double?, Int)] = []
+            var windowStart = firstDate
+            while windowStart < lastDate {
+                let windowEnd = windowStart.addingTimeInterval(windowSeconds)
+                let windowBeats = allBeats.filter { $0.date >= windowStart && $0.date < windowEnd }
+                results.append((windowStart, rMSSD(from: windowBeats, respectGap: true), windowBeats.count))
+                windowStart = windowStart.addingTimeInterval(stepSeconds)
+            }
+            return results
+        }
+
+        for (label, seconds) in [("30분", 30.0 * 60), ("1시간", 60.0 * 60)] {
+            print("-- 3/4) \(label) 슬라이딩 윈도우 --")
+            let windows = slidingWindows(windowSeconds: seconds)
+            if windows.isEmpty {
+                print("  데이터 없음")
+            } else {
+                for window in windows {
+                    print("  \(timeFormatter.string(from: window.start))~  rMSSD=\(fmt(window.rmssd))  (박동 \(window.beatCount)개)")
+                }
+            }
         }
     }
     #endif
