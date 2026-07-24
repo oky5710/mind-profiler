@@ -38,13 +38,6 @@ struct MindProfilerApp: App {
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }
-            #if DEBUG
-            // 디버그 전용 — 앱 UI에는 아무 것도 안 보이고, 오늘의 원시 RR 간격 데이터를 전부
-            // Xcode 콘솔에만 출력한다(HealthKitService.debugPrintRawRRIntervalsForToday 참고).
-            .task {
-                await HealthKitService.debugPrintRawRRIntervalsForToday()
-            }
-            #endif
         }
     }
 }
