@@ -15,6 +15,12 @@ struct SettingsView: View {
                 } label: {
                     Label("약 등록", systemImage: "pills.fill")
                 }
+
+                NavigationLink {
+                    RRIntervalExportView()
+                } label: {
+                    Label("RR 데이터 내보내기", systemImage: "waveform.path")
+                }
             }
             .navigationTitle("설정")
         }

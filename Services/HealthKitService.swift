@@ -168,6 +168,44 @@ enum HealthKitService {
         }
     }
 
+    struct RawBeat {
+        let seriesStart: Date
+        let beatDate: Date
+        // 그 시리즈의 첫 박동은 직전 박동이 없어 간격 자체가 없다.
+        let intervalMs: Double?
+        let precededByGap: Bool
+    }
+
+    // rMSSD 계산에 쓰는 필터(범위·상대변화)를 전혀 적용하지 않은 원본 박동 간격 — 데이터 내보내기
+    // (설정의 "RR 데이터 내보내기")에서 쓴다. 필터링된 값이 아니라 있는 그대로를 보여주는 게 목적이라
+    // rMSSD(for:)와 달리 아무 것도 걸러내지 않는다.
+    static func fetchRawRRIntervals(start: Date, end: Date) async throws -> [RawBeat] {
+        let predicate: HKSamplePredicate<HKHeartbeatSeriesSample> = .heartbeatSeries(
+            HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        )
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [predicate],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .forward)]
+        )
+        let seriesSamples = try await descriptor.result(for: store)
+
+        var allBeats: [RawBeat] = []
+        for series in seriesSamples {
+            let queryDescriptor = HKHeartbeatSeriesQueryDescriptor(series)
+            var previousBeatTime: TimeInterval?
+
+            for try await beat in queryDescriptor.results(for: store) {
+                let beatDate = series.startDate.addingTimeInterval(beat.timeIntervalSinceStart)
+                let intervalMs = previousBeatTime.map { (beat.timeIntervalSinceStart - $0) * 1000 }
+                allBeats.append(
+                    RawBeat(seriesStart: series.startDate, beatDate: beatDate, intervalMs: intervalMs, precededByGap: beat.precededByGap)
+                )
+                previousBeatTime = beat.timeIntervalSinceStart
+            }
+        }
+        return allBeats
+    }
+
     // 30~200bpm(300~2000ms) 밖의 간격은 센서 오검출(놓친 박동/중복 검출)로 보고 버린다.
     // rMSSD는 간격 차이를 제곱해서 평균 내기 때문에, 이런 이상치 하나만 껴 있어도 값이 크게 튄다.
     private static let plausibleIntervalRangeMs: ClosedRange<Double> = 300...2000
