@@ -215,19 +215,21 @@ enum HealthKitService {
     }
 
     #if DEBUG
-    // 디버그 전용 — 오늘의 원시 박동 시리즈를 전부 콘솔에 찍는다(다른 앱이 계산한 rMSSD와 비교
-    // 검증하기 위함). 필터 없이 각 박동의 시각과 직전 박동과의 RR 간격(ms), gap 여부를 그대로 보여준다.
-    // 앱 UI에는 없고 MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
+    // 디버그 전용 — 어제(자정~자정) 원시 박동 시리즈를 전부 콘솔에 찍는다(다른 앱이 계산한
+    // rMSSD와 비교 검증하기 위함). 필터 없이 각 박동의 시각과 직전 박동과의 RR 간격(ms), gap
+    // 여부를 그대로 보여준다. 앱 UI에는 없고 MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
     static func debugPrintRawRRIntervalsForToday() async {
         let calendar = Calendar.current
-        let todayStart = calendar.startOfDay(for: Date())
-        let now = Date()
+        guard
+            let todayStart = calendar.date(from: calendar.dateComponents([.year, .month, .day], from: Date())),
+            let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: todayStart)
+        else { return }
 
         do {
             try await requestAuthorization()
 
             let predicate: HKSamplePredicate<HKHeartbeatSeriesSample> = .heartbeatSeries(
-                HKQuery.predicateForSamples(withStart: todayStart, end: now, options: [])
+                HKQuery.predicateForSamples(withStart: yesterdayStart, end: todayStart, options: [])
             )
             let descriptor = HKSampleQueryDescriptor(
                 predicates: [predicate],
@@ -236,7 +238,7 @@ enum HealthKitService {
             let seriesSamples = try await descriptor.result(for: store)
 
             guard !seriesSamples.isEmpty else {
-                print("[RR 원시데이터] 오늘(\(todayStart) ~ \(now)) 원시 박동 시리즈가 없어요.")
+                print("[RR 원시데이터] 어제(\(yesterdayStart) ~ \(todayStart)) 원시 박동 시리즈가 없어요.")
                 return
             }
 
@@ -244,7 +246,7 @@ enum HealthKitService {
             timeFormatter.dateFormat = "HH:mm:ss.SSS"
             timeFormatter.locale = Locale(identifier: "en_US_POSIX")
 
-            print("[RR 원시데이터] 오늘 시리즈 \(seriesSamples.count)개")
+            print("[RR 원시데이터] 어제 시리즈 \(seriesSamples.count)개")
             for (seriesIndex, series) in seriesSamples.enumerated() {
                 print("--- 시리즈 \(seriesIndex + 1)/\(seriesSamples.count) 시작: \(timeFormatter.string(from: series.startDate)) ---")
                 let queryDescriptor = HKHeartbeatSeriesQueryDescriptor(series)
