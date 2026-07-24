@@ -215,20 +215,19 @@ enum HealthKitService {
     }
 
     #if DEBUG
-    // 디버그 전용 — 필터 단계별로 rMSSD가 얼마나 달라지는지 콘솔에 비교 출력한다. 앱 UI에는 없고
-    // MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
-    static func debugCompareRMSSDFiltersForYesterday() async {
+    // 디버그 전용 — 오늘의 원시 박동 시리즈를 전부 콘솔에 찍는다(다른 앱이 계산한 rMSSD와 비교
+    // 검증하기 위함). 필터 없이 각 박동의 시각과 직전 박동과의 RR 간격(ms), gap 여부를 그대로 보여준다.
+    // 앱 UI에는 없고 MindProfilerApp의 #if DEBUG .task에서 한 번 호출된다.
+    static func debugPrintRawRRIntervalsForToday() async {
         let calendar = Calendar.current
-        guard
-            let todayStart = calendar.date(from: calendar.dateComponents([.year, .month, .day], from: Date())),
-            let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: todayStart)
-        else { return }
+        let todayStart = calendar.startOfDay(for: Date())
+        let now = Date()
 
         do {
             try await requestAuthorization()
 
             let predicate: HKSamplePredicate<HKHeartbeatSeriesSample> = .heartbeatSeries(
-                HKQuery.predicateForSamples(withStart: yesterdayStart, end: todayStart, options: [])
+                HKQuery.predicateForSamples(withStart: todayStart, end: now, options: [])
             )
             let descriptor = HKSampleQueryDescriptor(
                 predicates: [predicate],
@@ -237,91 +236,40 @@ enum HealthKitService {
             let seriesSamples = try await descriptor.result(for: store)
 
             guard !seriesSamples.isEmpty else {
-                print("[rMSSD 비교] 어제(\(yesterdayStart) ~ \(todayStart)) 원시 박동 시리즈가 없어요.")
+                print("[RR 원시데이터] 오늘(\(todayStart) ~ \(now)) 원시 박동 시리즈가 없어요.")
                 return
             }
 
             let timeFormatter = DateFormatter()
-            timeFormatter.dateFormat = "HH:mm"
+            timeFormatter.dateFormat = "HH:mm:ss.SSS"
             timeFormatter.locale = Locale(identifier: "en_US_POSIX")
 
-            func fmt(_ value: Double?) -> String {
-                value.map { String(format: "%.1f", $0) } ?? "nil"
+            print("[RR 원시데이터] 오늘 시리즈 \(seriesSamples.count)개")
+            for (seriesIndex, series) in seriesSamples.enumerated() {
+                print("--- 시리즈 \(seriesIndex + 1)/\(seriesSamples.count) 시작: \(timeFormatter.string(from: series.startDate)) ---")
+                let queryDescriptor = HKHeartbeatSeriesQueryDescriptor(series)
+                var previousBeatTime: TimeInterval?
+                var beatIndex = 0
+
+                for try await beat in queryDescriptor.results(for: store) {
+                    let beatDate = series.startDate.addingTimeInterval(beat.timeIntervalSinceStart)
+                    let rrText: String
+                    if let previousBeatTime {
+                        let intervalMs = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
+                        rrText = String(format: "%.1f", intervalMs) + "ms"
+                    } else {
+                        rrText = "-"
+                    }
+                    print("  [\(beatIndex)] \(timeFormatter.string(from: beatDate))  RR=\(rrText)  gap=\(beat.precededByGap)")
+
+                    previousBeatTime = beat.timeIntervalSinceStart
+                    beatIndex += 1
+                }
+                print("  (시리즈 박동 수: \(beatIndex))")
             }
-
-            var rawValues: [Double] = []
-            var rangeFilteredValues: [Double] = []
-            var relativeFilteredValues: [Double] = []
-
-            print("[rMSSD 비교] 어제 시리즈 \(seriesSamples.count)개")
-            for series in seriesSamples {
-                let raw = try await rMSSDVariant(for: series, applyRangeFilter: false, applyRelativeFilter: false)
-                let rangeFiltered = try await rMSSDVariant(for: series, applyRangeFilter: true, applyRelativeFilter: false)
-                let relativeFiltered = try await rMSSDVariant(for: series, applyRangeFilter: true, applyRelativeFilter: true)
-
-                if let raw { rawValues.append(raw) }
-                if let rangeFiltered { rangeFilteredValues.append(rangeFiltered) }
-                if let relativeFiltered { relativeFilteredValues.append(relativeFiltered) }
-
-                print(
-                    "  \(timeFormatter.string(from: series.startDate))  " +
-                        "rawRMSSD=\(fmt(raw))  rangeFilteredRMSSD=\(fmt(rangeFiltered))  relativeFilteredRMSSD=\(fmt(relativeFiltered))"
-                )
-            }
-
-            func average(_ values: [Double]) -> String {
-                guard !values.isEmpty else { return "nil" }
-                return String(format: "%.1f", values.reduce(0, +) / Double(values.count))
-            }
-            print(
-                "[rMSSD 비교] 평균 — rawRMSSD=\(average(rawValues))  " +
-                    "rangeFilteredRMSSD=\(average(rangeFilteredValues))  relativeFilteredRMSSD=\(average(relativeFilteredValues))"
-            )
         } catch {
-            print("[rMSSD 비교] 실패: \(error)")
+            print("[RR 원시데이터] 실패: \(error)")
         }
-    }
-
-    // rMSSD(for:)와 같은 계산이지만, 범위 필터(300~2000ms)와 상대 변화 필터(25%)를 각각 켜고 끌 수 있다.
-    private static func rMSSDVariant(
-        for series: HKHeartbeatSeriesSample,
-        applyRangeFilter: Bool,
-        applyRelativeFilter: Bool
-    ) async throws -> Double? {
-        let queryDescriptor = HKHeartbeatSeriesQueryDescriptor(series)
-        var previousBeatTime: TimeInterval?
-        var previousInterval: Double?
-        var sumOfSquaredDiffs = 0.0
-        var diffCount = 0
-
-        for try await beat in queryDescriptor.results(for: store) {
-            defer { previousBeatTime = beat.timeIntervalSinceStart }
-
-            guard let previousBeatTime, !beat.precededByGap else {
-                previousInterval = nil
-                continue
-            }
-
-            let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
-            if applyRangeFilter {
-                guard plausibleIntervalRangeMs.contains(interval) else {
-                    previousInterval = nil
-                    continue
-                }
-            }
-
-            if let previousInterval {
-                let diff = interval - previousInterval
-                if !applyRelativeFilter || abs(diff) / previousInterval <= maxRelativeIntervalChange {
-                    sumOfSquaredDiffs += diff * diff
-                    diffCount += 1
-                }
-            }
-            previousInterval = interval
-        }
-
-        guard diffCount > 0 else { return nil }
-        return (sumOfSquaredDiffs / Double(diffCount)).squareRoot()
     }
     #endif
 
