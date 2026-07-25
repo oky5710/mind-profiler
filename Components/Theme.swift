@@ -154,4 +154,68 @@ enum Theme {
     static let systemGray4 = Color("SystemGray4")
     static let systemGray5 = Color("SystemGray5")
     static let systemGray6 = Color("SystemGray6")
+    
+    // MARK: - Brand Scale
+
+    static let primary50 = Color(
+        red: 0.9412,
+        green: 0.9294,
+        blue: 0.9843
+    ) // #F0EDFB
+
+    static let primary100 = Color(
+        red: 0.8784,
+        green: 0.8627,
+        blue: 0.9686
+    ) // #E0DCF7
+
+    static let primary200 = Color(
+        red: 0.8196,
+        green: 0.7922,
+        blue: 0.9569
+    ) // #D1CAF4
+
+    static let primary300 = Color(
+        red: 0.7569,
+        green: 0.7255,
+        blue: 0.9412
+    ) // #C1B9F0
+
+    static let primary400 = Color(
+        red: 0.6980,
+        green: 0.6588,
+        blue: 0.9255
+    ) // #B2A8EC
+
+    static let primary500 = Color(
+        red: 0.6392,
+        green: 0.5882,
+        blue: 0.9098
+    ) // #A396E8
+
+    // primary(600 사이의 브랜드 메인 컬러)는 파일 상단에 이미 선언돼 있다 (#9683EC).
+
+    static let primary600 = Color(
+        red: 0.5804,
+        green: 0.5137,
+        blue: 0.8980
+    ) // #9483E5
+
+    static let primary700 = Color(
+        red: 0.5216,
+        green: 0.4510,
+        blue: 0.8863
+    ) // #8573E2
+
+    static let primary800 = Color(
+        red: 0.4588,
+        green: 0.3804,
+        blue: 0.8706
+    ) // #7561DE
+
+    static let primary900 = Color(
+        red: 0.4000,
+        green: 0.3137,
+        blue: 0.8588
+    ) // #6650DB
 }
