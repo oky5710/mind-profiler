@@ -87,7 +87,7 @@ struct ReportView: View {
             selectedSleepRange = nil
             Task { await viewModel.analyze() }
         } label: {
-            Text("분석")
+            Label("분석", systemImage: "waveform.path.ecg")
                 .font(Typography.button)
                 .frame(maxWidth: .infinity)
         }
