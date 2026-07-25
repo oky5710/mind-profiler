@@ -122,7 +122,11 @@ final class ReportViewModel {
         do {
             try await HealthKitService.requestAuthorization()
 
-            async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples()
+            // 기간 시작일 전날 저녁에 잠들어 시작일 새벽까지 이어지는 밤이 중간에 잘리지 않도록
+            // 하루 전부터 가져온다 — 예전엔 이 인자를 아예 안 넘겨서 HealthKit에 기록된 수면
+            // 전체 역사를 매번 다 가져왔다(느려질 수 있고, 실제로 쓰는 범위보다 훨씬 넓었다).
+            let sleepFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
+            async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples(start: sleepFetchStart, end: end)
             async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples()
             async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples()
             async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples()
