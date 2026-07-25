@@ -106,12 +106,15 @@
   "기간 요약" 제목 없이 카드 3개를 가로로 나란히 놓은 대시보드 형태로 보여준다 — rMSSD가 중앙에
   오도록 순서를 안정시 심박수 · rMSSD · SDNN으로 둔다. 라벨은 작게, 숫자는 크고 굵게(28pt Bold),
   단위(bpm/ms)는 숫자 옆에 작게 붙인다(`vitalPanel`). 카드 배경은 `Theme.primary50`, 테두리는
-  `Theme.systemGray5`. 안정시 심박수는 이 화면에서 처음 쓰는 HealthKit 타입이라
+  `Theme.systemGray5`, 그림자는 광원이 좌상단에 있다고 가정하고 우하단으로 옅게
+  (`.shadow(color: .black.opacity(0.1), radius: 4, x: 2, y: 2)`). 안정시 심박수는 이 화면에서
+  처음 쓰는 HealthKit 타입이라
   (`HKQuantityType(.restingHeartRate)`) `requestAuthorization()`의 read 목록에 추가했다 — 원시
   `heartRate` 전체 샘플의 중앙값은 운동/활동 중 측정치가 섞여서 지나치게 높게 나오므로, 애플워치가
   하루 한 번쯤 계산해 두는 안정시 심박수를 대신 쓴다(`HealthKitService.fetchRestingHeartRateSamples`).
   셋 중 하나라도 그 기간에 데이터가 없으면 그 카드만 "—"로 비워 보여준다.
-- **수면**: 흰 배경·기본 테두리(`Theme.systemGray5`) 카드(`panelCard()`)로 감싸서 보여준다. 그 기간의
+- **수면**: 흰 배경·기본 테두리(`Theme.systemGray5`)·기간 요약 카드와 같은 옅은 좌상단 광원
+  그림자를 쓰는 카드(`panelCard()`)로 감싸서 보여준다. 그 기간의
   밤마다 수면 시간을 막대그래프로 보여주고, 평균 수면 시간을 점선 가로선으로 겹쳐 그린다. 막대를
   탭하면 그 밤의 상세 패널이 뜬다 — "오늘의 패턴"과 똑같은 `SleepDetailPanel`(추정 수면 점수 +
   단계별 도넛 차트)을 그대로 재사용한다. 평균 수면 시간·평균 수면 점수는 기간 요약 카드와 같은
