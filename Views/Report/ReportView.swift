@@ -171,6 +171,9 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("시간")
+        // 아래 CV 차트와 같은 도메인을 명시해야 두 차트의 x축 눈금 위치가 일치한다 — 각자 자기
+        // 데이터 범위로 도메인을 추론하게 두면(수면 없는 날/CV 없는 날이 있을 때) 눈금이 어긋난다.
+        .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
         .chartXAxis {
             AxisMarks { value in
                 Self.dateAxisMarks(value)
@@ -292,6 +295,8 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("rMSSD (ms)")
+        // 위 수면 차트와 같은 도메인 — 두 차트가 같은 x축 눈금을 공유하게 한다.
+        .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
         .chartXAxis {
             AxisMarks { value in
                 Self.dateAxisMarks(value)
