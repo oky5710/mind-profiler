@@ -191,27 +191,21 @@ struct ReportView: View {
     // 문자열이 아니라 Text로 받는 이유는, 평균 수면 시간처럼 "N시간 M분"에서 숫자는 크게·단위
     // (시간/분)는 작게 섞어서 조합해야 하는 경우가 있어서다(durationText 참고) — Text는 +로
     // 이어붙여도 조각별 폰트가 유지된다.
-    private func bigStat(icon: String, title: String, value: Text, unit: String? = nil) -> some View {
-        HStack {
-            // 라벨과 값을 한 덩어리로 묶는다 — 아이콘은 이 묶음과 별개로 오른쪽 끝에 크게 둔다.
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.caption2.bold())
-                    .foregroundStyle(.secondary)
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    value
-                    if let unit {
-                        Text(unit)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+    private func bigStat(title: String, value: Text, unit: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                value
+                if let unit {
+                    Text(unit)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(Theme.primary100)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(Theme.primary50, in: RoundedRectangle(cornerRadius: 8))
     }
@@ -238,8 +232,8 @@ struct ReportView: View {
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
                 HStack(spacing: 10) {
-                    bigStat(icon: "moon.zzz.fill", title: "평균 수면 시간", value: durationText(avgDuration))
-                    bigStat(icon: "star.fill", title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
+                    bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
+                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
                 }
             }
 
