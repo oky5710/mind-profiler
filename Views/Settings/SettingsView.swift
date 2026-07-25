@@ -23,6 +23,12 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("설정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("설정").font(Typography.screenTitle)
+                }
+            }
         }
     }
 }

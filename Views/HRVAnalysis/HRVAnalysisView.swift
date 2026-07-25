@@ -208,6 +208,11 @@ struct HRVAnalysisView: View {
             }
             .navigationTitle("오늘의 패턴")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("오늘의 패턴").font(Typography.screenTitle)
+                }
+            }
         }
         .task {
             await viewModel.loadIfNeeded()
