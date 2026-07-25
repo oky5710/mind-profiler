@@ -129,7 +129,7 @@ struct ReportView: View {
                 .padding(.bottom, 8)
             HStack(spacing: 12) {
                 IsoDateRow(title: "시작일", date: $viewModel.previousVisitDate)
-                IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate)
+                IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate, maximumDate: Date())
             }
         }
     }
@@ -591,6 +591,7 @@ struct ReportView: View {
 private struct IsoDateRow: View {
     let title: String
     @Binding var date: Date
+    var maximumDate: Date?
     @State private var isPresented = false
 
     var body: some View {
@@ -617,17 +618,23 @@ private struct IsoDateRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isPresented) {
             NavigationStack {
-                DatePicker(title, selection: $date, displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .labelsHidden()
-                    .padding()
-                    .navigationTitle(title)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("완료") { isPresented = false }
-                        }
+                Group {
+                    if let maximumDate {
+                        DatePicker(title, selection: $date, in: ...maximumDate, displayedComponents: .date)
+                    } else {
+                        DatePicker(title, selection: $date, displayedComponents: .date)
                     }
+                }
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .padding()
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("완료") { isPresented = false }
+                    }
+                }
             }
             .environment(\.locale, Locale(identifier: "ko_KR"))
             .presentationDetents([.medium])
