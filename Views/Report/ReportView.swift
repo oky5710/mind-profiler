@@ -576,23 +576,26 @@ struct ReportView: View {
     }
 
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            lowestDayChip(
-                label: "rMSSD",
-                value: Text("\(Int(row.rmssd.rounded()))")
-                    .font(.system(size: 20, weight: .bold))
-                    + Text("ms").font(.caption2).fontWeight(.regular),
-                color: Theme.primary50
-            )
+        VStack(alignment: .leading, spacing: 4) {
+            Text(Self.dateFormatter.string(from: row.date))
+                .font(.caption.bold())
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(Self.dateFormatter.string(from: row.date))
-                    .font(.caption.bold())
-                HStack(spacing: 12) {
-                    lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
-                    lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+            HStack(alignment: .top, spacing: 12) {
+                lowestDayChip(
+                    label: "rMSSD",
+                    value: Text("\(Int(row.rmssd.rounded()))")
+                        .font(.system(size: 20, weight: .bold))
+                        + Text("ms").font(.caption2).fontWeight(.regular),
+                    color: Theme.primary50
+                )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 12) {
+                        lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                        lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+                    }
+                    lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
                 }
-                lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
             }
         }
         .padding(.bottom, 10)

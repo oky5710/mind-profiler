@@ -334,6 +334,9 @@ final class ReportViewModel {
     // 나란히 붙여, 그 날 유독 낮았던 이유를 짐작할 단서를 준다.
     private static let lowestDayRowCount = 3
 
+    // 이 단어가 제목에 들어간 캘린더 일정은 매일 반복되는 정례 일정이라 스케줄 목록에서 뺀다.
+    private static let excludedScheduleKeywords = ["scrum", "booktudy"]
+
     private static func computeLowestDayRows(
         dailyMedians: [(date: Date, value: Double)],
         sleepRanges: [SleepRange],
@@ -351,11 +354,14 @@ final class ReportViewModel {
                 .flatMap { prev in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: prev) } }
                 .map { $0.end.timeIntervalSince($0.start) }
 
-            // 매일 반복되는 "Scrum" 같은 정례 회의는 그날의 특별한 스케줄이라 보기 어려워서 뺀다.
+            // 매일 반복되는 정례 회의(Scrum/BookStudy 등)는 그날의 특별한 스케줄이라 보기
+            // 어려워서 뺀다.
             let calendarTitles = calendarEvents
                 .filter { calendar.isDate($0.start, inSameDayAs: entry.date) }
                 .map(\.title)
-                .filter { !$0.localizedCaseInsensitiveContains("scrum") }
+                .filter { title in
+                    !Self.excludedScheduleKeywords.contains { title.localizedCaseInsensitiveContains($0) }
+                }
             let lifeEventTitles = lifeEvents.compactMap { life -> String? in
                 guard let eventDate = DateKey.parseISODate(life.date), calendar.isDate(eventDate, inSameDayAs: entry.date) else {
                     return nil

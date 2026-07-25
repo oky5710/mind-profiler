@@ -151,13 +151,14 @@
   (`rmssdLowestDaysTableSection`, `lowestDayRowCount = 3`). 표(Grid)로 4칸을 나란히 두면 "스케줄"
   칸이 길어질 때 다른 칸까지 좁아져서, 대신 날짜별로 행(`lowestDayRow`, 구분선 없음)을 왼쪽 정렬로
   쌓는다(`VStack(alignment: .leading)` — 정렬을 명시하지 않으면 기본값(center)이라 행마다 너비가
-  달라 왼쪽이 들쭉날쭉해 보인다). 왼쪽에 rMSSD 값을 라벨(위)+값(아래, 숫자 20pt Bold + 단위 "ms"
+  달라 왼쪽이 들쭉날쭉해 보인다). 첫 줄은 날짜 하나만 단독으로 두고, 그 아래 줄에서 rMSSD와
+  나머지를 가로로 배열한다 — 왼쪽에 rMSSD 값을 라벨(위)+값(아래, 숫자 20pt Bold + 단위 "ms"
   caption2 Regular, 색 `Theme.primary600`)으로 줄바꿈한 칩(`lowestDayChip`, 배경 `Theme.primary50`),
-  오른쪽에 나머지 전부: 첫 줄은 날짜, 둘째 줄은 수면·운동을 "라벨 + 굵은 값" 텍스트로 가로로
-  나란히(`lowestDayInlineDetail`), 셋째 줄은 스케줄 — 라벨과 값을 옆으로 붙이지 않고 라벨(위)+
-  값(아래)으로 줄바꿈한다(`lowestDayDetailLine`). 스케줄은 캘린더 일정
-  (EventKit, `CalendarEventService.fetchEvents()`, 제목에 "Scrum"이 들어간 정례 회의는 제외)과
-  직접 입력한 생활 이벤트를 합친 것 — 캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 그대로
+  오른쪽에 수면·운동을 "라벨 + 굵은 값" 텍스트로 가로로 나란히(`lowestDayInlineDetail`), 그 아래
+  스케줄 — 라벨과 값을 옆으로 붙이지 않고 라벨(위)+값(아래)으로 줄바꿈한다(`lowestDayDetailLine`).
+  스케줄은 캘린더 일정(EventKit, `CalendarEventService.fetchEvents()`, 제목에 "scrum"/"booktudy"가
+  들어간 정례 일정은 제외 — `excludedScheduleKeywords`)과 직접 입력한 생활 이벤트를 합친 것 —
+  캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 그대로
   보여주고 이 줄만 빠진다.
 - **SDNN vs rMSSD 차이 Top 3**: 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍 중 절댓값 차이가 큰 상위 3개를
   [일시, SDNN, rMSSD, 차이] 표로 보여준다 — 설정 화면의 "SDNN vs rMSSD 분석"과 같은 쌍 데이터
