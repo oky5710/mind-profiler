@@ -252,13 +252,39 @@ struct ReportView: View {
         .panelCard()
     }
 
+    // 하루에 수면 세션이 2개 이상(예: 이른 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜
+    // 칸에 막대가 두 개 겹쳐 그려져 버린다(반투명끼리 겹쳐서 유독 진하고 큰 막대처럼 보임,
+    // 탭도 그 중 하나로만 고정돼서 이상해 보인다) — 애플 Health처럼 하루 총 수면시간을
+    // 합쳐서 막대 하나로 보여준다.
+    private struct DailySleepTotal: Identifiable {
+        let day: Date
+        let totalHours: Double
+        var id: Date { day }
+    }
+
+    private var dailySleepTotals: [DailySleepTotal] {
+        let calendar = Calendar.current
+        var totals: [Date: Double] = [:]
+        for range in viewModel.sleepRanges {
+            let day = calendar.startOfDay(for: range.start)
+            totals[day, default: 0] += range.end.timeIntervalSince(range.start) / 3600
+        }
+        return totals.map { DailySleepTotal(day: $0.key, totalHours: $0.value) }
+    }
+
+    private func dailyTotalHours(containing date: Date) -> Double {
+        let calendar = Calendar.current
+        return viewModel.sleepRanges
+            .filter { calendar.isDate($0.start, inSameDayAs: date) }
+            .reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) / 3600 }
+    }
+
     private var sleepBarChart: some View {
         Chart {
-            ForEach(viewModel.sleepRanges) { range in
-                let hours = range.end.timeIntervalSince(range.start) / 3600
+            ForEach(dailySleepTotals) { total in
                 BarMark(
-                    x: .value("날짜", range.start, unit: .day),
-                    y: .value("수면 시간", hours),
+                    x: .value("날짜", total.day, unit: .day),
+                    y: .value("수면 시간", total.totalHours),
                     width: .fixed(sleepBarWidth)
                 )
                 .foregroundStyle(Theme.sleep.opacity(0.7))
@@ -368,7 +394,9 @@ struct ReportView: View {
     // 차트 마크 자체는 shadow()를 지원하지 않아서 같은 위치·크기·색의 실제 도형을 겹쳐 그린다.
     @ViewBuilder
     private func selectedSleepBarShadow(_ range: SleepRange, proxy: ChartProxy, geo: GeometryProxy) -> some View {
-        let hours = range.end.timeIntervalSince(range.start) / 3600
+        // 막대 자체가 그날 세션들을 합친 높이라, 그림자도 range 하나가 아니라 같은 날짜의
+        // 합계 높이를 써야 실제 막대와 정확히 겹친다.
+        let hours = dailyTotalHours(containing: range.start)
         if let plotFrame = proxy.plotFrame,
            let x = proxy.position(forX: dayMidpoint(of: range.start)),
            let yTop = proxy.position(forY: hours),

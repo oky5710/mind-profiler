@@ -309,18 +309,6 @@ enum HealthKitService {
                     return
                 }
                 let categorySamples = samples as? [HKCategorySample] ?? []
-                #if DEBUG
-                let debugFormatter: DateFormatter = {
-                    let f = DateFormatter()
-                    f.dateFormat = "MM-dd HH:mm"
-                    f.timeZone = .current
-                    return f
-                }()
-                for sample in categorySamples {
-                    let stageLabel = SleepStage(categoryValue: sample.value).map { "\($0)" } ?? "무시됨(\(sample.value))"
-                    print("[SleepDebug] \(debugFormatter.string(from: sample.startDate)) ~ \(debugFormatter.string(from: sample.endDate)) stage=\(stageLabel) source=\(sample.sourceRevision.source.name)")
-                }
-                #endif
                 let stageSamples = categorySamples
                     .compactMap { sample -> (start: Date, end: Date, stage: SleepStage)? in
                         guard let stage = SleepStage(categoryValue: sample.value) else { return nil }
