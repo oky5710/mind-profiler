@@ -641,16 +641,21 @@ private struct PeriodRangeRow: View {
         Button {
             isPresented = true
         } label: {
-            Text("\(ReportView.dateFormatter.string(from: startDate)) ~ \(ReportView.dateFormatter.string(from: endDate))")
-                .font(Typography.body)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Theme.systemGray5, lineWidth: 1)
-                )
+            HStack {
+                Text("\(ReportView.dateFormatter.string(from: startDate)) ~ \(ReportView.dateFormatter.string(from: endDate))")
+                    .font(Typography.body)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: "calendar")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Theme.systemGray5, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
