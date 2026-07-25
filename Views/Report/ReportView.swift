@@ -26,15 +26,41 @@ struct ReportView: View {
     // ui-style.md "날짜 표기" 규칙 — 인접 포인트 간격이 하루 이상 30일 미만이면 MM-dd 표기.
     // 이 화면의 차트는 항상 날짜 단위(하루 간격) 데이터라 이 축약 규칙 하나만 해당한다.
     // 포맷 자체는 HRVAnalysisView.monthDayFormatter를 그대로 재사용해 앱 전체에서 동일하게 유지한다.
+    // ui-style.md "그리드 라인은 옅게, 눈금 틱은 그보다 진하게" — HRVAnalysisView와 같은 값
+    // (그리드 .gray.opacity(0.25), 틱 .gray.opacity(0.85))과 같은 라벨 폰트(9pt)를 그대로 맞춘다.
     @AxisMarkBuilder
     private static func dateAxisMarks(_ value: AxisValue) -> some AxisMark {
-        AxisGridLine()
-        AxisTick()
+        AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+        AxisTick().foregroundStyle(.gray.opacity(0.85))
         AxisValueLabel {
             if let date = value.as(Date.self) {
                 Text(HRVAnalysisView.monthDayFormatter.string(from: date))
+                    .font(.system(size: 9))
+                    .tracking(1)
             }
         }
+    }
+
+    // 수면/CV 차트가 같은 domain을 쓰더라도 각자 자동(automatic) 눈금에 맡기면 마크 종류(Bar vs
+    // Area+Line)에 따라 서로 다른 위치에 눈금이 생길 수 있다(ui-style.md "x축 눈금 위치는 반드시
+    // 동일해야 한다") — 두 차트가 공유하는 눈금 Date 배열을 직접 계산해서 .chartXAxis에 동일하게 적용한다.
+    private var dateAxisTickDates: [Date] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: viewModel.previousVisitDate)
+        let end = calendar.startOfDay(for: viewModel.thisVisitDate)
+        guard start < end else { return [start] }
+
+        let totalDays = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        let strideDays = max(totalDays / 6, 1)
+
+        var dates: [Date] = []
+        var current = start
+        while current <= end {
+            dates.append(current)
+            guard let next = calendar.date(byAdding: .day, value: strideDays, to: current) else { break }
+            current = next
+        }
+        return dates
     }
 
     var body: some View {
@@ -182,7 +208,7 @@ struct ReportView: View {
         // 데이터 범위로 도메인을 추론하게 두면(수면 없는 날/CV 없는 날이 있을 때) 눈금이 어긋난다.
         .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
         .chartXAxis {
-            AxisMarks { value in
+            AxisMarks(values: dateAxisTickDates) { value in
                 Self.dateAxisMarks(value)
             }
         }
@@ -306,7 +332,7 @@ struct ReportView: View {
         // 위 수면 차트와 같은 도메인 — 두 차트가 같은 x축 눈금을 공유하게 한다.
         .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
         .chartXAxis {
-            AxisMarks { value in
+            AxisMarks(values: dateAxisTickDates) { value in
                 Self.dateAxisMarks(value)
             }
         }
