@@ -15,6 +15,7 @@ struct LoginView: View {
                     Task { await authViewModel.signInWithGoogle() }
                 } label: {
                     Label("Google로 로그인", systemImage: "person.crop.circle")
+                        .font(Typography.button)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)

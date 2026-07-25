@@ -88,6 +88,7 @@ struct ReportView: View {
             Task { await viewModel.analyze() }
         } label: {
             Text("분석")
+                .font(Typography.button)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)

@@ -122,7 +122,7 @@ struct DrugSearchSheet: View {
                 if isRegistering {
                     ProgressView().frame(maxWidth: .infinity)
                 } else {
-                    Text("등록").frame(maxWidth: .infinity)
+                    Text("등록").font(Typography.button).frame(maxWidth: .infinity)
                 }
             }
             .buttonStyle(.borderedProminent)
