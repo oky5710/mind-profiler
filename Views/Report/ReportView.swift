@@ -620,11 +620,21 @@ private struct PeriodRangeRow: View {
         .sheet(isPresented: $isPresented) {
             NavigationStack {
                 Form {
+                    // 시작일이 종료일보다 늦어질 수 없고, 종료일이 시작일보다 빨라질 수 없게
+                    // 서로의 현재 값을 상대 피커의 in: 범위 경계로 넘긴다.
                     Section("시작일") {
-                        datePicker(for: $startDate, title: "시작일")
+                        datePicker(
+                            for: $startDate,
+                            title: "시작일",
+                            range: Date.distantPast...min(endDate, maximumDate ?? .distantFuture)
+                        )
                     }
                     Section("종료일") {
-                        datePicker(for: $endDate, title: "종료일")
+                        datePicker(
+                            for: $endDate,
+                            title: "종료일",
+                            range: startDate...(maximumDate ?? .distantFuture)
+                        )
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
@@ -648,17 +658,10 @@ private struct PeriodRangeRow: View {
         }
     }
 
-    @ViewBuilder
-    private func datePicker(for date: Binding<Date>, title: String) -> some View {
-        Group {
-            if let maximumDate {
-                DatePicker(title, selection: date, in: ...maximumDate, displayedComponents: .date)
-            } else {
-                DatePicker(title, selection: date, displayedComponents: .date)
-            }
-        }
-        .datePickerStyle(.graphical)
-        .labelsHidden()
+    private func datePicker(for date: Binding<Date>, title: String, range: ClosedRange<Date>) -> some View {
+        DatePicker(title, selection: date, in: range, displayedComponents: .date)
+            .datePickerStyle(.compact)
+            .labelsHidden()
     }
 }
 
