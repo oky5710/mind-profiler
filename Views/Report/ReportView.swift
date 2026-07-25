@@ -41,6 +41,15 @@ struct ReportView: View {
         }
     }
 
+    // y축도 x축과 같은 9pt로 맞춘다(HRVAnalysisView의 yAxisOverlay와 동일한 크기).
+    @AxisMarkBuilder
+    private static func valueAxisMarks(_ value: AxisValue) -> some AxisMark {
+        AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+        AxisTick().foregroundStyle(.gray.opacity(0.85))
+        AxisValueLabel()
+            .font(.system(size: 9))
+    }
+
     // 수면/CV 차트가 같은 domain을 쓰더라도 각자 자동(automatic) 눈금에 맡기면 마크 종류(Bar vs
     // Area+Line)에 따라 서로 다른 위치에 눈금이 생길 수 있다(ui-style.md "x축 눈금 위치는 반드시
     // 동일해야 한다") — 두 차트가 공유하는 눈금 Date 배열을 직접 계산해서 .chartXAxis에 동일하게 적용한다.
@@ -204,6 +213,11 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("시간")
+        .chartYAxis {
+            AxisMarks { value in
+                Self.valueAxisMarks(value)
+            }
+        }
         // 아래 CV 차트와 같은 도메인을 명시해야 두 차트의 x축 눈금 위치가 일치한다 — 각자 자기
         // 데이터 범위로 도메인을 추론하게 두면(수면 없는 날/CV 없는 날이 있을 때) 눈금이 어긋난다.
         .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
@@ -247,10 +261,16 @@ struct ReportView: View {
         }
     }
 
+    // 실제 수면 데이터가 있는 날짜의 min~max가 아니라, 차트에 표시되는 전체 도메인
+    // (previousVisitDate...thisVisitDate) 기준으로 날짜 수를 세야 한다 — 데이터 없는 날이 있으면
+    // min~max 기준 날짜 수가 실제 도메인보다 적어져서, 그 좁은 날짜 수로 나눈 막대 너비가 실제
+    // 하루 칸보다 넓어져 막대끼리 겹친다.
     private var sleepChartDayCount: Int {
-        let dates = viewModel.sleepRanges.map(\.start)
-        guard let minDate = dates.min(), let maxDate = dates.max() else { return 1 }
-        let days = Calendar.current.dateComponents([.day], from: minDate, to: maxDate).day ?? 0
+        let days = Calendar.current.dateComponents(
+            [.day],
+            from: viewModel.previousVisitDate,
+            to: viewModel.thisVisitDate
+        ).day ?? 0
         return max(days + 1, 1)
     }
 
@@ -329,6 +349,11 @@ struct ReportView: View {
         }
         .frame(height: 180)
         .chartYAxisLabel("rMSSD (ms)")
+        .chartYAxis {
+            AxisMarks { value in
+                Self.valueAxisMarks(value)
+            }
+        }
         // 위 수면 차트와 같은 도메인 — 두 차트가 같은 x축 눈금을 공유하게 한다.
         .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
         .chartXAxis {
