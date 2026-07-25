@@ -87,7 +87,8 @@ struct ReportView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                // 패널(섹션) 사이 위아래 간격을 기간 요약 카드 3개의 가로 간격(12pt)과 통일한다.
+                VStack(alignment: .leading, spacing: 12) {
                     datePickers
 
                     if let errorMessage = viewModel.errorMessage {
@@ -151,8 +152,8 @@ struct ReportView: View {
                vitals.restingHeartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
                 HStack(spacing: 12) {
                     vitalPanel(title: "안정시 심박수", value: vitals.restingHeartRate.map { Int($0.rounded()) }, unit: "bpm")
-                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { Int($0.rounded()) }, unit: "ms")
                     vitalPanel(title: "rMSSD", value: vitals.rmssd.map { Int($0.rounded()) }, unit: "ms")
+                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { Int($0.rounded()) }, unit: "ms")
                 }
             } else {
                 Text("해당 기간에 심박수/HRV 데이터가 없어요")
@@ -184,15 +185,16 @@ struct ReportView: View {
     }
 
     // vitalPanel과 같은 "작은 라벨 + 큰 굵은 값" 조합이지만, 이미 panelCard로 감싸인 섹션
-    // 안에서 쓰는 용도라 카드 배경/테두리는 따로 두지 않는다.
-    private func bigStat(title: String, value: String, unit: String? = nil) -> some View {
+    // 안에서 쓰는 용도라 카드 배경/테두리는 따로 두지 않는다. value를 문자열이 아니라 Text로 받는
+    // 이유는, 평균 수면 시간처럼 "N시간 M분"에서 숫자는 크게·단위(시간/분)는 작게 섞어서 조합해야
+    // 하는 경우가 있어서다(durationText 참고) — Text는 +로 이어붙여도 조각별 폰트가 유지된다.
+    private func bigStat(title: String, value: Text, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 24, weight: .bold))
+                value
                 if let unit {
                     Text(unit)
                         .font(.caption2)
@@ -200,6 +202,19 @@ struct ReportView: View {
                 }
             }
         }
+    }
+
+    private static let bigStatValueFont = Font.system(size: 24, weight: .bold)
+
+    // "N시간 M분"에서 숫자(24pt Bold)와 "시간"/"분" 단위(caption2)를 따로 스타일링해서 이어붙인다.
+    private func durationText(_ interval: TimeInterval) -> Text {
+        let totalMinutes = Int(interval) / 60
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return Text("\(hours)").font(Self.bigStatValueFont)
+            + Text("시간 ").font(.caption2).foregroundStyle(.secondary)
+            + Text("\(minutes)").font(Self.bigStatValueFont)
+            + Text("분").font(.caption2).foregroundStyle(.secondary)
     }
 
     // MARK: - 수면
@@ -211,8 +226,8 @@ struct ReportView: View {
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
                 HStack(spacing: 24) {
-                    bigStat(title: "평균 수면 시간", value: SleepAnalysisService.formattedDuration(avgDuration))
-                    bigStat(title: "평균 수면 점수", value: "\(Int(avgScore.rounded()))", unit: "점")
+                    bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
+                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
                 }
             }
 
