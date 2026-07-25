@@ -17,6 +17,16 @@ final class ReportViewModel {
         var id: Date { date }
     }
 
+    // "가장 낮은 요일"/"낮은 시간대" 두 패널에 쓰는 값 — 날짜별 상세 컨텍스트(가장 낮은 날짜,
+    // 그날 수면/캘린더 일정)까지는 필요 없어서 그 두 값만 남긴 가벼운 버전이다.
+    struct RMSSDLowestFindings {
+        // 일별 대표값을 요일별로 평균 냈을 때 가장 낮은 요일 (1=일요일 ... 7=토요일).
+        let lowestAverageWeekday: Int?
+        // 날짜별로 그 날의 최저 1시간 버킷(0~23시)을 구한 뒤, 여러 날에 걸쳐 가장 자주
+        // "그날의 최저"로 뽑힌 시간대(최빈값).
+        let mostFrequentLowestHour: Int?
+    }
+
     struct SDNNRMSSDDifference: Identifiable {
         let id = UUID()
         let date: Date
@@ -75,6 +85,7 @@ final class ReportViewModel {
     private(set) var averageSleepDuration: TimeInterval?
     private(set) var averageSleepScore: Double?
     private(set) var cvFindings: CVFindings?
+    private(set) var rmssdFindings: RMSSDLowestFindings?
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var correlationFindings: CorrelationFindings?
     private(set) var vitalMedians: VitalMedians?
@@ -146,6 +157,7 @@ final class ReportViewModel {
 
             let periodRMSSD = allRMSSDSamples.filter { $0.date >= start && $0.date < end }
             cvFindings = Self.computeCVFindings(periodRMSSD: periodRMSSD, allRMSSDSamples: allRMSSDSamples)
+            rmssdFindings = Self.computeRMSSDFindings(periodRMSSD)
 
             let periodSDNN = allSDNNSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
             let periodRestingHeartRate = allRestingHeartRateSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
@@ -229,6 +241,51 @@ final class ReportViewModel {
         }
 
         return CVFindings(overallCV: overallCV, dailyPoints: dailyPoints)
+    }
+
+    private static func computeRMSSDFindings(_ samples: [(date: Date, value: Double)]) -> RMSSDLowestFindings? {
+        guard !samples.isEmpty else { return nil }
+        let calendar = Calendar.current
+
+        let dailyMedians = HRVStatistics.dailyMedian(samples)
+
+        var byWeekday: [Int: [Double]] = [:]
+        for entry in dailyMedians {
+            byWeekday[calendar.component(.weekday, from: entry.date), default: []].append(entry.value)
+        }
+        let weekdayAverages = byWeekday.mapValues { $0.reduce(0, +) / Double($0.count) }
+        let lowestWeekday = weekdayAverages.min { $0.value < $1.value }?.key
+
+        return RMSSDLowestFindings(
+            lowestAverageWeekday: lowestWeekday,
+            mostFrequentLowestHour: Self.mostFrequentLowestHour(samples)
+        )
+    }
+
+    // 날짜별로 그 날의 최저 1시간 버킷(0~23시, 그 시간대 원시 샘플 평균 기준)을 구한 뒤,
+    // 여러 날에 걸쳐 가장 자주 "그날의 최저"로 뽑힌 시간대를 찾는다. 동률이면 더 이른
+    // 시간대를 택해 항상 같은 결과가 나오게 한다.
+    private static func mostFrequentLowestHour(_ samples: [(date: Date, value: Double)]) -> Int? {
+        let calendar = Calendar.current
+
+        var byDay: [Date: [Int: [Double]]] = [:]
+        for sample in samples {
+            let day = calendar.startOfDay(for: sample.date)
+            let hour = calendar.component(.hour, from: sample.date)
+            byDay[day, default: [:]][hour, default: []].append(sample.value)
+        }
+
+        let lowestHourPerDay = byDay.values.compactMap { hourBuckets in
+            hourBuckets.mapValues(HRVStatistics.mean).min { $0.value < $1.value }?.key
+        }
+        guard !lowestHourPerDay.isEmpty else { return nil }
+
+        var counts: [Int: Int] = [:]
+        for hour in lowestHourPerDay {
+            counts[hour, default: 0] += 1
+        }
+        let maxCount = counts.values.max() ?? 0
+        return counts.filter { $0.value == maxCount }.keys.min()
     }
 
     // 캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 정상적으로 보여준다 —

@@ -21,6 +21,8 @@ struct ReportView: View {
         return formatter
     }()
 
+    private static let weekdaySymbols = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"]
+
     // ui-style.md "날짜 표기" 규칙 — 인접 포인트 간격이 하루 이상 30일 미만이면 MM-dd 표기.
     // 이 화면의 차트는 항상 날짜 단위(하루 간격) 데이터라 이 축약 규칙 하나만 해당한다.
     // 포맷 자체는 HRVAnalysisView.monthDayFormatter를 그대로 재사용해 앱 전체에서 동일하게 유지한다.
@@ -101,6 +103,7 @@ struct ReportView: View {
                         vitalsSection
                         sleepSection
                         cvSection
+                        rmssdLowestFindingsSection
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
                         correlationSection
@@ -526,6 +529,27 @@ struct ReportView: View {
     }
 
     // MARK: - rMSSD
+
+    // vitalsSection과 같은 스타일(vitalPanel)로, 같은 너비로 나란히 두 패널만 보여준다 —
+    // "가장 낮은 날짜"·그날 컨텍스트 같은 세부 텍스트 없이 요일/시간대 두 값만 담당한다.
+    private var rmssdLowestFindingsSection: some View {
+        Group {
+            if let findings = viewModel.rmssdFindings {
+                HStack(spacing: 12) {
+                    vitalPanel(
+                        title: "가장 낮은 요일",
+                        value: findings.lowestAverageWeekday.flatMap { weekday in
+                            Self.weekdaySymbols.indices.contains(weekday - 1) ? Self.weekdaySymbols[weekday - 1] : nil
+                        }
+                    )
+                    vitalPanel(
+                        title: "낮은 시간대",
+                        value: findings.mostFrequentLowestHour.map { "\($0)시~\($0 + 1)시" }
+                    )
+                }
+            }
+        }
+    }
 
     private var rmssdLowestDaysTableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
