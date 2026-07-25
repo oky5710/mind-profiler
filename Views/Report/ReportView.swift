@@ -21,8 +21,6 @@ struct ReportView: View {
         return formatter
     }()
 
-    private static let weekdaySymbols = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"]
-
     // ui-style.md "날짜 표기" 규칙 — 인접 포인트 간격이 하루 이상 30일 미만이면 MM-dd 표기.
     // 이 화면의 차트는 항상 날짜 단위(하루 간격) 데이터라 이 축약 규칙 하나만 해당한다.
     // 포맷 자체는 HRVAnalysisView.monthDayFormatter를 그대로 재사용해 앱 전체에서 동일하게 유지한다.
@@ -103,7 +101,6 @@ struct ReportView: View {
                         vitalsSection
                         sleepSection
                         cvSection
-                        rmssdSection
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
                         correlationSection
@@ -151,9 +148,9 @@ struct ReportView: View {
             if let vitals = viewModel.vitalMedians,
                vitals.restingHeartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
                 HStack(spacing: 12) {
-                    vitalPanel(title: "안정시 심박수", value: vitals.restingHeartRate.map { Int($0.rounded()) }, unit: "bpm")
-                    vitalPanel(title: "rMSSD", value: vitals.rmssd.map { Int($0.rounded()) }, unit: "ms")
-                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { Int($0.rounded()) }, unit: "ms")
+                    vitalPanel(title: "안정시 심박수", value: vitals.restingHeartRate.map { "\(Int($0.rounded()))" }, unit: "bpm")
+                    vitalPanel(title: "rMSSD", value: vitals.rmssd.map { "\(Int($0.rounded()))" }, unit: "ms")
+                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { "\(Int($0.rounded()))" }, unit: "ms")
                 }
             } else {
                 Text("해당 기간에 심박수/HRV 데이터가 없어요")
@@ -163,15 +160,17 @@ struct ReportView: View {
         }
     }
 
-    private func vitalPanel(title: String, value: Int?, unit: String) -> some View {
+    // value를 String으로 받는 이유는, 숫자+단위(bpm/ms)뿐 아니라 요일("화요일")·시간대("3시~4시")
+    // 처럼 이미 포맷된 문자열도 같은 카드 스타일로 보여줘야 해서다.
+    private func vitalPanel(title: String, value: String?, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value.map(String.init) ?? "—")
+                Text(value ?? "—")
                     .font(.system(size: 28, weight: .bold))
-                if value != nil {
+                if value != nil, let unit {
                     Text(unit)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -528,55 +527,6 @@ struct ReportView: View {
 
     // MARK: - rMSSD
 
-    private var rmssdSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("rMSSD").font(Typography.sectionTitle)
-                .padding(.bottom, 8)
-
-            if let findings = viewModel.rmssdFindings {
-                if let lowestDate = findings.lowestDailyDate {
-                    Text("가장 낮은 날: \(Self.dateFormatter.string(from: lowestDate))")
-                        .font(.footnote)
-                    if let context = findings.lowestDayContext {
-                        lowestDayContextView(context, lowestDate: lowestDate)
-                    }
-                }
-                if let weekday = findings.lowestAverageWeekday, Self.weekdaySymbols.indices.contains(weekday - 1) {
-                    Text("평균적으로 가장 낮은 요일: \(Self.weekdaySymbols[weekday - 1])")
-                        .font(.footnote)
-                }
-                if let hour = findings.mostFrequentLowestHour {
-                    Text("자주 낮은 시간대: \(hour)시~\(hour + 1)시")
-                        .font(.footnote)
-                }
-            } else {
-                Text("해당 기간에 rMSSD 데이터가 없어요")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .panelCard()
-    }
-
-    // 전날/당일 수면·일정을 " · "로 이어붙인 한 줄 대신, 각 값을 실제 날짜와 함께 별도 줄로 보여준다.
-    @ViewBuilder
-    private func lowestDayContextView(_ context: ReportViewModel.LowestDayContext, lowestDate: Date) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            if let duration = context.previousNightDuration,
-               let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: lowestDate) {
-                Text("\(Self.dateFormatter.string(from: previousDay)) 수면 \(SleepAnalysisService.formattedDuration(duration))")
-            }
-            if let duration = context.sameNightDuration {
-                Text("\(Self.dateFormatter.string(from: lowestDate)) 수면 \(SleepAnalysisService.formattedDuration(duration))")
-            }
-            if !context.eventTitles.isEmpty {
-                Text("일정: \(context.eventTitles.joined(separator: ", "))")
-            }
-        }
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-    }
-
     private var rmssdLowestDaysTableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(Typography.sectionTitle)
@@ -587,27 +537,47 @@ struct ReportView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                    GridRow {
-                        Text("일자").font(.caption2).foregroundStyle(.secondary)
-                        Text("전날 수면시간").font(.caption2).foregroundStyle(.secondary)
-                        Text("스케줄").font(.caption2).foregroundStyle(.secondary)
-                        Text("전날 운동").font(.caption2).foregroundStyle(.secondary)
-                    }
+                // 표(Grid)는 "스케줄" 칸이 길어지면 다른 칸까지 좁아져 읽기 불편했다 — 날짜별로
+                // 카드 하나씩 쌓아서, 왼쪽에 날짜+rMSSD 값, 오른쪽에 라벨 붙은 상세 줄로 나눈다.
+                VStack(spacing: 10) {
                     ForEach(viewModel.rmssdLowestDayRows) { row in
-                        GridRow {
-                            Text(Self.dateFormatter.string(from: row.date)).font(.caption2)
-                            Text(row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration) ?? "—")
-                                .font(.caption2)
-                            Text(row.scheduleTitles.isEmpty ? "—" : row.scheduleTitles.joined(separator: ", "))
-                                .font(.caption2)
-                            Text(row.previousDayExerciseSummary ?? "—").font(.caption2)
-                        }
+                        lowestDayRow(row)
                     }
                 }
             }
         }
         .panelCard()
+    }
+
+    private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Self.dateFormatter.string(from: row.date))
+                    .font(.caption.bold())
+                Text("\(Int(row.rmssd.rounded()))ms")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Theme.rmssd)
+            }
+            .frame(width: 76, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                lowestDayDetailLine(label: "전날 수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
+                lowestDayDetailLine(label: "전날 운동", value: row.previousDayExerciseSummary)
+            }
+        }
+        .padding(10)
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func lowestDayDetailLine(label: String, value: String?) -> some View {
+        HStack(alignment: .top, spacing: 4) {
+            Text(label)
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+            Text(value ?? "—")
+                .font(.caption2)
+        }
     }
 
     // MARK: - SDNN vs rMSSD

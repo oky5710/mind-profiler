@@ -6,25 +6,6 @@ import HealthKit
 @MainActor
 @Observable
 final class ReportViewModel {
-    struct RMSSDLowestFindings {
-        // 일별 대표값(중앙값) 중 가장 낮은 날.
-        let lowestDailyDate: Date?
-        // 일별 대표값을 요일별로 평균 냈을 때 가장 낮은 요일 (1=일요일 ... 7=토요일).
-        let lowestAverageWeekday: Int?
-        // 날짜별로 그 날의 최저 1시간 버킷(0~23시)을 구한 뒤, 여러 날에 걸쳐 가장 자주
-        // "그날의 최저"로 뽑힌 시간대(최빈값).
-        let mostFrequentLowestHour: Int?
-        // lowestDailyDate 전날/당일 수면 시간과 그날 캘린더 일정 — 화면에서 실제 날짜와 함께
-        // 각각 한 줄씩 표시하도록 값 자체를 구조화해서 넘긴다(문자열로 미리 합쳐두지 않음).
-        let lowestDayContext: LowestDayContext?
-    }
-
-    struct LowestDayContext {
-        let previousNightDuration: TimeInterval?
-        let sameNightDuration: TimeInterval?
-        let eventTitles: [String]
-    }
-
     // rMSSD가 낮았던 날 상위 N개를 표로 보여주기 위한 한 행 — 전날 수면/전날 운동은 회복에
     // 영향을 주는 "그 전"의 요인, 스케줄은 그날 자체에 있었던 일정(원인 쪽에 가깝다는 가정).
     struct RMSSDLowestDayRow: Identifiable {
@@ -94,7 +75,6 @@ final class ReportViewModel {
     private(set) var averageSleepDuration: TimeInterval?
     private(set) var averageSleepScore: Double?
     private(set) var cvFindings: CVFindings?
-    private(set) var rmssdFindings: RMSSDLowestFindings?
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var correlationFindings: CorrelationFindings?
     private(set) var vitalMedians: VitalMedians?
@@ -166,11 +146,6 @@ final class ReportViewModel {
 
             let periodRMSSD = allRMSSDSamples.filter { $0.date >= start && $0.date < end }
             cvFindings = Self.computeCVFindings(periodRMSSD: periodRMSSD, allRMSSDSamples: allRMSSDSamples)
-            rmssdFindings = Self.computeRMSSDFindings(
-                periodRMSSD,
-                allSleepRanges: allRanges,
-                calendarEvents: calendarEvents
-            )
 
             let periodSDNN = allSDNNSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
             let periodRestingHeartRate = allRestingHeartRateSamples.filter { $0.date >= start && $0.date < end }.map(\.value)
@@ -256,91 +231,6 @@ final class ReportViewModel {
         return CVFindings(overallCV: overallCV, dailyPoints: dailyPoints)
     }
 
-    private static func computeRMSSDFindings(
-        _ samples: [(date: Date, value: Double)],
-        allSleepRanges: [SleepRange],
-        calendarEvents: [CalendarEventService.Event]
-    ) -> RMSSDLowestFindings? {
-        guard !samples.isEmpty else { return nil }
-        let calendar = Calendar.current
-
-        let dailyMedians = HRVStatistics.dailyMedian(samples)
-        let lowestDay = dailyMedians.min { $0.value < $1.value }
-
-        var byWeekday: [Int: [Double]] = [:]
-        for entry in dailyMedians {
-            byWeekday[calendar.component(.weekday, from: entry.date), default: []].append(entry.value)
-        }
-        let weekdayAverages = byWeekday.mapValues { $0.reduce(0, +) / Double($0.count) }
-        let lowestWeekday = weekdayAverages.min { $0.value < $1.value }?.key
-
-        let lowestDayContext = lowestDay.map {
-            Self.lowestDayContext(date: $0.date, sleepRanges: allSleepRanges, calendarEvents: calendarEvents)
-        }
-
-        return RMSSDLowestFindings(
-            lowestDailyDate: lowestDay?.date,
-            lowestAverageWeekday: lowestWeekday,
-            mostFrequentLowestHour: Self.mostFrequentLowestHour(samples),
-            lowestDayContext: lowestDayContext
-        )
-    }
-
-    // 날짜별로 그 날의 최저 1시간 버킷(0~23시, 그 시간대 원시 샘플 평균 기준)을 구한 뒤,
-    // 여러 날에 걸쳐 가장 자주 "그날의 최저"로 뽑힌 시간대를 찾는다. 동률이면 더 이른
-    // 시간대를 택해 항상 같은 결과가 나오게 한다.
-    private static func mostFrequentLowestHour(_ samples: [(date: Date, value: Double)]) -> Int? {
-        let calendar = Calendar.current
-
-        var byDay: [Date: [Int: [Double]]] = [:]
-        for sample in samples {
-            let day = calendar.startOfDay(for: sample.date)
-            let hour = calendar.component(.hour, from: sample.date)
-            byDay[day, default: [:]][hour, default: []].append(sample.value)
-        }
-
-        let lowestHourPerDay = byDay.values.compactMap { hourBuckets in
-            hourBuckets.mapValues(HRVStatistics.mean).min { $0.value < $1.value }?.key
-        }
-        guard !lowestHourPerDay.isEmpty else { return nil }
-
-        var counts: [Int: Int] = [:]
-        for hour in lowestHourPerDay {
-            counts[hour, default: 0] += 1
-        }
-        let maxCount = counts.values.max() ?? 0
-        return counts.filter { $0.value == maxCount }.keys.min()
-    }
-
-    // 그 날 rMSSD가 가장 낮았던 이유를 짐작해볼 수 있게, 전날/당일 수면 시간과 그날 캘린더
-    // 일정을 구조화해서 넘긴다. 전날 수면 = date-1에 시작한 밤, 당일 수면 = date에 시작한 밤 —
-    // 실제 날짜는 이 date를 기준으로 화면에서 계산해서 표시한다.
-    private static func lowestDayContext(
-        date: Date,
-        sleepRanges: [SleepRange],
-        calendarEvents: [CalendarEventService.Event]
-    ) -> LowestDayContext {
-        let calendar = Calendar.current
-
-        let previousNightDuration = calendar.date(byAdding: .day, value: -1, to: date)
-            .flatMap { previousDay in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: previousDay) } }
-            .map { $0.end.timeIntervalSince($0.start) }
-
-        let sameNightDuration = sleepRanges
-            .first { calendar.isDate($0.start, inSameDayAs: date) }
-            .map { $0.end.timeIntervalSince($0.start) }
-
-        let eventTitles = calendarEvents
-            .filter { calendar.isDate($0.start, inSameDayAs: date) }
-            .map(\.title)
-
-        return LowestDayContext(
-            previousNightDuration: previousNightDuration,
-            sameNightDuration: sameNightDuration,
-            eventTitles: eventTitles
-        )
-    }
-
     // 캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 정상적으로 보여준다 —
     // "일정" 컨텍스트만 빠진다.
     private static func fetchCalendarEventsSafely() async -> [CalendarEventService.Event] {
@@ -385,7 +275,7 @@ final class ReportViewModel {
 
     // rMSSD가 가장 낮았던 상위 N일을 표로 보여준다 — 일자별로 전날 수면/그날 스케줄/전날 운동을
     // 나란히 붙여, 그 날 유독 낮았던 이유를 짐작할 단서를 준다.
-    private static let lowestDayRowCount = 5
+    private static let lowestDayRowCount = 3
 
     private static func computeLowestDayRows(
         dailyMedians: [(date: Date, value: Double)],
