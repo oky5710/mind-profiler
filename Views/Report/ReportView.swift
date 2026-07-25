@@ -563,7 +563,9 @@ struct ReportView: View {
             } else {
                 // 표(Grid)는 "스케줄" 칸이 길어지면 다른 칸까지 좁아져 읽기 불편했다 — 날짜별로
                 // 카드 하나씩 쌓아서, 왼쪽에 날짜+rMSSD 값, 오른쪽에 라벨 붙은 상세 줄로 나눈다.
-                VStack(spacing: 10) {
+                // alignment를 명시하지 않으면 기본값(center)이라 행마다 너비가 달라 왼쪽이
+                // 들쭉날쭉해 보인다 — leading으로 고정한다.
+                VStack(alignment: .leading, spacing: 10) {
                     ForEach(viewModel.rmssdLowestDayRows) { row in
                         lowestDayRow(row)
                     }
@@ -575,7 +577,13 @@ struct ReportView: View {
 
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            lowestDayChip(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms", color: Theme.primary50)
+            lowestDayChip(
+                label: "rMSSD",
+                value: Text("\(Int(row.rmssd.rounded()))")
+                    .font(.system(size: 20, weight: .bold))
+                    + Text("ms").font(.caption2).fontWeight(.regular),
+                color: Theme.primary50
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(Self.dateFormatter.string(from: row.date))
@@ -590,15 +598,16 @@ struct ReportView: View {
         .padding(.bottom, 10)
     }
 
-    // 라벨 위, 값 아래로 줄바꿈해서 담는 작은 칩 — rMSSD 전용.
-    private func lowestDayChip(label: String, value: String?, color: Color) -> some View {
+    // 라벨 위, 값 아래로 줄바꿈해서 담는 작은 칩 — rMSSD 전용. value를 Text로 받는 이유는
+    // durationText/bigStat과 같은 이유 — 숫자(20pt Bold)와 단위(ms, caption2 Regular)를 따로
+    // 스타일링해서 이어붙여야 해서다.
+    private func lowestDayChip(label: String, value: Text, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
-            Text(value ?? "—")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Theme.primary)
+            value
+                .foregroundStyle(Theme.primary600)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -616,8 +625,10 @@ struct ReportView: View {
         }
     }
 
+    // 스케줄 — 라벨과 값을 옆으로 붙이지 않고 줄바꿈해서 위/아래로 둔다(스케줄 여러 개가
+    // 길게 이어질 수 있어서 한 줄에 라벨과 나란히 두면 좁아 보인다).
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
-        HStack(alignment: .top, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
