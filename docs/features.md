@@ -107,7 +107,7 @@
   오도록 순서를 안정시 심박수 · rMSSD · SDNN으로 둔다. 라벨은 작게, 숫자는 크고 굵게(28pt Bold),
   단위(bpm/ms)는 숫자 옆에 작게 붙인다(`vitalPanel`). 카드 배경은 `Theme.primary50`, 테두리는
   `Theme.systemGray5`, 그림자는 광원이 좌상단에 있다고 가정하고 우하단으로 옅게
-  (`.shadow(color: .black.opacity(0.1), radius: 4, x: 1, y: 1)`). 안정시 심박수는 이 화면에서
+  (`.shadow(color: .black.opacity(0.1), radius: 3, x: 1, y: 1)`). 안정시 심박수는 이 화면에서
   처음 쓰는 HealthKit 타입이라
   (`HKQuantityType(.restingHeartRate)`) `requestAuthorization()`의 read 목록에 추가했다 — 원시
   `heartRate` 전체 샘플의 중앙값은 운동/활동 중 측정치가 섞여서 지나치게 높게 나오므로, 애플워치가
