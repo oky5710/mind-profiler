@@ -621,6 +621,8 @@ struct ReportView: View {
                         Text("rMSSD").font(.caption2).foregroundStyle(.secondary)
                         Text("차이").font(.caption2).foregroundStyle(.secondary)
                     }
+                    tableRowDivider
+
                     ForEach(viewModel.topSDNNRMSSDDifferences) { diff in
                         GridRow {
                             Text(Self.dateTimeFormatter.string(from: diff.date)).font(.caption2)
@@ -628,11 +630,22 @@ struct ReportView: View {
                             Text("\(String(format: "%.0f", diff.rmssd))ms").font(.caption2)
                             Text("\(String(format: "%.0f", diff.difference))ms").font(.caption2)
                         }
+                        tableRowDivider
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .panelCard()
+    }
+
+    // Grid 안에서 GridRow로 감싸지 않고 바로 두면 그 한 줄이 되고, gridCellColumns(4)로 4칸을
+    // 전부 차지하게 해서 표 너비 전체를 가로지르는 구분선이 된다.
+    private var tableRowDivider: some View {
+        Rectangle()
+            .fill(Theme.systemGray5)
+            .frame(height: 1)
+            .gridCellColumns(4)
     }
 
     // MARK: - 기분/운동/커피 상관관계

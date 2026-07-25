@@ -157,7 +157,10 @@
 - **SDNN vs rMSSD 차이 Top 3**: 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍 중 절댓값 차이가 큰 상위 3개를
   [일시, SDNN, rMSSD, 차이] 표로 보여준다 — 설정 화면의 "SDNN vs rMSSD 분석"과 같은 쌍 데이터
   (`HealthKitService.fetchSDNNRMSSDPairs`)를 재사용하지만, 여기서는 평균·상관계수가 아니라 차이가
-  가장 큰 개별 시점을 찾는다.
+  가장 큰 개별 시점을 찾는다. 표(`Grid`)는 패널 너비 100%로 늘리고, 헤더를 포함한 줄마다 아래에
+  옅은 구분선(`Theme.systemGray5`, 1pt)을 긋는다 — `GridRow`로 감싸지 않고 `.gridCellColumns(4)`를
+  준 도형을 그 줄 자리에 그대로 두면, 4칸을 전부 가로지르는 한 줄짜리 구분선이 된다
+  (`tableRowDivider`).
 - **기분·운동·커피와 rMSSD 관계**: 기분 점수·커피 잔 수는 그날 rMSSD 중앙값과의 Pearson 상관계수로
   보여주고, 운동은 "운동한 날 vs 안 한 날"의 평균 rMSSD 비교로 보여준다 — 운동 유무는 이진값이라
   상관계수보다 두 그룹 평균 비교가 더 읽기 쉬워서 다르게 다룬다 (`HRVStatistics.pearsonCorrelation`).
