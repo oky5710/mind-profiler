@@ -150,7 +150,8 @@
 - **rMSSD 낮은 날 Top 3**: 일별 대표값(중앙값)이 가장 낮았던 상위 3일을 보여준다
   (`rmssdLowestDaysTableSection`, `lowestDayRowCount = 3`). 표(Grid)로 4칸을 나란히 두면 "스케줄"
   칸이 길어질 때 다른 칸까지 좁아져서, 대신 날짜별로 행(`lowestDayRow`, 구분선 없음)을 쌓는다 —
-  왼쪽에 rMSSD 값을 라벨(위)+값(아래)으로 줄바꿈한 칩(`lowestDayChip`, `Theme.primary50`), 오른쪽에
+  왼쪽에 rMSSD 값을 라벨(위)+값(아래, 20pt Bold `Theme.primary`)으로 줄바꿈한 칩(`lowestDayChip`,
+  배경 `Theme.primary50`), 오른쪽에
   나머지 전부: 첫 줄은 날짜, 둘째 줄은 수면·운동을 "라벨 + 굵은 값" 텍스트로 가로로 나란히
   (`lowestDayInlineDetail`), 셋째 줄은 스케줄만 줄바꿈해서 보여준다. 스케줄은 캘린더 일정
   (EventKit, `CalendarEventService.fetchEvents()`)과 직접 입력한 생활 이벤트를 합친 것 — 캘린더

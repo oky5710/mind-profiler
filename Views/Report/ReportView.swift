@@ -597,7 +597,8 @@ struct ReportView: View {
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
             Text(value ?? "—")
-                .font(.caption2)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.primary)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
