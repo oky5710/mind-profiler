@@ -245,74 +245,68 @@ struct ReportView: View {
                 sleepBarChart
             }
 
-            // 막대는 그날 세션들을 합친 총량이라, 상세도 하나만 보여주면 총량과 안 맞아 보인다 —
-            // 탭한 날짜의 세션 전부를 위아래로 나열한다.
-            VStack(spacing: 12) {
-                ForEach(selectedDaySleepRanges) { session in
-                    SleepDetailPanel(sleepRange: session) { selectedSleepRange = nil }
-                }
+            // 세로축이 이제 시각이라 세션마다 실제 시간대에 막대가 그려지고, 탭도 x(날짜)와
+            // y(시각) 둘 다로 어느 세션인지 정확히 짚어내므로, 예전처럼 하루치를 다 나열할
+            // 필요 없이 탭한 세션 하나만 보여주면 된다.
+            if let selectedSleepRange {
+                SleepDetailPanel(sleepRange: selectedSleepRange) { self.selectedSleepRange = nil }
             }
         }
         .panelCard()
     }
 
-    private var selectedDaySleepRanges: [SleepRange] {
-        guard let selectedSleepRange else { return [] }
+    // 아이폰 Health 앱처럼 세로축을 "수면 시간(길이)"이 아니라 "시각"으로 바꾼다 — 하루 칸 안에서
+    // 잠든 시각부터 일어난 시각까지를 막대로 그린다. 자정을 넘기는 밤은 종료 시각에 24시간을 더해
+    // 연속된 값으로 만든다(예: 23:14 시작 ~ 07:09 종료 → 23.23 ~ 31.15) — 그래야 자정에서 막대가
+    // 끊기지 않는다. 세션이 하루에 여러 개(이른 아침에 잠깐 더 잔 것 + 그날 밤잠)여도 각자 실제
+    // 시각에 그려지므로 서로 다른 위치에 자연히 떨어져서, 예전처럼 같은 자리에 겹쳐 보이지 않는다.
+    private func sleepBarYRange(for range: SleepRange) -> ClosedRange<Double> {
         let calendar = Calendar.current
-        return viewModel.sleepRanges
-            .filter { calendar.isDate($0.start, inSameDayAs: selectedSleepRange.start) }
-            .sorted { $0.start < $1.start }
-    }
-
-    // 하루에 수면 세션이 2개 이상(예: 이른 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜
-    // 칸에 막대가 두 개 겹쳐 그려져 버린다(반투명끼리 겹쳐서 유독 진하고 큰 막대처럼 보임,
-    // 탭도 그 중 하나로만 고정돼서 이상해 보인다) — 애플 Health처럼 하루 총 수면시간을
-    // 합쳐서 막대 하나로 보여준다.
-    private struct DailySleepTotal: Identifiable {
-        let day: Date
-        let totalHours: Double
-        var id: Date { day }
-    }
-
-    private var dailySleepTotals: [DailySleepTotal] {
-        let calendar = Calendar.current
-        var totals: [Date: Double] = [:]
-        for range in viewModel.sleepRanges {
-            let day = calendar.startOfDay(for: range.start)
-            totals[day, default: 0] += range.end.timeIntervalSince(range.start) / 3600
+        let dayStart = calendar.startOfDay(for: range.start)
+        let startHour = range.start.timeIntervalSince(dayStart) / 3600
+        var endHour = range.end.timeIntervalSince(dayStart) / 3600
+        if endHour < startHour {
+            endHour += 24
         }
-        return totals.map { DailySleepTotal(day: $0.key, totalHours: $0.value) }
+        return startHour...endHour
     }
 
-    private func dailyTotalHours(containing date: Date) -> Double {
-        let calendar = Calendar.current
-        return viewModel.sleepRanges
-            .filter { calendar.isDate($0.start, inSameDayAs: date) }
-            .reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) / 3600 }
+    // 세로축 눈금(0~30시)을 실제 시각(예: 30시 → 06:00)으로 바꿔 보여준다.
+    private func clockLabel(forHour hour: Double) -> String {
+        let normalized = hour.truncatingRemainder(dividingBy: 24)
+        let h = Int(normalized.rounded(.down))
+        return String(format: "%02d:00", h)
     }
 
     private var sleepBarChart: some View {
         Chart {
-            ForEach(dailySleepTotals) { total in
+            ForEach(viewModel.sleepRanges) { range in
+                let yRange = sleepBarYRange(for: range)
                 BarMark(
-                    x: .value("날짜", total.day, unit: .day),
-                    y: .value("수면 시간", total.totalHours),
+                    x: .value("날짜", range.start, unit: .day),
+                    yStart: .value("잠든 시각", yRange.lowerBound),
+                    yEnd: .value("일어난 시각", yRange.upperBound),
                     width: .fixed(sleepBarWidth)
                 )
                 .foregroundStyle(Theme.sleep.opacity(0.7))
                 .cornerRadius(4)
             }
-            if let avgDuration = viewModel.averageSleepDuration {
-                RuleMark(y: .value("평균", avgDuration / 3600))
-                    .foregroundStyle(.gray)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
         }
         .frame(height: 180)
-        .chartYAxisLabel("시간")
+        .chartYAxisLabel("시각")
+        // 대부분의 수면은 저녁~다음 날 아침 사이라, 0시~30시(다음 날 새벽 6시)로 고정해서
+        // 데이터에 따라 축이 흔들리지 않게 한다.
+        .chartYScale(domain: 0...30)
         .chartYAxis {
-            AxisMarks { value in
-                Self.valueAxisMarks(value)
+            AxisMarks(values: [0, 6, 12, 18, 24, 30]) { value in
+                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+                AxisTick().foregroundStyle(.gray.opacity(0.85))
+                AxisValueLabel {
+                    if let hour = value.as(Double.self) {
+                        Text(clockLabel(forHour: hour))
+                            .font(.system(size: 9))
+                    }
+                }
             }
         }
         // 아래 CV 차트와 같은 도메인을 명시해야 두 차트의 x축 눈금 위치가 일치한다 — 각자 자기
@@ -339,9 +333,22 @@ struct ReportView: View {
                             guard let plotFrame = proxy.plotFrame else { return }
                             let plotRect = geo[plotFrame]
                             let localX = location.x - plotRect.minX
+                            let localY = location.y - plotRect.minY
                             guard let tappedDate: Date = proxy.value(atX: localX) else { return }
-                            selectedSleepRange = viewModel.sleepRanges.min {
-                                abs($0.start.timeIntervalSince(tappedDate)) < abs($1.start.timeIntervalSince(tappedDate))
+                            let calendar = Calendar.current
+                            let sameDayRanges = viewModel.sleepRanges.filter {
+                                calendar.isDate($0.start, inSameDayAs: tappedDate)
+                            }
+                            // 같은 날 세션이 여러 개면(서로 다른 시각대) 탭한 세로 위치와 가장
+                            // 가까운 세션을 고른다 — x만으로는 그날 중 어느 세션인지 구분이 안 된다.
+                            if let tappedHour: Double = proxy.value(atY: localY) {
+                                selectedSleepRange = sameDayRanges.min {
+                                    let lhs = sleepBarYRange(for: $0)
+                                    let rhs = sleepBarYRange(for: $1)
+                                    return distance(from: tappedHour, to: lhs) < distance(from: tappedHour, to: rhs)
+                                }
+                            } else {
+                                selectedSleepRange = sameDayRanges.first
                             }
                         }
                 }
@@ -402,17 +409,22 @@ struct ReportView: View {
         return interval.start.addingTimeInterval(interval.duration / 2)
     }
 
+    // 탭한 세로 위치(hour)가 어떤 세션의 [시작, 종료] 시각 구간에서 얼마나 떨어져 있는지 —
+    // 구간 안이면 0, 밖이면 가장 가까운 경계까지의 거리.
+    private func distance(from hour: Double, to range: ClosedRange<Double>) -> Double {
+        if range.contains(hour) { return 0 }
+        return min(abs(hour - range.lowerBound), abs(hour - range.upperBound))
+    }
+
     // 오늘의 패턴 Gantt 차트의 선택 그림자와 같은 스타일(그림자 색·반경·오프셋, 모서리 반경) —
     // 차트 마크 자체는 shadow()를 지원하지 않아서 같은 위치·크기·색의 실제 도형을 겹쳐 그린다.
     @ViewBuilder
     private func selectedSleepBarShadow(_ range: SleepRange, proxy: ChartProxy, geo: GeometryProxy) -> some View {
-        // 막대 자체가 그날 세션들을 합친 높이라, 그림자도 range 하나가 아니라 같은 날짜의
-        // 합계 높이를 써야 실제 막대와 정확히 겹친다.
-        let hours = dailyTotalHours(containing: range.start)
+        let yRange = sleepBarYRange(for: range)
         if let plotFrame = proxy.plotFrame,
            let x = proxy.position(forX: dayMidpoint(of: range.start)),
-           let yTop = proxy.position(forY: hours),
-           let yBottom = proxy.position(forY: 0) {
+           let yTop = proxy.position(forY: yRange.upperBound),
+           let yBottom = proxy.position(forY: yRange.lowerBound) {
             let plotRect = geo[plotFrame]
             // 선택 안 된 막대는 Theme.sleep.opacity(0.7)라 반투명 위에 반투명을 겹치면 뿌옇게
             // 흐려 보인다 — 선택된 막대는 불투명 단색으로 확실히 구분되게 그린다.
