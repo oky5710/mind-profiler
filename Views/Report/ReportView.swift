@@ -631,8 +631,6 @@ private struct PeriodRangeRow: View {
                         )
                     }
                     .padding()
-
-                    Spacer()
                 }
                 .safeAreaInset(edge: .bottom) {
                     // ui-style.md 버튼 크기 규칙의 Default(50pt).
@@ -641,7 +639,7 @@ private struct PeriodRangeRow: View {
                         onAnalyze()
                     } label: {
                         Label("분석", systemImage: "waveform.path.ecg")
-                            .font(Typography.button)
+                            .font(Typography.cardTitle)
                             .frame(maxWidth: .infinity, minHeight: 50)
                     }
                     .buttonStyle(.borderedProminent)
@@ -653,9 +651,10 @@ private struct PeriodRangeRow: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
             .environment(\.locale, Locale(identifier: "ko_KR"))
-            // compact 피커를 탭하면 그 아래로 작은 달력 팝업이 펼쳐지는데, 시트 높이가 낮으면
-            // 그 팝업이 시트 바닥에 잘릴 수 있다 — 기본(large) 크기를 그대로 써서 아래쪽에
-            // 팝업이 펼쳐질 공간을 넉넉히 남긴다.
+            // 날짜 입력 한 줄 + 분석 버튼뿐이라 내용에 딱 맞는 높이로 줄인다. compact 피커의 달력
+            // 팝업은 시스템이 화면 안에 들어오게 알아서 위/아래로 뒤집어 띄우므로 시트가 낮아도 잘리지
+            // 않는다.
+            .presentationDetents([.height(230)])
         }
     }
 
