@@ -165,7 +165,7 @@ struct ReportView: View {
     private func vitalPanel(title: String, value: Int?, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.caption)
+                .font(.caption2.bold())
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value.map(String.init) ?? "—")
