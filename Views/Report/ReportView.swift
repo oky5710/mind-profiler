@@ -303,7 +303,7 @@ struct ReportView: View {
                 .cornerRadius(4)
             }
         }
-        .frame(height: 180)
+        .frame(height: 260)
         .chartYAxisLabel("시각")
         // 하루 칸은 항상 0시~24시.
         .chartYScale(domain: 0...24)
