@@ -705,7 +705,7 @@ struct ReportView: View {
 private extension View {
     func panelCard() -> some View {
         self
-            .padding(12)
+            .padding(20)
             .background(.white, in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
             // 광원이 좌상단에 있다고 가정 — 그림자는 반대 방향인 우하단으로 옅게 떨어뜨린다.
