@@ -309,7 +309,7 @@ struct HRVAnalysisView: View {
     private var hrvChart: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("HRV Trend").font(.system(size: 13.6, weight: .semibold))
+                Text("HRV Trend").font(Typography.sectionTitle)
                 Spacer()
                 // 핀치로 확대/축소한 뒤 원래 배율(1배)로 되돌리는 버튼. 이미 원래 배율이면 눌러도
                 // 할 일이 없으니 흐리게 표시하고 탭을 막는다 — 그래도 자리는 계속 차지해서 픽커 옆
