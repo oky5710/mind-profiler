@@ -183,6 +183,25 @@ struct ReportView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
     }
 
+    // vitalPanel과 같은 "작은 라벨 + 큰 굵은 값" 조합이지만, 이미 panelCard로 감싸인 섹션
+    // 안에서 쓰는 용도라 카드 배경/테두리는 따로 두지 않는다.
+    private func bigStat(title: String, value: String, unit: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 24, weight: .bold))
+                if let unit {
+                    Text(unit)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     // MARK: - 수면
 
     private var sleepSection: some View {
@@ -191,9 +210,10 @@ struct ReportView: View {
                 .padding(.bottom, 8)
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
-                Text("평균 수면 시간 \(SleepAnalysisService.formattedDuration(avgDuration)) · 평균 점수 \(Int(avgScore.rounded()))점")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 24) {
+                    bigStat(title: "평균 수면 시간", value: SleepAnalysisService.formattedDuration(avgDuration))
+                    bigStat(title: "평균 수면 점수", value: "\(Int(avgScore.rounded()))", unit: "점")
+                }
             }
 
             if viewModel.sleepRanges.isEmpty {
@@ -208,6 +228,7 @@ struct ReportView: View {
                 SleepDetailPanel(sleepRange: selectedSleepRange) { self.selectedSleepRange = nil }
             }
         }
+        .panelCard()
     }
 
     private var sleepBarChart: some View {
@@ -361,6 +382,7 @@ struct ReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .panelCard()
     }
 
     private func cvChart(_ findings: ReportViewModel.CVFindings) -> some View {
@@ -587,6 +609,17 @@ struct ReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+// 수면/CV처럼 차트가 들어있는 섹션을 감싸는 카드 — vitalPanel(배경 Theme.primary50)과 달리
+// 배경은 흰색, 테두리는 기본 색(Theme.systemGray5)을 쓴다.
+private extension View {
+    func panelCard() -> some View {
+        self
+            .padding(12)
+            .background(.white, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
     }
 }
 
