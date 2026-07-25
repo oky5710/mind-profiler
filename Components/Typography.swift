@@ -10,7 +10,7 @@ enum Typography {
     // 22pt Bold — 섹션 제목.
     static let sectionTitle = Font.system(size: 20, weight: .bold)
     // 20pt Semibold — 카드 제목.
-    static let cardTitle = Font.system(size: 18, weight: .semibold)
+    static let cardTitle = Font.system(size: 16, weight: .semibold)
     // 17pt Regular — 본문.
     static let body = Font.system(size: 17, weight: .regular)
     // 17pt Semibold — 버튼(Primary). Secondary Button은 같은 크기에 .fontWeight(.medium)을 덧씌운다.
