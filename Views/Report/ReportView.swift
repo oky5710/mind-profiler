@@ -245,11 +245,23 @@ struct ReportView: View {
                 sleepBarChart
             }
 
-            if let selectedSleepRange {
-                SleepDetailPanel(sleepRange: selectedSleepRange) { self.selectedSleepRange = nil }
+            // 막대는 그날 세션들을 합친 총량이라, 상세도 하나만 보여주면 총량과 안 맞아 보인다 —
+            // 탭한 날짜의 세션 전부를 위아래로 나열한다.
+            VStack(spacing: 12) {
+                ForEach(selectedDaySleepRanges) { session in
+                    SleepDetailPanel(sleepRange: session) { selectedSleepRange = nil }
+                }
             }
         }
         .panelCard()
+    }
+
+    private var selectedDaySleepRanges: [SleepRange] {
+        guard let selectedSleepRange else { return [] }
+        let calendar = Calendar.current
+        return viewModel.sleepRanges
+            .filter { calendar.isDate($0.start, inSameDayAs: selectedSleepRange.start) }
+            .sorted { $0.start < $1.start }
     }
 
     // 하루에 수면 세션이 2개 이상(예: 이른 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜
