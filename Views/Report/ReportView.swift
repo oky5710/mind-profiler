@@ -144,26 +144,15 @@ struct ReportView: View {
 
     // MARK: - 기간 요약 (심박수/SDNN/rMSSD 중앙값)
 
+    // 대시보드 스타일 — 라벨 텍스트 대신 큰 숫자 3개를 가로로 나란히 놓은 카드로 보여준다.
     private var vitalsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("기간 요약").font(Typography.sectionTitle)
-                .padding(.bottom, 8)
-
+        Group {
             if let vitals = viewModel.vitalMedians,
                vitals.restingHeartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
-                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
-                    GridRow {
-                        Text("안정시 심박수 중앙값").font(.footnote).foregroundStyle(.secondary)
-                        Text(vitals.restingHeartRate.map { "\(Int($0.rounded()))bpm" } ?? "—").font(.footnote)
-                    }
-                    GridRow {
-                        Text("SDNN 중앙값").font(.footnote).foregroundStyle(.secondary)
-                        Text(vitals.sdnn.map { "\(Int($0.rounded()))ms" } ?? "—").font(.footnote)
-                    }
-                    GridRow {
-                        Text("rMSSD 중앙값").font(.footnote).foregroundStyle(.secondary)
-                        Text(vitals.rmssd.map { "\(Int($0.rounded()))ms" } ?? "—").font(.footnote)
-                    }
+                HStack(spacing: 12) {
+                    vitalPanel(title: "안정시 심박수", value: vitals.restingHeartRate.map { Int($0.rounded()) }, unit: "bpm")
+                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { Int($0.rounded()) }, unit: "ms")
+                    vitalPanel(title: "rMSSD", value: vitals.rmssd.map { Int($0.rounded()) }, unit: "ms")
                 }
             } else {
                 Text("해당 기간에 심박수/HRV 데이터가 없어요")
@@ -171,6 +160,27 @@ struct ReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func vitalPanel(title: String, value: Int?, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value.map(String.init) ?? "—")
+                    .font(.system(size: 28, weight: .bold))
+                if value != nil {
+                    Text(unit)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
     }
 
     // MARK: - 수면
