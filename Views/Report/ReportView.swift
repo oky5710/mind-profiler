@@ -41,15 +41,6 @@ struct ReportView: View {
         }
     }
 
-    // y축도 x축과 같은 9pt로 맞춘다(HRVAnalysisView의 yAxisOverlay와 동일한 크기).
-    @AxisMarkBuilder
-    private static func valueAxisMarks(_ value: AxisValue) -> some AxisMark {
-        AxisGridLine().foregroundStyle(.gray.opacity(0.25))
-        AxisTick().foregroundStyle(.gray.opacity(0.85))
-        AxisValueLabel()
-            .font(.system(size: 9))
-    }
-
     // viewModel.previousVisitDate/thisVisitDate는 DatePicker로 고른 "그날"을 나타낼 뿐인데, 실제
     // Date 값에는 화면을 처음 연 시각의 시(時)·분(分)이 그대로 남아 있다(ReportViewModel.init의
     // `now`). 이 원시 값을 그대로 domain으로 쓰면 첫날/마지막 날의 day-unit 막대·포인트가 자정
@@ -257,48 +248,54 @@ struct ReportView: View {
         .panelCard()
     }
 
-    // 아이폰 Health 앱처럼 세로축을 "수면 시간(길이)"이 아니라 "시각"으로 바꾼다 — 하루 칸은
-    // 항상 0시~24시 하나만 쓰고, 자정을 넘기는 밤은 자정에서 그냥 잘라 두 조각(시작일의 0~24시
-    // 구간, 종료일의 0~해당 시각 구간)으로 나눠 그린다. 두 조각 다 원래 같은 SleepRange를
-    // 가리키고 있어서, 어느 쪽을 탭해도 같은 상세 패널이 뜬다.
-    private struct SleepBarSegment: Identifiable {
-        let id: String
-        let day: Date
-        let yRange: ClosedRange<Double>
-        let range: SleepRange
-    }
-
-    private var sleepBarSegments: [SleepBarSegment] {
+    // 오후 9시(21시) 이후에 시작해서 다음날 오전 10시 이전에 끝나는 수면을 그날 밤으로 본다 —
+    // 예: 7/1 22시 취침 ~ 7/2 9시 기상은 7/1의 수면으로 표시한다. 그래서 세션이 속하는 "밤 날짜"는
+    // 시작 시각의 시(hour)가 10시 이전이면 전날로 당기고, 그 외엔 시작한 날짜 그대로 쓴다.
+    private func nightLabel(for date: Date) -> Date {
         let calendar = Calendar.current
-        var segments: [SleepBarSegment] = []
-        for range in viewModel.sleepRanges {
-            let startDay = calendar.startOfDay(for: range.start)
-            let startHour = range.start.timeIntervalSince(startDay) / 3600
-            if calendar.isDate(range.start, inSameDayAs: range.end) {
-                let endHour = range.end.timeIntervalSince(startDay) / 3600
-                segments.append(SleepBarSegment(id: "\(range.id)-0", day: startDay, yRange: startHour...endHour, range: range))
-            } else {
-                let endDay = calendar.startOfDay(for: range.end)
-                let endHour = range.end.timeIntervalSince(endDay) / 3600
-                segments.append(SleepBarSegment(id: "\(range.id)-0", day: startDay, yRange: startHour...24, range: range))
-                segments.append(SleepBarSegment(id: "\(range.id)-1", day: endDay, yRange: 0...endHour, range: range))
-            }
-        }
-        return segments
+        let day = calendar.startOfDay(for: date)
+        let hour = calendar.component(.hour, from: date)
+        return hour < 10 ? (calendar.date(byAdding: .day, value: -1, to: day) ?? day) : day
     }
 
-    // 세로축 눈금은 시:분이 아니라 숫자(시)만 보여준다.
-    private func clockLabel(forHour hour: Double) -> String {
-        "\(Int(hour.rounded(.down)))"
+    // 세로축은 그 밤 날짜의 21시부터 다음날 21시까지(24시간)를 기준 삼아 시간을 잰다 — 자정이 축
+    // 가운데쯤 오게 해서, 취침~기상이 자정을 넘겨도 축 경계에서 끊을 필요가 없어진다.
+    private func hourOffset(_ date: Date, from nightLabel: Date) -> Double {
+        guard let reference = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: nightLabel) else { return 0 }
+        return date.timeIntervalSince(reference) / 3600
     }
+
+    private func sleepBarYRange(for range: SleepRange, nightLabel: Date) -> ClosedRange<Double> {
+        let start = hourOffset(range.start, from: nightLabel)
+        let end = hourOffset(range.end, from: nightLabel)
+        return min(start, end)...max(start, end)
+    }
+
+    private struct SleepBar: Identifiable {
+        let range: SleepRange
+        let label: Date
+        var id: UUID { range.id }
+    }
+
+    private var sleepBars: [SleepBar] {
+        viewModel.sleepRanges.map { SleepBar(range: $0, label: nightLabel(for: $0.start)) }
+    }
+
+    // 세로축 눈금(0~24)을 실제 시각으로 바꾼다 — 0은 21시, 24는 다음날 21시.
+    private func clockLabel(forHour hour: Double) -> String {
+        "\((21 + Int(hour.rounded(.down))) % 24)"
+    }
+
+    private static let sleepYAxisTicks: [Double] = [0, 6, 12, 18, 24]
 
     private var sleepBarChart: some View {
         Chart {
-            ForEach(sleepBarSegments) { segment in
+            ForEach(sleepBars) { bar in
+                let yRange = sleepBarYRange(for: bar.range, nightLabel: bar.label)
                 BarMark(
-                    x: .value("날짜", segment.day, unit: .day),
-                    yStart: .value("잠든 시각", segment.yRange.lowerBound),
-                    yEnd: .value("일어난 시각", segment.yRange.upperBound),
+                    x: .value("날짜", bar.label, unit: .day),
+                    yStart: .value("잠든 시각", yRange.lowerBound),
+                    yEnd: .value("일어난 시각", yRange.upperBound),
                     width: .fixed(sleepBarWidth)
                 )
                 .foregroundStyle(Theme.sleep.opacity(0.7))
@@ -306,21 +303,11 @@ struct ReportView: View {
             }
         }
         .frame(height: 260)
-        .chartYAxisLabel("시각")
-        // 하루 칸은 항상 0시~24시.
+        // 하루 칸은 항상 21시~다음날 21시(24시간).
         .chartYScale(domain: 0...24)
-        .chartYAxis {
-            AxisMarks(values: [0, 6, 12, 18, 24]) { value in
-                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
-                AxisTick().foregroundStyle(.gray.opacity(0.85))
-                AxisValueLabel {
-                    if let hour = value.as(Double.self) {
-                        Text(clockLabel(forHour: hour))
-                            .font(.system(size: 9))
-                    }
-                }
-            }
-        }
+        // y축 라벨이 차트 레이아웃 공간을 차지하지 않아야 한다는 규칙(ui-style.md,
+        // HRVAnalysisView+Axes.yAxisOverlay와 동일) — 네이티브 y축은 숨기고 직접 오버레이로 그린다.
+        .chartYAxis(.hidden)
         // 아래 CV 차트와 같은 도메인을 명시해야 두 차트의 x축 눈금 위치가 일치한다 — 각자 자기
         // 데이터 범위로 도메인을 추론하게 두면(수면 없는 날/CV 없는 날이 있을 때) 눈금이 어긋난다.
         .chartXScale(domain: chartDateDomain)
@@ -333,6 +320,7 @@ struct ReportView: View {
             GeometryReader { geo in
                 ZStack {
                     xAxisBaseline(proxy: proxy, geo: geo)
+                    yAxisOverlay(proxy: proxy, geo: geo, tickValues: Self.sleepYAxisTicks, label: clockLabel(forHour:))
 
                     if let selectedSleepRange {
                         selectedSleepBarShadow(selectedSleepRange, proxy: proxy, geo: geo)
@@ -348,18 +336,19 @@ struct ReportView: View {
                             let localY = location.y - plotRect.minY
                             guard let tappedDate: Date = proxy.value(atX: localX) else { return }
                             let calendar = Calendar.current
-                            let sameDaySegments = sleepBarSegments.filter {
-                                calendar.isDate($0.day, inSameDayAs: tappedDate)
+                            let sameDayBars = sleepBars.filter {
+                                calendar.isDate($0.label, inSameDayAs: tappedDate)
                             }
-                            // 같은 날 조각이 여러 개면(다른 세션, 또는 자정에 잘린 같은 세션의
-                            // 반대쪽 조각) 탭한 세로 위치와 가장 가까운 조각을 고른다 — x만으로는
-                            // 그날 중 어느 조각인지 구분이 안 된다.
+                            // 같은 날짜에 세션이 여러 개면(예: 이른 아침에 잠깐 더 잔 것 + 그날
+                            // 밤잠) 탭한 세로 위치와 가장 가까운 세션을 고른다 — x만으로는 그날
+                            // 중 어느 세션인지 구분이 안 된다.
                             if let tappedHour: Double = proxy.value(atY: localY) {
-                                selectedSleepRange = sameDaySegments.min {
-                                    distance(from: tappedHour, to: $0.yRange) < distance(from: tappedHour, to: $1.yRange)
+                                selectedSleepRange = sameDayBars.min {
+                                    distance(from: tappedHour, to: sleepBarYRange(for: $0.range, nightLabel: $0.label)) <
+                                        distance(from: tappedHour, to: sleepBarYRange(for: $1.range, nightLabel: $1.label))
                                 }?.range
                             } else {
-                                selectedSleepRange = sameDaySegments.first?.range
+                                selectedSleepRange = sameDayBars.first?.range
                             }
                         }
                 }
@@ -429,28 +418,49 @@ struct ReportView: View {
 
     // 오늘의 패턴 Gantt 차트의 선택 그림자와 같은 스타일(그림자 색·반경·오프셋, 모서리 반경) —
     // 차트 마크 자체는 shadow()를 지원하지 않아서 같은 위치·크기·색의 실제 도형을 겹쳐 그린다.
-    // 자정에 잘려서 조각이 두 개인 세션은 두 조각 다 강조해야 한다.
+    @ViewBuilder
     private func selectedSleepBarShadow(_ range: SleepRange, proxy: ChartProxy, geo: GeometryProxy) -> some View {
-        ForEach(sleepBarSegments.filter { $0.range.id == range.id }) { segment in
-            sleepBarShadowSegment(segment, proxy: proxy, geo: geo)
+        if let bar = sleepBars.first(where: { $0.range.id == range.id }) {
+            let yRange = sleepBarYRange(for: bar.range, nightLabel: bar.label)
+            if let plotFrame = proxy.plotFrame,
+               let x = proxy.position(forX: dayMidpoint(of: bar.label)),
+               let yTop = proxy.position(forY: yRange.upperBound),
+               let yBottom = proxy.position(forY: yRange.lowerBound) {
+                let plotRect = geo[plotFrame]
+                // 선택 안 된 막대는 Theme.sleep.opacity(0.7)라 반투명 위에 반투명을 겹치면 뿌옇게
+                // 흐려 보인다 — 선택된 막대는 불투명 단색으로 확실히 구분되게 그린다.
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Theme.sleep)
+                    .frame(width: sleepBarWidth, height: abs(yBottom - yTop))
+                    .position(x: plotRect.minX + x, y: plotRect.minY + (yTop + yBottom) / 2)
+                    .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+                    .allowsHitTesting(false)
+            }
         }
     }
 
+    // y축 라벨이 차트 레이아웃 공간을 차지하지 않고 고정된 위치에 떠 있어야 한다는 규칙(ui-style.md,
+    // HRVAnalysisView+Axes.yAxisOverlay와 동일한 스타일) — 네이티브 y축 대신 이 오버레이로 그린다.
     @ViewBuilder
-    private func sleepBarShadowSegment(_ segment: SleepBarSegment, proxy: ChartProxy, geo: GeometryProxy) -> some View {
-        if let plotFrame = proxy.plotFrame,
-           let x = proxy.position(forX: dayMidpoint(of: segment.day)),
-           let yTop = proxy.position(forY: segment.yRange.upperBound),
-           let yBottom = proxy.position(forY: segment.yRange.lowerBound) {
+    private func yAxisOverlay(proxy: ChartProxy, geo: GeometryProxy, tickValues: [Double], label: @escaping (Double) -> String) -> some View {
+        if let plotFrame = proxy.plotFrame {
             let plotRect = geo[plotFrame]
-            // 선택 안 된 막대는 Theme.sleep.opacity(0.7)라 반투명 위에 반투명을 겹치면 뿌옇게
-            // 흐려 보인다 — 선택된 막대는 불투명 단색으로 확실히 구분되게 그린다.
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Theme.sleep)
-                .frame(width: sleepBarWidth, height: abs(yBottom - yTop))
-                .position(x: plotRect.minX + x, y: plotRect.minY + (yTop + yBottom) / 2)
-                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
-                .allowsHitTesting(false)
+            ForEach(tickValues, id: \.self) { value in
+                if let y = proxy.position(forY: value) {
+                    Path { path in
+                        path.move(to: CGPoint(x: plotRect.minX, y: plotRect.minY + y))
+                        path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.minY + y))
+                    }
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+
+                    Text(label(value))
+                        .font(.system(size: 9))
+                        .tracking(1)
+                        .padding(.horizontal, 3)
+                        .background(Color(.systemBackground).opacity(0.85))
+                        .position(x: plotRect.minX + 16, y: plotRect.minY + y)
+                }
+            }
         }
     }
 
@@ -508,12 +518,10 @@ struct ReportView: View {
             }
         }
         .frame(height: 180)
-        .chartYAxisLabel("rMSSD (ms)")
-        .chartYAxis {
-            AxisMarks { value in
-                Self.valueAxisMarks(value)
-            }
-        }
+        // y축 라벨이 차트 레이아웃 공간을 차지하지 않아야 한다는 규칙(ui-style.md) — 수면
+        // 차트와 같은 이유로 네이티브 y축은 숨기고 직접 오버레이로 그린다.
+        .chartYScale(domain: 0...(cvYAxisTicks(findings).last ?? 100))
+        .chartYAxis(.hidden)
         // 위 수면 차트와 같은 도메인 — 두 차트가 같은 x축 눈금을 공유하게 한다.
         .chartXScale(domain: chartDateDomain)
         .chartXAxis {
@@ -523,9 +531,27 @@ struct ReportView: View {
         }
         .chartOverlay { proxy in
             GeometryReader { geo in
-                xAxisBaseline(proxy: proxy, geo: geo)
+                ZStack {
+                    xAxisBaseline(proxy: proxy, geo: geo)
+                    yAxisOverlay(
+                        proxy: proxy,
+                        geo: geo,
+                        tickValues: cvYAxisTicks(findings),
+                        label: { String(format: "%.0f", $0) }
+                    )
+                }
             }
         }
+    }
+
+    // rMSSD(ms) 값 범위에 맞춰 0부터 대략 4등분한 "깔끔한" 눈금값을 계산한다 — 네이티브
+    // AxisMarks(automatic)를 대신하는 값이라, 위에서 chartYScale의 상한도 이 값의 마지막(4*step)과
+    // 맞춰서 커스텀 오버레이 눈금과 실제 축 범위가 어긋나지 않게 한다.
+    private func cvYAxisTicks(_ findings: ReportViewModel.CVFindings) -> [Double] {
+        let maxValue = findings.dailyPoints.map(\.upperBand).max() ?? 0
+        guard maxValue > 0 else { return [0] }
+        let step = max((maxValue / 4).rounded(.up), 10)
+        return Array(stride(from: 0, through: step * 4, by: step))
     }
 
     // MARK: - rMSSD
