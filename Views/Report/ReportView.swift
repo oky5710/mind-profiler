@@ -106,6 +106,10 @@ struct ReportView: View {
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
                         correlationSection
+                    } else {
+                        Text("분석 기간을 선택해주세요")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal)
@@ -120,31 +124,21 @@ struct ReportView: View {
                 }
             }
         }
-        // 분석 버튼이 없어졌으니, 처음 화면을 열었을 때도 기본 기간(최근 30일)으로 한 번은
-        // 자동으로 분석해야 화면이 빈 채로 남지 않는다. .onAppear이 아니라 .task를 쓰는 이유는
-        // 탭을 오갈 때마다(TabView 재진입) 다시 실행되지 않고 화면이 처음 만들어질 때 한 번만
-        // 돌아야 하기 때문 — 기간 변경 후 재분석은 PeriodRangeRow의 onConfirm이 담당한다.
-        .task {
-            guard !viewModel.hasAnalyzed else { return }
-            await viewModel.analyze()
-        }
     }
 
-    // 화면에는 더 이상 별도의 "분석" 버튼이 없다 — 기간(시작일~종료일) 입력 하나를 탭하면 뜨는
-    // 시트 안에 분석 버튼이 있고, 그 버튼을 누르면 시트가 닫히면서 바로 분석한다.
+    // 화면에는 별도의 "분석" 버튼이 없다 — 기간(시작일~종료일) 입력 하나를 탭하면 뜨는 시트 안에
+    // 분석 버튼이 있고, 그 버튼을 누르면 시트가 닫히면서 바로 분석한다. 처음 들어왔을 때는 자동으로
+    // 분석하지 않고 "분석 기간을 선택해주세요" 안내만 보여준다 — 사용자가 직접 기간을 확인/조정하고
+    // 분석을 눌러야 한다.
     private var datePickers: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("분석 기간").font(Typography.sectionTitle)
-                .padding(.bottom, 8)
-            PeriodRangeRow(
-                startDate: $viewModel.previousVisitDate,
-                endDate: $viewModel.thisVisitDate,
-                maximumDate: Date(),
-                isDisabled: viewModel.isAnalyzing
-            ) {
-                selectedSleepRange = nil
-                Task { await viewModel.analyze() }
-            }
+        PeriodRangeRow(
+            startDate: $viewModel.previousVisitDate,
+            endDate: $viewModel.thisVisitDate,
+            maximumDate: Date(),
+            isDisabled: viewModel.isAnalyzing
+        ) {
+            selectedSleepRange = nil
+            Task { await viewModel.analyze() }
         }
     }
 
@@ -619,32 +613,37 @@ private struct PeriodRangeRow: View {
         .disabled(isDisabled)
         .sheet(isPresented: $isPresented) {
             NavigationStack {
-                Form {
-                    // 시작일이 종료일보다 늦어질 수 없고, 종료일이 시작일보다 빨라질 수 없게
-                    // 서로의 현재 값을 상대 피커의 in: 범위 경계로 넘긴다.
-                    Section("시작일") {
+                VStack {
+                    // "시작일"/"종료일" 글자 라벨 없이, 두 compact 피커를 "~"로 이어서 하나의
+                    // 입력처럼 보이게 한다. 시작일이 종료일보다 늦어질 수 없고, 종료일이 시작일보다
+                    // 빨라질 수 없게 서로의 현재 값을 상대 피커의 in: 범위 경계로 넘긴다.
+                    HStack(spacing: 8) {
                         datePicker(
                             for: $startDate,
                             title: "시작일",
                             range: Date.distantPast...min(endDate, maximumDate ?? .distantFuture)
                         )
-                    }
-                    Section("종료일") {
+                        Text("~").foregroundStyle(.secondary)
                         datePicker(
                             for: $endDate,
                             title: "종료일",
                             range: startDate...(maximumDate ?? .distantFuture)
                         )
                     }
+                    .padding()
+
+                    Spacer()
                 }
                 .safeAreaInset(edge: .bottom) {
+                    // ui-style.md 버튼 크기 규칙의 Large(56pt) — 분석은 이 시트의 핵심 액션이라
+                    // 가장 큰 버튼 크기를 쓴다.
                     Button {
                         isPresented = false
                         onAnalyze()
                     } label: {
                         Label("분석", systemImage: "waveform.path.ecg")
                             .font(Typography.button)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: 56)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isDisabled)
@@ -655,6 +654,9 @@ private struct PeriodRangeRow: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
             .environment(\.locale, Locale(identifier: "ko_KR"))
+            // 시작일/종료일 필드 두 개 + 분석 버튼뿐이라 내용이 짧다 — 기본(large) 시트는 남는
+            // 공간이 너무 많아서 medium으로 낮춘다.
+            .presentationDetents([.medium])
         }
     }
 
