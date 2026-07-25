@@ -351,9 +351,11 @@ final class ReportViewModel {
                 .flatMap { prev in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: prev) } }
                 .map { $0.end.timeIntervalSince($0.start) }
 
+            // 매일 반복되는 "Scrum" 같은 정례 회의는 그날의 특별한 스케줄이라 보기 어려워서 뺀다.
             let calendarTitles = calendarEvents
                 .filter { calendar.isDate($0.start, inSameDayAs: entry.date) }
                 .map(\.title)
+                .filter { !$0.localizedCaseInsensitiveContains("scrum") }
             let lifeEventTitles = lifeEvents.compactMap { life -> String? in
                 guard let eventDate = DateKey.parseISODate(life.date), calendar.isDate(eventDate, inSameDayAs: entry.date) else {
                     return nil
