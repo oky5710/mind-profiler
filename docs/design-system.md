@@ -278,10 +278,10 @@ Typography.caption
 
 | 토큰 | 크기 | Weight | 용도 |
 |------|------:|--------|------|
-| `Typography.largeTitle` | 34pt | Bold | 페이지 대표 제목 |
-| `Typography.screenTitle` | 28pt | Bold | 화면 제목 |
-| `Typography.sectionTitle` | 22pt | Bold | 섹션 제목 |
-| `Typography.cardTitle` | 20pt | Semibold | 카드 제목 |
+| `Typography.largeTitle` | 28pt | Bold | 페이지 대표 제목 |
+| `Typography.screenTitle` | 24pt | Bold | 화면 제목 |
+| `Typography.sectionTitle` | 20pt | Bold | 섹션 제목 |
+| `Typography.cardTitle` | 18pt | Semibold | 카드 제목 |
 | `Typography.body` | 17pt | Regular | 본문 |
 | `Typography.button` | 17pt | Semibold | 버튼 |
 | `Typography.secondary` | 15pt | Regular | 보조 설명 |
@@ -342,11 +342,11 @@ Typography.caption
 예)
 
 ```
-34pt
+28pt
 페이지 제목
 
 
-22pt
+20pt
 섹션 제목
 
 

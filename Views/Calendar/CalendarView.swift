@@ -98,17 +98,28 @@ struct CalendarView: View {
     // 실제 그 달의 주 수(4~6주)와 무관하게 항상 6주 기준으로 칸 높이를 나눈다 — 달마다 칸 크기가
     // 들쭉날쭉해지지 않고, 6주짜리 달이 와도 제목줄/하단 탭바를 침범하지 않는다.
     private static let fixedRowCount: CGFloat = 6
+    // 주 사이에 넣는 구분선 두께 — 6주짜리 달 기준으로 항상 5개를 예약해 둔다.
+    private static let weekDividerHeight: CGFloat = 1
 
     // 상단 헤더(월 이동)와 요일 줄이 차지하는 실측 높이를 뺀 나머지를 6등분한다.
+    // 6주짜리 달 기준으로 주 사이 구분선 5개(두께 + 추가로 생기는 VStack 간격)도 함께 예약해서,
+    // 구분선을 추가해도 6주짜리 달에서 하단 탭바를 침범하지 않게 한다.
     private func rowHeight(forTotalHeight totalHeight: CGFloat) -> CGFloat {
         let available = totalHeight - headerHeight - weekdayHeaderHeight
-        let gridHeight = available - Self.rowSpacing * (Self.fixedRowCount - 1)
+        let dividerCount = Self.fixedRowCount - 1
+        let gridHeight = available
+            - Self.rowSpacing * (Self.fixedRowCount - 1)
+            - Self.rowSpacing * dividerCount
+            - Self.weekDividerHeight * dividerCount
         return max(gridHeight / Self.fixedRowCount, Self.minRowHeight)
     }
 
     private func calendarGrid(rowHeight: CGFloat) -> some View {
         VStack(spacing: Self.rowSpacing) {
-            ForEach(Array(viewModel.weeks.enumerated()), id: \.offset) { _, week in
+            ForEach(Array(viewModel.weeks.enumerated()), id: \.offset) { weekIndex, week in
+                if weekIndex > 0 {
+                    Divider()
+                }
                 HStack(spacing: Self.columnSpacing) {
                     ForEach(Array(week.enumerated()), id: \.offset) { index, date in
                         if let date {
