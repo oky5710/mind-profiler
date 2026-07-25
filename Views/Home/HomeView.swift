@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
-    @State private var hearts: [HeartParticle] = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -15,17 +14,9 @@ struct HomeView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-
-                    ForEach(hearts) { heart in
-                        FloatingHeart(startX: heart.x, startY: heart.y)
-                    }
                 }
                 .ignoresSafeArea()
                 .frame(width: geometry.size.width, height: geometry.size.height)
-                .contentShape(Rectangle())
-                .onTapGesture { location in
-                    spawnHearts(at: location)
-                }
 
                 Text("Track your mind.\nFind the patterns.")
                     .font(Typography.screenTitle)
@@ -202,45 +193,6 @@ struct HomeView: View {
         Color.gray.opacity(0.4)
     }
 
-    private func spawnHearts(at location: CGPoint) {
-        for index in 0..<5 {
-            Task {
-                try? await Task.sleep(for: .milliseconds(index * 120))
-                let particle = HeartParticle(x: location.x, y: location.y)
-                hearts.append(particle)
-                try? await Task.sleep(for: .milliseconds(1100))
-                hearts.removeAll { $0.id == particle.id }
-            }
-        }
-    }
-}
-
-private struct HeartParticle: Identifiable {
-    let id = UUID()
-    let x: CGFloat
-    let y: CGFloat
-}
-
-private struct FloatingHeart: View {
-    let startX: CGFloat
-    let startY: CGFloat
-
-    @State private var offsetY: CGFloat = 0
-    @State private var opacity: Double = 1
-    private let driftX = CGFloat.random(in: -30...30)
-
-    var body: some View {
-        Text("❤️")
-            .font(.system(size: 28))
-            .position(x: startX + driftX, y: startY + offsetY)
-            .opacity(opacity)
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.1)) {
-                    offsetY = -140
-                    opacity = 0
-                }
-            }
-    }
 }
 
 #Preview {
