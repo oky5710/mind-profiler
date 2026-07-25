@@ -505,6 +505,7 @@ private struct IsoDateRow: View {
                 isPresented = true
             } label: {
                 Text(ReportView.dateFormatter.string(from: date))
+                    .font(Typography.body)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
