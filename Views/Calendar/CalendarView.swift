@@ -18,7 +18,9 @@ struct CalendarView: View {
                         .measureHeight { headerHeight = $0 }
                     weekdayHeader
                         .measureHeight { weekdayHeaderHeight = $0 }
+                    Divider()
                     calendarGrid(rowHeight: rowHeight(forTotalHeight: geo.size.height))
+                    Divider()
 
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
