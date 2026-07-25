@@ -50,13 +50,25 @@ struct ReportView: View {
             .font(.system(size: 9))
     }
 
+    // viewModel.previousVisitDate/thisVisitDate는 DatePicker로 고른 "그날"을 나타낼 뿐인데, 실제
+    // Date 값에는 화면을 처음 연 시각의 시(時)·분(分)이 그대로 남아 있다(ReportViewModel.init의
+    // `now`). 이 원시 값을 그대로 domain으로 쓰면 첫날/마지막 날의 day-unit 막대·포인트가 자정
+    // 기준 하루 전체가 아니라 그 시각부터/까지만 걸쳐 있는 것으로 계산되어, 두 차트 모두 한쪽으로
+    // 치우쳐 보인다 — 날짜의 자정(0시)~다음 날 자정으로 정규화한 뒤 써야 한다.
+    private var chartDateDomain: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: viewModel.previousVisitDate)
+        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: viewModel.thisVisitDate)) ?? viewModel.thisVisitDate
+        return start...end
+    }
+
     // 수면/CV 차트가 같은 domain을 쓰더라도 각자 자동(automatic) 눈금에 맡기면 마크 종류(Bar vs
     // Area+Line)에 따라 서로 다른 위치에 눈금이 생길 수 있다(ui-style.md "x축 눈금 위치는 반드시
     // 동일해야 한다") — 두 차트가 공유하는 눈금 Date 배열을 직접 계산해서 .chartXAxis에 동일하게 적용한다.
     private var dateAxisTickDates: [Date] {
         let calendar = Calendar.current
-        let start = calendar.startOfDay(for: viewModel.previousVisitDate)
-        let end = calendar.startOfDay(for: viewModel.thisVisitDate)
+        let start = chartDateDomain.lowerBound
+        let end = chartDateDomain.upperBound
         guard start < end else { return [start] }
 
         let totalDays = calendar.dateComponents([.day], from: start, to: end).day ?? 0
@@ -220,7 +232,7 @@ struct ReportView: View {
         }
         // 아래 CV 차트와 같은 도메인을 명시해야 두 차트의 x축 눈금 위치가 일치한다 — 각자 자기
         // 데이터 범위로 도메인을 추론하게 두면(수면 없는 날/CV 없는 날이 있을 때) 눈금이 어긋난다.
-        .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
+        .chartXScale(domain: chartDateDomain)
         .chartXAxis {
             AxisMarks(values: dateAxisTickDates) { value in
                 Self.dateAxisMarks(value)
@@ -264,16 +276,18 @@ struct ReportView: View {
     }
 
     // 실제 수면 데이터가 있는 날짜의 min~max가 아니라, 차트에 표시되는 전체 도메인
-    // (previousVisitDate...thisVisitDate) 기준으로 날짜 수를 세야 한다 — 데이터 없는 날이 있으면
+    // (chartDateDomain) 기준으로 날짜 수를 세야 한다 — 데이터 없는 날이 있으면
     // min~max 기준 날짜 수가 실제 도메인보다 적어져서, 그 좁은 날짜 수로 나눈 막대 너비가 실제
     // 하루 칸보다 넓어져 막대끼리 겹친다.
     private var sleepChartDayCount: Int {
         let days = Calendar.current.dateComponents(
             [.day],
-            from: viewModel.previousVisitDate,
-            to: viewModel.thisVisitDate
+            from: chartDateDomain.lowerBound,
+            to: chartDateDomain.upperBound
         ).day ?? 0
-        return max(days + 1, 1)
+        // chartDateDomain.upperBound가 마지막 날 자정보다 하루 더 뒤(다음 날 자정)라
+        // 날짜 수 자체가 이미 +1이 반영된 값이라 여기서 다시 더하지 않는다.
+        return max(days, 1)
     }
 
     private func updateSleepBarWidth(plotWidth: CGFloat) {
@@ -372,7 +386,7 @@ struct ReportView: View {
             }
         }
         // 위 수면 차트와 같은 도메인 — 두 차트가 같은 x축 눈금을 공유하게 한다.
-        .chartXScale(domain: viewModel.previousVisitDate...viewModel.thisVisitDate)
+        .chartXScale(domain: chartDateDomain)
         .chartXAxis {
             AxisMarks(values: dateAxisTickDates) { value in
                 Self.dateAxisMarks(value)
