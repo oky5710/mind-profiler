@@ -341,7 +341,7 @@ struct HRVAnalysisView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 160)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
 
             hrvChartBody
         }
