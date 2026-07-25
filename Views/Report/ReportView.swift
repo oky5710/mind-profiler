@@ -77,8 +77,10 @@ struct ReportView: View {
     private var datePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석 기간").font(Typography.sectionTitle)
-            IsoDateRow(title: "시작일", date: $viewModel.previousVisitDate)
-            IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate)
+            HStack(spacing: 12) {
+                IsoDateRow(title: "시작일", date: $viewModel.previousVisitDate)
+                IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate)
+            }
         }
     }
 
@@ -495,18 +497,26 @@ private struct IsoDateRow: View {
     @State private var isPresented = false
 
     var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(Typography.secondary)
+                .foregroundStyle(.secondary)
+            Button {
+                isPresented = true
+            } label: {
                 Text(ReportView.dateFormatter.string(from: date))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                    )
             }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isPresented) {
             NavigationStack {
                 DatePicker(title, selection: $date, displayedComponents: .date)
