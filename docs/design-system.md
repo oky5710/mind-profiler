@@ -144,6 +144,7 @@ Primary는 **브랜드를 위한 색**이며, 개별 건강 지표의 의미를 
 - Placeholder
 - Divider
 - 비활성 상태
+- Border(카드/입력 필드 테두리) — `Theme.systemGray5`
 
 ---
 

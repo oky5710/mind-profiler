@@ -522,7 +522,7 @@ private struct IsoDateRow: View {
                     .padding(.vertical, 8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                            .stroke(Theme.systemGray5, lineWidth: 1)
                     )
             }
             .buttonStyle(.plain)

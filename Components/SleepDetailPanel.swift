@@ -101,7 +101,7 @@ struct SleepDetailPanel: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white, in: RoundedRectangle(cornerRadius: 8))
         // 라이트 모드에서는 배경이 흰색에 가까워 테두리가 없으면 카드가 안 보일 수 있다.
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.15), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
         .overlay(alignment: .topTrailing) {
             Button(action: onClose) {
