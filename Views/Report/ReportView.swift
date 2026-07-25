@@ -574,20 +574,23 @@ struct ReportView: View {
     }
 
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(Self.dateFormatter.string(from: row.date))
-                .font(.caption.bold())
-            HStack(spacing: 8) {
-                lowestDayChip(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms", color: Theme.primary50)
-                lowestDayChip(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration), color: Theme.sleep.opacity(0.15))
-                lowestDayChip(label: "운동", value: row.previousDayExerciseSummary, color: Theme.exercise.opacity(0.15))
+        HStack(alignment: .top, spacing: 12) {
+            lowestDayChip(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms", color: Theme.primary50)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Self.dateFormatter.string(from: row.date))
+                    .font(.caption.bold())
+                HStack(spacing: 12) {
+                    lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                    lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+                }
+                lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
             }
-            lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
         }
         .padding(.bottom, 10)
     }
 
-    // 라벨 위, 값 아래로 줄바꿈해서 담는 작은 칩 — rMSSD/수면/운동을 색으로 구분한다.
+    // 라벨 위, 값 아래로 줄바꿈해서 담는 작은 칩 — rMSSD 전용.
     private func lowestDayChip(label: String, value: String?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -599,6 +602,17 @@ struct ReportView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(color, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    // 수면/운동 — 라벨은 그대로, 값만 볼드로 강조해서 가로로 나란히 둔다.
+    private func lowestDayInlineDetail(label: String, value: String?) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value ?? "—")
+                .font(.caption2.bold())
+        }
     }
 
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
