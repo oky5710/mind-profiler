@@ -187,14 +187,21 @@ struct ReportView: View {
     }
 
     // vitalPanel과 같은 "작은 라벨 + 큰 굵은 값" 조합이지만, 이미 panelCard로 감싸인 섹션
-    // 안에서 쓰는 용도라 카드 배경/테두리는 따로 두지 않는다. value를 문자열이 아니라 Text로 받는
-    // 이유는, 평균 수면 시간처럼 "N시간 M분"에서 숫자는 크게·단위(시간/분)는 작게 섞어서 조합해야
-    // 하는 경우가 있어서다(durationText 참고) — Text는 +로 이어붙여도 조각별 폰트가 유지된다.
-    private func bigStat(title: String, value: Text, unit: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption2.bold())
-                .foregroundStyle(.secondary)
+    // 안에서 쓰는 용도라 테두리/그림자는 따로 두지 않고 배경(Theme.primary50)만 준다. value를
+    // 문자열이 아니라 Text로 받는 이유는, 평균 수면 시간처럼 "N시간 M분"에서 숫자는 크게·단위
+    // (시간/분)는 작게 섞어서 조합해야 하는 경우가 있어서다(durationText 참고) — Text는 +로
+    // 이어붙여도 조각별 폰트가 유지된다.
+    private func bigStat(icon: String, title: String, value: Text, unit: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label {
+                Text(title)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 value
                 if let unit {
@@ -204,6 +211,9 @@ struct ReportView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Theme.primary50, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private static let bigStatValueFont = Font.system(size: 24, weight: .bold)
@@ -227,9 +237,9 @@ struct ReportView: View {
                 .padding(.bottom, 8)
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
-                HStack(spacing: 24) {
-                    bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
-                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
+                HStack(spacing: 10) {
+                    bigStat(icon: "moon.zzz.fill", title: "평균 수면 시간", value: durationText(avgDuration))
+                    bigStat(icon: "star.fill", title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
                 }
             }
 
