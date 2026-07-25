@@ -635,15 +635,14 @@ private struct PeriodRangeRow: View {
                     Spacer()
                 }
                 .safeAreaInset(edge: .bottom) {
-                    // ui-style.md 버튼 크기 규칙의 Large(56pt) — 분석은 이 시트의 핵심 액션이라
-                    // 가장 큰 버튼 크기를 쓴다.
+                    // ui-style.md 버튼 크기 규칙의 Default(50pt).
                     Button {
                         isPresented = false
                         onAnalyze()
                     } label: {
                         Label("분석", systemImage: "waveform.path.ecg")
                             .font(Typography.button)
-                            .frame(maxWidth: .infinity, minHeight: 56)
+                            .frame(maxWidth: .infinity, minHeight: 50)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isDisabled)
@@ -654,15 +653,18 @@ private struct PeriodRangeRow: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
             .environment(\.locale, Locale(identifier: "ko_KR"))
-            // 시작일/종료일 필드 두 개 + 분석 버튼뿐이라 내용이 짧다 — 기본(large) 시트는 남는
-            // 공간이 너무 많아서 medium으로 낮춘다.
-            .presentationDetents([.medium])
+            // compact 피커를 탭하면 그 아래로 작은 달력 팝업이 펼쳐지는데, 시트 높이가 낮으면
+            // 그 팝업이 시트 바닥에 잘릴 수 있다 — 기본(large) 크기를 그대로 써서 아래쪽에
+            // 팝업이 펼쳐질 공간을 넉넉히 남긴다.
         }
     }
 
     private func datePicker(for date: Binding<Date>, title: String, range: ClosedRange<Date>) -> some View {
         DatePicker(title, selection: date, in: range, displayedComponents: .date)
             .datePickerStyle(.compact)
+            // 날짜에 따라 "7월 1일"/"12월 25일"처럼 표시 텍스트 길이가 달라져서 옆의 "~"와
+            // 상대 피커가 좌우로 밀리는 걸 막는다 — 폭을 고정해서 어떤 날짜든 같은 자리에 보이게 한다.
+            .frame(width: 130)
             .labelsHidden()
     }
 }
