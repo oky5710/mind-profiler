@@ -209,7 +209,7 @@ struct ReportView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Theme.primary50, in: RoundedRectangle(cornerRadius: 8))
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private static let bigStatValueFont = Font.system(size: 24, weight: .bold)
