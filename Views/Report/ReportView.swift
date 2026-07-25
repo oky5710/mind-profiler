@@ -574,22 +574,31 @@ struct ReportView: View {
     }
 
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(Self.dateFormatter.string(from: row.date))
                 .font(.caption.bold())
-            HStack(spacing: 12) {
-                lowestDayDetailLine(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms")
-                lowestDayDetailLine(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
-                lowestDayDetailLine(label: "운동", value: row.previousDayExerciseSummary)
+            HStack(spacing: 8) {
+                lowestDayChip(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms", color: Theme.primary50)
+                lowestDayChip(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration), color: Theme.sleep.opacity(0.15))
+                lowestDayChip(label: "운동", value: row.previousDayExerciseSummary, color: Theme.exercise.opacity(0.15))
             }
             lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
         }
         .padding(.bottom, 10)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Theme.systemGray5)
-                .frame(height: 1)
+    }
+
+    // 라벨 위, 값 아래로 줄바꿈해서 담는 작은 칩 — rMSSD/수면/운동을 색으로 구분한다.
+    private func lowestDayChip(label: String, value: String?, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+            Text(value ?? "—")
+                .font(.caption2)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(color, in: RoundedRectangle(cornerRadius: 6))
     }
 
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
