@@ -3,17 +3,17 @@ import SwiftUI
 enum Theme {
     // Radix UI Colors(radix-ui.com/colors) 팔레트로 통일 — 기존 Tailwind 기반 하드코딩 값들을
     // 색상 거리가 가장 가까운 Radix 스케일 단계로 교체했다.
-    static let heart = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
-    static let mood = Color(red: 1.0000, green: 0.7294, blue: 0.0941) // amber-10 #ffba18
-    static let coffee = Color(red: 0.6706, green: 0.3922, blue: 0.0000) // amber-11 #ab6400
+    static let heart = Color(red: 0.8980, green: 0.2745, blue: 0.4000) // ruby-9 #e54666
+    static let mood = Color(red: 1.0000, green: 0.7725, blue: 0.2392) // amber-9 #ffc53d
+    static let coffee = Color(red: 0.9686, green: 0.4078, blue: 0.0314) // orange-10 #f76808
     static let examRmssd = Color(red: 0.1882, green: 0.6431, blue: 0.4235) // green-9 #30a46c
-    static let exercise = Color(red: 0.1686, green: 0.6039, blue: 0.4000) // green-10 #2b9a66
+    static let exercise = Color(red: 0.1608, green: 0.6392, blue: 0.5137) // jade-9 #29a383
     static let sleep = Color(red: 0.2431, green: 0.3882, blue: 0.8667) // indigo-9 #3e63dd
-    static let rmssd = Color(red: 0.4314, green: 0.3373, blue: 0.8118) // violet-9 #6e56cf
-    // 월별 캔들스틱 박스(1Q~3Q) 전용 연보라 — rmssd와 같은 violet 스케일의 옅은 단계라 계열은
+    static let rmssd = Color(red: 0.3569, green: 0.3569, blue: 0.8392) // iris-9 #5b5bd6
+    // 월별 캔들스틱 박스(1Q~3Q) 전용 연보라 — rmssd와 같은 계열의 옅은 단계라 계열은
     // 유지하면서 불투명하게 채워도 무겁지 않다.
     static let rmssdRange = Color(red: 0.8314, green: 0.7922, blue: 0.9961) // violet-6 #d4cafe
-    static let holiday = Color(red: 0.8980, green: 0.2824, blue: 0.3020) // red-9 #e5484d
+    static let holiday = Color(red: 0.8980, green: 0.2745, blue: 0.4000) // ruby-9 #e54666
     static let vacation = Color(red: 0.9686, green: 0.4196, blue: 0.0824) // orange-9 #f76b15
 
     // 수면 단계 도넛 차트 전용 카테고리컬 팔레트 — dataviz 스킬의 검증된 기본 팔레트(블루/그린/
