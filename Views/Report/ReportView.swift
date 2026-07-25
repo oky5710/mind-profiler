@@ -456,13 +456,15 @@ struct ReportView: View {
 
     private var cvSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("변동계수 (CV)").font(Typography.sectionTitle)
-                .padding(.bottom, 8)
+            HStack(spacing: 8) {
+                Text("변동계수 (CV)").font(Typography.sectionTitle)
+                if let findings = viewModel.cvFindings {
+                    averageCVChip(findings.overallCV)
+                }
+            }
+            .padding(.bottom, 8)
 
             if let findings = viewModel.cvFindings {
-                Text("변동계수 \(String(format: "%.1f", findings.overallCV))%")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
                 cvChart(findings)
             } else {
                 Text("해당 기간에 rMSSD 데이터가 없어요")
@@ -471,6 +473,16 @@ struct ReportView: View {
             }
         }
         .panelCard()
+    }
+
+    // design-system.md Chip 스펙(15pt Medium) — 전체 기간 CV를 제목 옆에 짧게 보여준다.
+    private func averageCVChip(_ value: Double) -> some View {
+        Text("평균 \(String(format: "%.1f", value))%")
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(Theme.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Theme.primary50, in: Capsule())
     }
 
     private func cvChart(_ findings: ReportViewModel.CVFindings) -> some View {
