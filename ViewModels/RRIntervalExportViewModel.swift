@@ -27,12 +27,21 @@ final class RRIntervalExportViewModel {
         }
     }
 
+    // ISO8601DateFormatter는 기본이 UTC라 "Z"가 붙는데, 기기 로컬 시각과 최대 몇 시간까지 차이가
+    // 나서 날짜가 하루 밀려 보이는 등 헷갈리기 쉽다 — 로컬 타임존으로, "Z"가 안 붙는 형식으로 낸다.
+    private static let csvDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        return formatter
+    }()
+
     var csvString: String {
-        let formatter = ISO8601DateFormatter()
         var lines = ["series_start,beat_time,interval_ms,preceded_by_gap"]
         lines += beats.map { beat in
             let intervalText = beat.intervalMs.map { String(format: "%.1f", $0) } ?? ""
-            return "\(formatter.string(from: beat.seriesStart)),\(formatter.string(from: beat.beatDate))," +
+            return "\(Self.csvDateFormatter.string(from: beat.seriesStart)),\(Self.csvDateFormatter.string(from: beat.beatDate))," +
                 "\(intervalText),\(beat.precededByGap)"
         }
         return lines.joined(separator: "\n")

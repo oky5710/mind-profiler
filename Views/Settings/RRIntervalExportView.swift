@@ -45,7 +45,8 @@ struct RRIntervalExportView: View {
                 Text("RR 데이터 내보내기")
             } footer: {
                 Text("최근 30일 동안의 원시 박동 간격(RR interval)을 필터링 없이 그대로 CSV로 내보내요. " +
-                    "시리즈 시작 시각·박동 시각·간격(ms)·gap 여부가 각 줄에 담겨요.")
+                    "시리즈 시작 시각·박동 시각·간격(ms)·gap 여부가 각 줄에 담기고, 시각은 기기 로컬 " +
+                    "시간대 기준이에요(UTC 아님).")
             }
         }
         .navigationTitle("RR 데이터 내보내기")
