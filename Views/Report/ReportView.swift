@@ -89,7 +89,6 @@ struct ReportView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     datePickers
-                    analyzeButton
 
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
@@ -121,30 +120,32 @@ struct ReportView: View {
                 }
             }
         }
+        // 분석 버튼이 없어졌으니, 처음 화면을 열었을 때도 기본 기간(최근 30일)으로 한 번은
+        // 자동으로 분석해야 화면이 빈 채로 남지 않는다. .onAppear이 아니라 .task를 쓰는 이유는
+        // 탭을 오갈 때마다(TabView 재진입) 다시 실행되지 않고 화면이 처음 만들어질 때 한 번만
+        // 돌아야 하기 때문 — 기간 변경 후 재분석은 PeriodRangeRow의 onConfirm이 담당한다.
+        .task {
+            guard !viewModel.hasAnalyzed else { return }
+            await viewModel.analyze()
+        }
     }
 
+    // 화면에는 더 이상 별도의 "분석" 버튼이 없다 — 기간(시작일~종료일) 입력 하나를 탭하면 뜨는
+    // 시트 안에 분석 버튼이 있고, 그 버튼을 누르면 시트가 닫히면서 바로 분석한다.
     private var datePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("분석 기간").font(Typography.sectionTitle)
                 .padding(.bottom, 8)
-            HStack(spacing: 12) {
-                IsoDateRow(title: "시작일", date: $viewModel.previousVisitDate)
-                IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate, maximumDate: Date())
+            PeriodRangeRow(
+                startDate: $viewModel.previousVisitDate,
+                endDate: $viewModel.thisVisitDate,
+                maximumDate: Date(),
+                isDisabled: viewModel.isAnalyzing
+            ) {
+                selectedSleepRange = nil
+                Task { await viewModel.analyze() }
             }
         }
-    }
-
-    private var analyzeButton: some View {
-        Button {
-            selectedSleepRange = nil
-            Task { await viewModel.analyze() }
-        } label: {
-            Label("분석", systemImage: "waveform.path.ecg")
-                .font(Typography.button)
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(viewModel.isAnalyzing)
     }
 
     // MARK: - 기간 요약 (심박수/SDNN/rMSSD 중앙값)
@@ -585,60 +586,79 @@ struct ReportView: View {
     }
 }
 
-// DatePicker는 커스텀 날짜 포맷 문자열을 직접 받지 않고 로케일의 기본 형식을 따른다 — 로케일을
-// sv_SE 같은 걸로 바꿔 yyyy-MM-dd를 얻는 우회법은 한국어 UI(요일/버튼 등)까지 같이 깨진다. 그 대신
-// 표시는 직접 포맷한 텍스트로 하고, 탭하면 한국어 로케일 그래픽 피커를 시트로 띄운다.
-private struct IsoDateRow: View {
-    let title: String
-    @Binding var date: Date
+// 시작일/종료일을 각자 입력칸으로 나누는 대신, 하나의 입력(버튼)에 "시작일 ~ 종료일"을 같이
+// 보여주고 탭하면 아래에서 시트 하나가 올라와 두 그래픽 캘린더를 연달아 고르게 한다 — 그래픽
+// 캘린더는 각자 자유롭게 달을 넘길 수 있어서 시작일과 종료일이 서로 다른 달에 있어도 그대로
+// 고를 수 있다. 화면에 있던 "분석" 버튼은 따로 두지 않고 이 시트 안으로 옮겨서, 기간을 다 고른
+// 뒤 그 버튼 한 번으로 검색과 동시에 시트가 닫히게 한다.
+private struct PeriodRangeRow: View {
+    @Binding var startDate: Date
+    @Binding var endDate: Date
     var maximumDate: Date?
+    var isDisabled: Bool = false
+    var onAnalyze: () -> Void
+
     @State private var isPresented = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(Typography.secondary)
-                .foregroundStyle(.secondary)
-            Button {
-                isPresented = true
-            } label: {
-                Text(ReportView.dateFormatter.string(from: date))
-                    .font(Typography.body)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(Theme.systemGray5, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
+        Button {
+            isPresented = true
+        } label: {
+            Text("\(ReportView.dateFormatter.string(from: startDate)) ~ \(ReportView.dateFormatter.string(from: endDate))")
+                .font(Typography.body)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Theme.systemGray5, lineWidth: 1)
+                )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
         .sheet(isPresented: $isPresented) {
             NavigationStack {
-                Group {
-                    if let maximumDate {
-                        DatePicker(title, selection: $date, in: ...maximumDate, displayedComponents: .date)
-                    } else {
-                        DatePicker(title, selection: $date, displayedComponents: .date)
+                Form {
+                    Section("시작일") {
+                        datePicker(for: $startDate, title: "시작일")
+                    }
+                    Section("종료일") {
+                        datePicker(for: $endDate, title: "종료일")
                     }
                 }
-                .datePickerStyle(.graphical)
-                .labelsHidden()
-                .padding()
-                .navigationTitle(title)
+                .safeAreaInset(edge: .bottom) {
+                    Button {
+                        isPresented = false
+                        onAnalyze()
+                    } label: {
+                        Label("분석", systemImage: "waveform.path.ecg")
+                            .font(Typography.button)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isDisabled)
+                    .padding()
+                    .background(.bar)
+                }
+                .navigationTitle("분석 기간")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("완료") { isPresented = false }
-                    }
-                }
             }
             .environment(\.locale, Locale(identifier: "ko_KR"))
-            .presentationDetents([.medium])
         }
+    }
+
+    @ViewBuilder
+    private func datePicker(for date: Binding<Date>, title: String) -> some View {
+        Group {
+            if let maximumDate {
+                DatePicker(title, selection: date, in: ...maximumDate, displayedComponents: .date)
+            } else {
+                DatePicker(title, selection: date, displayedComponents: .date)
+            }
+        }
+        .datePickerStyle(.graphical)
+        .labelsHidden()
     }
 }
 
