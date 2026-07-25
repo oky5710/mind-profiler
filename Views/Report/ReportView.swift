@@ -68,7 +68,7 @@ struct ReportView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("보고서").font(.system(size: 20, weight: .semibold))
+                    Text("보고서").font(Typography.screenTitle)
                 }
             }
         }
@@ -76,7 +76,7 @@ struct ReportView: View {
 
     private var datePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("분석 기간").font(.system(size: 16, weight: .semibold))
+            Text("분석 기간").font(Typography.sectionTitle)
             IsoDateRow(title: "시작일", date: $viewModel.previousVisitDate)
             IsoDateRow(title: "종료일", date: $viewModel.thisVisitDate)
         }
@@ -98,7 +98,7 @@ struct ReportView: View {
 
     private var vitalsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("기간 요약").font(.system(size: 16, weight: .semibold))
+            Text("기간 요약").font(Typography.sectionTitle)
 
             if let vitals = viewModel.vitalMedians,
                vitals.restingHeartRate != nil || vitals.sdnn != nil || vitals.rmssd != nil {
@@ -128,7 +128,7 @@ struct ReportView: View {
 
     private var sleepSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("수면").font(.system(size: 16, weight: .semibold))
+            Text("수면").font(Typography.sectionTitle)
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
                 Text("평균 수면 시간 \(SleepAnalysisService.formattedDuration(avgDuration)) · 평균 점수 \(Int(avgScore.rounded()))점")
@@ -254,7 +254,7 @@ struct ReportView: View {
 
     private var cvSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("변동계수 (CV)").font(.system(size: 16, weight: .semibold))
+            Text("변동계수 (CV)").font(Typography.sectionTitle)
 
             if let findings = viewModel.cvFindings {
                 Text("변동계수 \(String(format: "%.1f", findings.overallCV))%")
@@ -302,7 +302,7 @@ struct ReportView: View {
 
     private var rmssdSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("rMSSD").font(.system(size: 16, weight: .semibold))
+            Text("rMSSD").font(Typography.sectionTitle)
 
             if let findings = viewModel.rmssdFindings {
                 if let lowestDate = findings.lowestDailyDate {
@@ -349,7 +349,7 @@ struct ReportView: View {
 
     private var rmssdLowestDaysTableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(.system(size: 16, weight: .semibold))
+            Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(Typography.sectionTitle)
 
             if viewModel.rmssdLowestDayRows.isEmpty {
                 Text("해당 기간에 비교할 데이터가 없어요")
@@ -382,7 +382,7 @@ struct ReportView: View {
 
     private var sdnnRmssdSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SDNN vs rMSSD 차이 Top 3").font(.system(size: 16, weight: .semibold))
+            Text("SDNN vs rMSSD 차이 Top 3").font(Typography.sectionTitle)
 
             if viewModel.topSDNNRMSSDDifferences.isEmpty {
                 Text("해당 기간에 비교할 데이터가 없어요")
@@ -463,7 +463,7 @@ struct ReportView: View {
 
     private var correlationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("기분·운동·커피와 rMSSD 관계").font(.system(size: 16, weight: .semibold))
+            Text("기분·운동·커피와 rMSSD 관계").font(Typography.sectionTitle)
 
             if viewModel.correlationFindings != nil {
                 ForEach(correlationRows) { row in

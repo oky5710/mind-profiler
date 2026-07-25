@@ -39,6 +39,7 @@
 		76ECCF2EF2222FA3CD2C7379 /* EntryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156BA80323127255242AD216 /* EntryType.swift */; };
 		77174165062A55F13EF343F5 /* RRIntervalExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE4AEE9A3EA049D41D1DE3 /* RRIntervalExportView.swift */; };
 		78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA6D2394987B7B159269517 /* SettingsView.swift */; };
+		7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */; };
 		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
 		8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */; };
 		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
@@ -150,6 +151,7 @@
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		FB3F76D2A4694A2F654A1B62 /* ui-style.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "ui-style.md"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -322,6 +324,7 @@
 				9B1F4A2C5E6D7089ABCDEF0A /* SleepDetailPanel.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */,
 				B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */,
+				EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -515,6 +518,7 @@
 				076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */,
 				77174165062A55F13EF343F5 /* RRIntervalExportView.swift in Sources */,
 				3C332F9973A910F1A9C171AB /* RRIntervalExportViewModel.swift in Sources */,
+				7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
