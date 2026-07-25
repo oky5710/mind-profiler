@@ -22,6 +22,7 @@ struct SettingsView: View {
                     Label("RR 데이터 내보내기", systemImage: "waveform.path")
                 }
             }
+            .contentMargins(.top, 10, for: .scrollContent)
             .navigationTitle("설정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

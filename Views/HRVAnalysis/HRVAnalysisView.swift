@@ -193,7 +193,9 @@ struct HRVAnalysisView: View {
                     hrvChart
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 10)
+                .padding(.bottom)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을

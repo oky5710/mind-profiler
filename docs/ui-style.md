@@ -18,6 +18,12 @@
   버튼을 만드는 것도 안 된다. 여러 버튼을 한 줄에 늘어놓았을 때 폭이 부족하면, 버튼 내용을 줄이는
   대신 버튼째로 다음 줄로 내린다(`ViewThatFits`로 한 줄 배치가 안 맞으면 여러 줄 배치로 자동 전환 —
   `HomeView`의 커피/약 버튼 참고).
+- **`Typography.screenTitle`(네비게이션 바 타이틀) 아래 여백은 10pt**로 고정한다 — 나머지 방향
+  (좌우/하단)의 기본 여백은 그대로 두고 상단만 10pt로 맞춘다. `ScrollView`/`GeometryReader` 기반
+  화면은 콘텐츠 컨테이너에 `.padding(.top, 10)`(다른 방향은 `.padding(.horizontal)`/`.padding(.bottom)`
+  로 유지), `List` 기반 화면은 `.contentMargins(.top, 10, for: .scrollContent)`를 쓴다(`SettingsView`,
+  `HRVAnalysisView`, `CalendarView`, `ReportView` 참고). `HomeView`의 `screenTitle`은 네비게이션 바
+  타이틀이 아니라 사진 위에 겹쳐 그리는 문구라 이 규칙의 대상이 아니다.
 
 ## 차트 (Swift Charts)
 

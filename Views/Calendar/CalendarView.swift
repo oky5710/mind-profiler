@@ -69,7 +69,9 @@ struct CalendarView: View {
                 Image(systemName: "chevron.right")
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.top, 10)
+        .padding(.bottom)
     }
 
     private var monthTitle: String {

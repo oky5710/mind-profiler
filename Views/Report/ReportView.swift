@@ -62,7 +62,9 @@ struct ReportView: View {
                         correlationSection
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 10)
+                .padding(.bottom)
             }
             .navigationTitle("보고서")
             .navigationBarTitleDisplayMode(.inline)
