@@ -215,8 +215,14 @@ enum HealthKitService {
     private static let maxRelativeIntervalChange = 0.25
 
     // rMSSD는 "연속된 박동 간격(RR interval)들의 차이"를 제곱해서 평균 낸 값의 제곱근이다 —
-    // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다. 시리즈 중간에 워치를
-    // 벗는 등 끊긴 구간(precededByGap)에서는 그 앞뒤 RR 간격을 이어붙이면 안 되므로 리셋한다.
+    // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다.
+    //
+    // precededByGap은 "여기서 시퀀스를 끊어라"가 아니라 "이 간격 하나만 못 믿는다"는 뜻으로 다룬다 —
+    // 그 박동의 간격(gap을 관통하는 값)만 계산에서 버리고, previousInterval은 리셋하지 않는다.
+    // 그래서 gap 다음 첫 정상 박동은 gap 이전 마지막 정상 간격과 바로 비교된다(예: 850ms 다음
+    // gap이 낀 1685ms짜리 간격은 버리고, 그다음 830ms 간격을 850ms와 곧장 비교). 다른 상용 앱의
+    // rMSSD와 실측 비교했을 때 이 해석이 값을 거의 정확히 재현했다 — reset하는 이전 방식은 gap
+    // 전후를 별개 구간으로 나눠버려서 값이 달라졌다.
     private static func rMSSD(for series: HKHeartbeatSeriesSample) async throws -> Double? {
         let descriptor = HKHeartbeatSeriesQueryDescriptor(series)
         var previousBeatTime: TimeInterval?
@@ -227,16 +233,11 @@ enum HealthKitService {
         for try await beat in descriptor.results(for: store) {
             defer { previousBeatTime = beat.timeIntervalSinceStart }
 
-            guard let previousBeatTime, !beat.precededByGap else {
-                previousInterval = nil
-                continue
-            }
+            guard let previousBeatTime else { continue }
+            guard !beat.precededByGap else { continue }
 
             let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
-            guard plausibleIntervalRangeMs.contains(interval) else {
-                previousInterval = nil
-                continue
-            }
+            guard plausibleIntervalRangeMs.contains(interval) else { continue }
 
             if let previousInterval {
                 let diff = interval - previousInterval
