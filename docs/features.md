@@ -147,13 +147,13 @@
   가장 낮은 요일, 그리고 날짜별 최저 1시간 버킷(0~23시, 그 시간대 원시 샘플 평균 기준)을 구한 뒤
   여러 날에 걸쳐 가장 자주 "그날의 최저"로 뽑힌 시간대(최빈값, 동률이면 더 이른 시간대)를 계산한다
   (`ReportViewModel.computeRMSSDFindings`). 날짜별 세부 컨텍스트 없이 이 두 값만 다룬다.
-- **rMSSD 낮은 날 Top 3**: 일별 대표값(중앙값)이 가장 낮았던 상위 3일을 카드로 보여준다
+- **rMSSD 낮은 날 Top 3**: 일별 대표값(중앙값)이 가장 낮았던 상위 3일을 보여준다
   (`rmssdLowestDaysTableSection`, `lowestDayRowCount = 3`). 표(Grid)로 4칸을 나란히 두면 "스케줄"
-  칸이 길어질 때 다른 칸까지 좁아져서, 대신 날짜마다 카드 하나씩 쌓는 방식으로 바꿨다
-  (`lowestDayRow`) — 왼쪽에 날짜 + rMSSD 값(20pt Bold, `Theme.rmssd`), 오른쪽에 라벨 붙은 상세 줄
-  세 개(전날 수면/스케줄/전날 운동)를 `Theme.systemGray6` 배경 카드에 담는다. 스케줄은 캘린더
-  일정(EventKit, `CalendarEventService.fetchEvents()`)과 직접 입력한 생활 이벤트를 합친 것 —
-  캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 그대로 보여주고 이 줄만 빠진다.
+  칸이 길어질 때 다른 칸까지 좁아져서, 대신 날짜별로 배경 없는 행(`lowestDayRow`)을 쌓고 행 아래에
+  옅은 구분선(`Theme.systemGray5`, 1pt)만 긋는다 — 첫 줄은 날짜, 둘째 줄은 rMSSD·수면·운동을
+  한 줄에 라벨과 함께, 셋째 줄은 스케줄. 스케줄은 캘린더 일정(EventKit,
+  `CalendarEventService.fetchEvents()`)과 직접 입력한 생활 이벤트를 합친 것 — 캘린더 접근 권한이
+  없거나 거부돼도 나머지 보고서는 그대로 보여주고 이 줄만 빠진다.
 - **SDNN vs rMSSD 차이 Top 3**: 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍 중 절댓값 차이가 큰 상위 3개를
   [일시, SDNN, rMSSD, 차이] 표로 보여준다 — 설정 화면의 "SDNN vs rMSSD 분석"과 같은 쌍 데이터
   (`HealthKitService.fetchSDNNRMSSDPairs`)를 재사용하지만, 여기서는 평균·상관계수가 아니라 차이가

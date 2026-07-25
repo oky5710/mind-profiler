@@ -574,24 +574,22 @@ struct ReportView: View {
     }
 
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(Self.dateFormatter.string(from: row.date))
-                    .font(.caption.bold())
-                Text("\(Int(row.rmssd.rounded()))ms")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Theme.rmssd)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(Self.dateFormatter.string(from: row.date))
+                .font(.caption.bold())
+            HStack(spacing: 12) {
+                lowestDayDetailLine(label: "rMSSD", value: "\(Int(row.rmssd.rounded()))ms")
+                lowestDayDetailLine(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                lowestDayDetailLine(label: "운동", value: row.previousDayExerciseSummary)
             }
-            .frame(width: 76, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 4) {
-                lowestDayDetailLine(label: "전날 수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
-                lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
-                lowestDayDetailLine(label: "전날 운동", value: row.previousDayExerciseSummary)
-            }
+            lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
         }
-        .padding(10)
-        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.bottom, 10)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Theme.systemGray5)
+                .frame(height: 1)
+        }
     }
 
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
