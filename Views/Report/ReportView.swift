@@ -555,6 +555,7 @@ struct ReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .panelCard()
     }
 
     // 전날/당일 수면·일정을 " · "로 이어붙인 한 줄 대신, 각 값을 실제 날짜와 함께 별도 줄로 보여준다.
@@ -606,6 +607,7 @@ struct ReportView: View {
                 }
             }
         }
+        .panelCard()
     }
 
     // MARK: - SDNN vs rMSSD
@@ -638,6 +640,7 @@ struct ReportView: View {
                 }
             }
         }
+        .panelCard()
     }
 
     // MARK: - 기분/운동/커피 상관관계
@@ -709,10 +712,11 @@ struct ReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .panelCard()
     }
 }
 
-// 수면/CV처럼 차트가 들어있는 섹션을 감싸는 카드 — vitalPanel(배경 Theme.primary50)과 달리
+// 수면/CV처럼 섹션을 감싸는 카드 — vitalPanel(배경 Theme.primary50)과 달리
 // 배경은 흰색, 테두리는 기본 색(Theme.systemGray5)을 쓴다.
 private extension View {
     func panelCard() -> some View {
