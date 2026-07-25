@@ -229,6 +229,8 @@ struct ReportView: View {
         .chartOverlay { proxy in
             GeometryReader { geo in
                 ZStack {
+                    xAxisBaseline(proxy: proxy, geo: geo)
+
                     if let selectedSleepRange {
                         selectedSleepBarShadow(selectedSleepRange, proxy: proxy, geo: geo)
                     }
@@ -277,6 +279,21 @@ struct ReportView: View {
     private func updateSleepBarWidth(plotWidth: CGFloat) {
         let bandwidth = plotWidth / CGFloat(sleepChartDayCount)
         sleepBarWidth = (bandwidth * 0.6).clamped(to: 10...30)
+    }
+
+    // 네이티브 AxisMarks는 눈금마다 찍는 세로 그리드/틱만 그리고, 플롯 하단을 가로지르는 축
+    // 기준선은 그리지 않는다 — HRVAnalysisView+Axes.xAxisOverlay와 같은 색(Color(white: 0.35))으로
+    // 직접 그려서 맞춘다.
+    @ViewBuilder
+    private func xAxisBaseline(proxy: ChartProxy, geo: GeometryProxy) -> some View {
+        if let plotFrame = proxy.plotFrame {
+            let plotRect = geo[plotFrame]
+            Path { path in
+                path.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+                path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+            }
+            .stroke(Color(white: 0.35), lineWidth: 1)
+        }
     }
 
     // BarMark(x: .value(_, range.start, unit: .day))는 그 날 전체 구간 중앙에 그려지므로,
@@ -359,6 +376,11 @@ struct ReportView: View {
         .chartXAxis {
             AxisMarks(values: dateAxisTickDates) { value in
                 Self.dateAxisMarks(value)
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                xAxisBaseline(proxy: proxy, geo: geo)
             }
         }
     }
