@@ -836,10 +836,19 @@ private struct PeriodRangeRow: View {
     @State private var draftStartDate = Date()
     @State private var draftEndDate = Date()
 
+    // DatePicker는 날짜(day)만 고르게 하면서(`displayedComponents: .date`) 그 범위(`in:`)는 시각까지
+    // 포함한 정확한 Date로 비교한다 — "오늘"을 오늘 자정 이후 어떤 시각으로 반환하든, `maximumDate`가
+    // "지금 이 순간"(초 단위)이면 방금 고른 "오늘"이 그 순간보다 늦어 범위를 벗어나 버릴 수 있다.
+    // 그래서 비교는 항상 자정(day) 단위로 정규화해서, "오늘"을 고르면 항상 유효하게 만든다.
+    private var maximumSelectableDate: Date {
+        guard let maximumDate else { return .distantFuture }
+        return Calendar.current.startOfDay(for: maximumDate)
+    }
+
     var body: some View {
         Button {
-            draftStartDate = startDate
-            draftEndDate = endDate
+            draftStartDate = Calendar.current.startOfDay(for: startDate)
+            draftEndDate = Calendar.current.startOfDay(for: endDate)
             isPresented = true
         } label: {
             HStack {
@@ -870,13 +879,13 @@ private struct PeriodRangeRow: View {
                         datePicker(
                             for: $draftStartDate,
                             title: "시작일",
-                            range: Date.distantPast...min(draftEndDate, maximumDate ?? .distantFuture)
+                            range: Date.distantPast...min(draftEndDate, maximumSelectableDate)
                         )
                         Text("~").foregroundStyle(.secondary)
                         datePicker(
                             for: $draftEndDate,
                             title: "종료일",
-                            range: draftStartDate...(maximumDate ?? .distantFuture)
+                            range: draftStartDate...max(draftStartDate, maximumSelectableDate)
                         )
                     }
                     .padding()
@@ -910,7 +919,14 @@ private struct PeriodRangeRow: View {
     }
 
     private func datePicker(for date: Binding<Date>, title: String, range: ClosedRange<Date>) -> some View {
-        DatePicker(title, selection: date, in: range, displayedComponents: .date)
+        // DatePicker가 고른 날짜를 정확히 자정으로 돌려주지 않을 수 있어서(구현에 따라 다름), 여기서
+        // 항상 자정으로 정규화해 저장한다 — 그래야 이 값을 다시 다른 range의 경계로 쓸 때(예: 종료일
+        // range의 하한이 시작일) 시각 차이 때문에 범위가 뒤집히는 일이 없다.
+        let normalized = Binding<Date>(
+            get: { date.wrappedValue },
+            set: { date.wrappedValue = Calendar.current.startOfDay(for: $0) }
+        )
+        return DatePicker(title, selection: normalized, in: range, displayedComponents: .date)
             .datePickerStyle(.compact)
             // 날짜에 따라 "7월 1일"/"12월 25일"처럼 표시 텍스트 길이가 달라져서 옆의 "~"와
             // 상대 피커가 좌우로 밀리는 걸 막는다 — 폭을 고정해서 어떤 날짜든 같은 자리에 보이게 한다.
