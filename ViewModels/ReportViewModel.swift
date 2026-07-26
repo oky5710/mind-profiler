@@ -428,10 +428,13 @@ final class ReportViewModel {
             }
         }
 
-        // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다.
-        let sleepDurationByDay = Dictionary(uniqueKeysWithValues: sleepRanges.map {
-            (calendar.startOfDay(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600)
-        })
+        // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다. 하루에 세션이 2개 이상(예: 이른
+        // 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜 키가 중복되므로 uniqueKeysWithValues는
+        // 크래시한다 — 합산(+)으로 합쳐서 그날 총 수면시간을 쓴다.
+        let sleepDurationByDay = Dictionary(
+            sleepRanges.map { (calendar.startOfDay(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600) },
+            uniquingKeysWith: +
+        )
         let sleepPairs: [(Double, Double)] = rmssdByDay.compactMap { day, value in
             guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day),
                   let duration = sleepDurationByDay[previousDay] else { return nil }
