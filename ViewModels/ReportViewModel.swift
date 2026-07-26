@@ -98,7 +98,9 @@ final class ReportViewModel {
     func analyze() async {
         isAnalyzing = true
         errorMessage = nil
-        hasAnalyzed = false
+        // 재분석 중에도 hasAnalyzed를 false로 내리지 않는다 — 그러면 ReportView가 이전 결과
+        // 섹션을 통째로 걷어내고 전체 화면 로더로 바꿔버려서, 그 섹션 안에 있는
+        // chartLoadingOverlay(이전 차트 위에 로딩 표시만 겹치기)가 아예 나타날 기회가 없다.
         defer { isAnalyzing = false }
 
         let calendar = Calendar.current
@@ -114,12 +116,15 @@ final class ReportViewModel {
             // 아래 각 타입마다 실제로 필요한 만큼만 며칠 앞당겨서 가져온다 — 전부 인자 없이
             // 부르면 HealthKit에 기록된 전체 역사를 매번 다 가져와서 느려진다(예전엔 실제로
             // 그랬다). 필요한 lookback은 타입마다 다르다:
-            // - 수면: 기간 시작일 전날 저녁에 잠들어 시작일 새벽까지 이어지는 밤이 안 잘리게 1일 전.
+            // - 수면: 추정 수면 점수의 취침시간 일관성 계산이 이전 최대 6일 밤과 비교하므로
+            //   (SleepAnalysisService.bedtimeConsistencyWindow) 그만큼 앞당기고, 기간 시작일 전날
+            //   저녁에 잠들어 시작일 새벽까지 이어지는 밤이 안 잘리게 하루를 더 둔다 — 이만큼
+            //   안 당기면 기간 첫날들이 "비교할 밤이 부족해서" 일관성 만점 처리돼 점수가 왜곡된다.
             // - rMSSD: CV 롤링 표준편차가 기간 시작일 근처도 온전한 7일 창을 보게 7일 전.
             // - 운동: "전날 운동" 상관계수·rMSSD 최저점의 전날 운동 요약이 기간 시작일의 전날도
             //   봐야 하니 1일 전.
             // - SDNN/안정시 심박수: 전부 기간 안의 값만 쓰므로 lookback이 필요 없다.
-            let sleepFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
+            let sleepFetchStart = calendar.date(byAdding: .day, value: -(SleepAnalysisService.bedtimeConsistencyWindow + 1), to: start) ?? start
             let rmssdFetchStart = calendar.date(byAdding: .day, value: -7, to: start) ?? start
             let workoutFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
             async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples(start: sleepFetchStart, end: end)

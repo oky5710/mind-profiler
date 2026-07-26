@@ -71,8 +71,10 @@ enum SleepAnalysisService {
 
     // 애플이 공개한 수면 점수 구성: 수면시간 50점(8시간 기준) + 취침시간 일관성 30점 + 각성 20점.
     private static let sleepScoreTargetDuration: TimeInterval = 8 * 60 * 60
-    // 일관성 비교 기준 — 최근 일주일치 취침 시각과 비교한다.
-    private static let bedtimeConsistencyWindow = 6
+    // 일관성 비교 기준 — 최근 일주일치 취침 시각과 비교한다. ReportViewModel이 수면 데이터를
+    // 가져올 때 이 값만큼의 이전 밤도 같이 가져와야 기간 첫날들의 점수가 "비교할 밤이 부족해서
+    // 만점" 처리되지 않으므로 private이 아니다.
+    static let bedtimeConsistencyWindow = 6
     private static let bedtimeConsistencyToleranceMinutes: Double = 90
     private static let interruptionTolerance: TimeInterval = 60 * 60
 

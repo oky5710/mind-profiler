@@ -21,6 +21,13 @@ struct ExerciseEntryForm: View {
     @State private var isLoadingEntries = true
     @State private var entriesErrorMessage: String?
 
+    // startTime/endTime/durationMinutes는 서로를 되먹임하는 onChange로 맞물려 있어서(하나 바꾸면
+    // 나머지 둘도 따라 바뀜), prefill이 세 값을 순서대로 대입하면 그 되먹임이 중간에 끼어들어 마지막
+    // 값을 덮어써 버린다 — 특히 5시간(300분) 넘는 기존 기록을 수정할 때, durationMinutes를 300으로
+    // clamp해 두면 그 되먹임이 실제 종료 시각까지 5시간짜리로 잘라버린다. prefill 동안만 되먹임을
+    // 꺼서 원래 시작/종료 시각이 그대로 보존되게 한다.
+    @State private var isPrefilling = false
+
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -134,18 +141,24 @@ struct ExerciseEntryForm: View {
             }
         }
         .onChange(of: durationMinutes) { _, _ in
+            guard !isPrefilling else { return }
             endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
         .onChange(of: startTime) { _, newStart in
+            guard !isPrefilling else { return }
             endTime = newStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
         .onChange(of: endTime) { _, newEnd in
+            guard !isPrefilling else { return }
             let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
             durationMinutes = min(300, max(1, minutes))
         }
     }
 
     private func prefill(from entry: ExerciseLogEntry) {
+        isPrefilling = true
+        defer { isPrefilling = false }
+
         if ExerciseService.typeOptions.contains(entry.type) {
             selectedType = entry.type
         } else {
