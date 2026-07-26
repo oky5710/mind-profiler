@@ -1,11 +1,18 @@
 import SwiftUI
 
 struct DayEntrySheet: View {
-    let date: Date
     var onSaved: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected: EntryType?
+    // "+" 버튼은 항상 오늘 날짜로 열리지만, 항목을 고르기 전에 날짜 자체를 바꿀 수 있어야
+    // 원하는 날짜를 매번 캘린더에서 직접 탭하지 않고도 입력할 수 있다.
+    @State private var date: Date
+
+    init(date: Date, onSaved: @escaping () async -> Void) {
+        self._date = State(initialValue: date)
+        self.onSaved = onSaved
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,16 +51,23 @@ struct DayEntrySheet: View {
     }
 
     private var typeList: some View {
-        List(EntryType.allCases) { type in
-            Button {
-                selected = type
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(type.title)
-                        .font(.headline)
-                    Text(type.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        List {
+            Section {
+                DatePicker("날짜", selection: $date, in: ...Date(), displayedComponents: .date)
+            }
+            Section {
+                ForEach(EntryType.allCases) { type in
+                    Button {
+                        selected = type
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(type.title)
+                                .font(.headline)
+                            Text(type.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
