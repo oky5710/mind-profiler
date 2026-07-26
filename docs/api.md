@@ -19,25 +19,35 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | Method | Path | 용도 | 클라이언트 코드 |
 |---|---|---|---|
 | POST | `/auth/google` | Google idToken → 백엔드 JWT 교환 (`authorized: false`) | `AuthViewModel.signInWithGoogle` |
-| GET | `/hrv` | 전체 HRV 검사 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑) | `ExamService.allExams` |
+| GET | `/hrv` | 전체 HRV 검사 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑 — `ExamEntryForm` 목록도 여기서 그 날짜만 걸러낸다) | `ExamService.allExams` / `entries` |
 | POST | `/hrv` | HRV 검사 기록 생성 | `ExamService.createExam` |
-| GET | `/moods?date=yyyy-MM-dd` | 특정 날짜 기분 기록 조회 | `MoodService.todayMood` |
+| DELETE | `/hrv/:id` | HRV 검사 기록 삭제 | `ExamService.removeExam` |
+| GET | `/moods?date=yyyy-MM-dd` | 특정 날짜 기분 기록 조회 (홈 화면 오늘 기분·`DayDetailSheet`/`MoodEntryForm` 목록용) | `MoodService.todayMood` / `entries` |
 | GET | `/moods` | 전체 기분 기록 조회 | `MoodService.allMoods` |
-| POST | `/moods` | 기분 기록 생성/기록 | `MoodService.logMood` |
+| POST | `/moods` | 기분 기록 생성 | `MoodService.logMood` |
+| PATCH | `/moods/:id` | 기분 기록 수정 (날짜 요약 시트의 수정 아이콘) | `MoodService.updateMood` |
+| DELETE | `/moods/:id` | 기분 기록 삭제 | `MoodService.removeMood` |
 | GET | `/coffee?date=yyyy-MM-dd` | 특정 날짜 커피 기록 조회 (오늘 잔 수 배지·`CoffeeEntryForm` 목록용) | `CoffeeService.todayCount` / `entries` |
 | GET | `/coffee` | 전체 커피 기록 조회 | `CoffeeService.allCoffees` |
 | POST | `/coffee` | 커피 기록 생성 | `CoffeeService.logCoffee` / `logQuickCoffee` |
+| PATCH | `/coffee/:id` | 커피 기록 수정 (날짜 요약 시트의 수정 아이콘) | `CoffeeService.updateCoffee` |
 | DELETE | `/coffee/:id` | 커피 기록 삭제 | `CoffeeService.removeCoffee` |
+| GET | `/exercises?date=yyyy-MM-dd` | 특정 날짜 운동 기록 조회 (`DayDetailSheet`/`ExerciseEntryForm` 목록용) | `ExerciseService.entries` |
 | GET | `/exercises` | 전체 운동 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑) | `ExerciseService.allExercises` |
 | POST | `/exercises` | 운동 기록 생성 | `ExerciseService.logExercise` |
+| PATCH | `/exercises/:id` | 운동 기록 수정 (날짜 요약 시트의 수정 아이콘) | `ExerciseService.updateExercise` |
+| DELETE | `/exercises/:id` | 운동 기록 삭제 | `ExerciseService.removeExercise` |
 | GET | `/medications` | 등록된 약 전체 조회 | `MedicationService.allMedications` |
 | POST | `/medications` | 약 등록(검색 결과+복용 시간대) | `MedicationService.addMedication` |
 | DELETE | `/medications/:id` | 약 삭제(soft delete) | `MedicationService.removeMedication` |
 | GET | `/medications/logs?date=yyyy-MM-dd` | 특정 날짜 복용 기록 조회(홈 화면 퀵버튼 체크 표시용) | `MedicationService.logs` |
 | POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
+| DELETE | `/medications/logs/:id` | 복용 기록 삭제 | `MedicationService.removeLog` |
 | GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
+| GET | `/events?date=yyyy-MM-dd` | 특정 날짜 이벤트 기록 조회 (`LifeEventEntryForm` 목록용) | `LifeEventService.entries` |
 | GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |
 | POST | `/events` | 이벤트 기록 생성 | `LifeEventService.logEvent` |
+| DELETE | `/events/:id` | 이벤트 기록 삭제 | `LifeEventService.removeEvent` |
 
 ## 아직 안 씀
 

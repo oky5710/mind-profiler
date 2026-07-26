@@ -47,7 +47,9 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 - 애플 캘린더 연동은 `CalendarEventService`가 `EKEventStore`로 기기의 모든 캘린더에서 직접 읽는다 —
   HealthKit과 마찬가지로 백엔드를 거치지 않고 기기에서만 읽어와 화면에 쓴다(저장 안 함).
 - `EKEventStore.requestFullAccessToEvents()`로 전체 접근 권한을 요청한다 (`NSCalendarsFullAccessUsageDescription`
-  필요). 조회 기간은 HealthKit 쿼리와 달리 반드시 명시해야 해서 과거 1년~미래 3개월로 고정한다.
+  필요). 조회 기간은 HealthKit 쿼리와 달리 반드시 명시해야 한다 — `fetchEvents(start:end:)`에 안 넘기면
+  "오늘의 패턴" 화면이 쓰는 기본값(과거 1년~미래 3개월)으로 조회하고, 보고서처럼 임의의 과거 기간을
+  분석할 때는 그 기간을 그대로 넘긴다(안 그러면 1년보다 오래된 기간엔 일정이 조용히 누락된다).
 - 공휴일/휴가는 EventKit에 전용 타입이 없어서, 일정이 속한 캘린더 이름으로 구분한다("Holiday"/"공휴일",
   "휴가"/"vacation" 포함 여부) — `CalendarEventCategory`.
 
