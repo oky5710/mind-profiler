@@ -41,13 +41,21 @@
 
 ### 달력보기 (`Views/Calendar`)
 - 월 달력 그리드. 날짜를 탭하면 입력이 아니라 그날 이미 입력된 내용(기분/커피/운동)을 보여주는
-  읽기 전용 요약 시트가 뜬다(`DayDetailSheet`, `CalendarViewModel.mood(on:)`/`coffees(on:)`/
+  요약 시트가 뜬다(`DayDetailSheet`, `CalendarViewModel.mood(on:)`/`coffees(on:)`/
   `exercises(on:)` 재사용) — 기록이 없으면 안내 문구만 보여준다. 입력은 이 시트 우측 상단의
   "+" 버튼(그 날짜 기준)이나, 캘린더 화면 자체의 우측 상단 "+" 버튼(오늘 날짜 기본)으로 들어간다 —
   둘 다 기존의 bottom sheet 유형 선택 → 입력 흐름(`DayEntrySheet`)을 그대로 연다. 유형을 고르기 전
   화면 맨 위에 `DatePicker`가 있어(상한은 오늘까지) 두 진입 경로 모두 날짜를 바로 바꿀 수 있다 —
   캘린더 우측 상단 "+"는 항상 오늘 날짜로 열리지만, 다른 날짜에 기록하고 싶으면 그 칸을 직접 찾아
   탭하지 않고 이 피커로 바꾸면 된다.
+- **수정/삭제**: 요약 시트의 각 기록 줄 오른쪽에 연필(수정)/휴지통(삭제) 아이콘 버튼이 있다
+  (`DayDetailSheet.rowActions`). 삭제는 해당 서비스의 `removeMood`/`removeCoffee`/`removeExercise`를
+  바로 호출한다. 수정은 `MoodEntryForm`/`CoffeeEntryForm`/`ExerciseEntryForm`을 그 기록의 기존 값으로
+  미리 채운 채로 열고(`editingEntry` 파라미터), 저장 시 생성이 아니라 해당 서비스의
+  `updateMood`/`updateCoffee`/`updateExercise`(PATCH)를 호출한다 — 수정 모드에서는 폼 안의
+  "이 날의 기록" 목록(다른 기록까지 같이 보여주고 지울 수 있는 목록)은 숨긴다. 수정/삭제 후에는
+  `DayDetailSheet`가 직접 상태를 들고 있지 않고 부모(`CalendarViewModel`)를 다시 불러오는 방식이라,
+  시트가 열린 채로도 최신 값으로 갱신된다.
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
   운동(`ExerciseEntryForm`) / 약복용(`MedicationEntryForm`) / 이벤트(`LifeEventEntryForm`) —
   PRD의 유형 전부 구현됨(`EntryType.isImplemented`는 이제 항상 `true`라 제거).

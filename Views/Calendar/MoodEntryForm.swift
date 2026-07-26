@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MoodEntryForm: View {
     let date: Date
+    // 이 값이 있으면 새로 만들지 않고 이 기록의 점수만 바꾼다(캘린더 날짜 요약 화면의 수정 아이콘).
+    var editingEntry: MoodLogEntry? = nil
     var onSaved: () async -> Void
     var onRefresh: () async -> Void
 
@@ -24,6 +26,7 @@ struct MoodEntryForm: View {
                     } label: {
                         Text(option.emoji)
                             .font(.system(size: 40))
+                            .opacity(editingEntry != nil && editingEntry?.score != option.score ? 0.4 : 1)
                     }
                     .disabled(isSaving)
                 }
@@ -39,12 +42,19 @@ struct MoodEntryForm: View {
                     .multilineTextAlignment(.center)
             }
 
-            entryList
+            // 수정 모드는 이 기록 하나의 점수만 바꾸는 게 목적이라, 그날 전체 기록 목록은 필요 없다.
+            if editingEntry == nil {
+                entryList
+            }
 
             Spacer()
         }
         .padding()
-        .task { await loadEntries() }
+        .task {
+            if editingEntry == nil {
+                await loadEntries()
+            }
+        }
     }
 
     @ViewBuilder
@@ -98,7 +108,11 @@ struct MoodEntryForm: View {
         isSaving = true
         errorMessage = nil
         do {
-            try await MoodService.logMood(date: DateKey.string(from: date), score: score)
+            if let editingEntry {
+                try await MoodService.updateMood(id: editingEntry.id, date: DateKey.string(from: date), score: score)
+            } else {
+                try await MoodService.logMood(date: DateKey.string(from: date), score: score)
+            }
             await onSaved()
         } catch APIError.server(409, _) {
             // 백엔드가 하루 1건 제약을 409로 강제한다 — mind-record 웹과 동일한 안내 문구.

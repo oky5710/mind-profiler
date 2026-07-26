@@ -63,6 +63,7 @@ struct DayEntrySheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(type.title)
                                 .font(.headline)
+                                .foregroundStyle(.primary)
                             Text(type.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

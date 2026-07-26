@@ -33,6 +33,13 @@ enum MoodService {
         )
     }
 
+    static func updateMood(id: String, date: String, score: Int) async throws {
+        let _: MoodLogEntry = try await APIClient.shared.patch(
+            "/moods/\(id)",
+            body: MoodLogRequest(date: date, score: score)
+        )
+    }
+
     static func logTodayMood(score: Int) async throws {
         try await logMood(date: DateKey.string(from: Date()), score: score)
     }

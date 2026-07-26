@@ -28,4 +28,16 @@ enum ExerciseService {
             )
         )
     }
+
+    static func updateExercise(id: String, start: Date, end: Date, type: String, intensity: Int) async throws {
+        let _: ExerciseLogEntry = try await APIClient.shared.patch(
+            "/exercises/\(id)",
+            body: ExerciseLogRequest(
+                type: type,
+                startedAt: DateKey.isoString(from: start),
+                endedAt: DateKey.isoString(from: end),
+                intensity: intensity
+            )
+        )
+    }
 }

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ExerciseEntryForm: View {
     let date: Date
+    // 이 값이 있으면 새로 만들지 않고 이 기록 하나만 수정한다(캘린더 날짜 요약 화면의 수정 아이콘).
+    var editingEntry: ExerciseLogEntry? = nil
     var onSaved: () async -> Void
     var onRefresh: () async -> Void
 
@@ -88,40 +90,49 @@ struct ExerciseEntryForm: View {
                 if isSaving {
                     ProgressView()
                 } else {
-                    Text("저장")
+                    Text(editingEntry == nil ? "저장" : "수정")
                 }
             }
             .disabled(isSaving)
 
-            Section("이 날의 기록") {
-                if isLoadingEntries {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    Text("이 날 기록된 운동이 없어요.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(entries) { entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.type)
-                            if let start = DateKey.parseISODate(entry.startedAt),
-                               let end = DateKey.parseISODate(entry.endedAt) {
-                                Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+            // 수정 모드는 이 기록 하나만 바꾸는 게 목적이라, 그날 전체 기록 목록은 필요 없다.
+            if editingEntry == nil {
+                Section("이 날의 기록") {
+                    if isLoadingEntries {
+                        ProgressView()
+                    } else if entries.isEmpty {
+                        Text("이 날 기록된 운동이 없어요.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(entries) { entry in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.type)
+                                if let start = DateKey.parseISODate(entry.startedAt),
+                                   let end = DateKey.parseISODate(entry.endedAt) {
+                                    Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
+                        .onDelete { offsets in
+                            Task { await removeEntries(at: offsets) }
+                        }
                     }
-                    .onDelete { offsets in
-                        Task { await removeEntries(at: offsets) }
+                    if let entriesErrorMessage {
+                        Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
                     }
-                }
-                if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
                 }
             }
         }
-        .task { await loadEntries() }
+        .task {
+            if let editingEntry {
+                prefill(from: editingEntry)
+            } else {
+                await loadEntries()
+            }
+        }
         .onChange(of: durationMinutes) { _, _ in
             endTime = startTime.addingTimeInterval(TimeInterval(durationMinutes * 60))
         }
@@ -131,6 +142,21 @@ struct ExerciseEntryForm: View {
         .onChange(of: endTime) { _, newEnd in
             let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
             durationMinutes = min(300, max(1, minutes))
+        }
+    }
+
+    private func prefill(from entry: ExerciseLogEntry) {
+        if ExerciseService.typeOptions.contains(entry.type) {
+            selectedType = entry.type
+        } else {
+            useCustomType = true
+            customType = entry.type
+        }
+        intensity = entry.intensity ?? intensity
+        if let start = DateKey.parseISODate(entry.startedAt), let end = DateKey.parseISODate(entry.endedAt) {
+            startTime = start
+            endTime = end
+            durationMinutes = min(300, max(1, Int((end.timeIntervalSince(start) / 60).rounded())))
         }
     }
 
@@ -167,12 +193,22 @@ struct ExerciseEntryForm: View {
 
         isSaving = true
         do {
-            try await ExerciseService.logExercise(
-                start: effectiveStart,
-                end: effectiveEnd,
-                type: finalType,
-                intensity: intensity
-            )
+            if let editingEntry {
+                try await ExerciseService.updateExercise(
+                    id: editingEntry.id,
+                    start: effectiveStart,
+                    end: effectiveEnd,
+                    type: finalType,
+                    intensity: intensity
+                )
+            } else {
+                try await ExerciseService.logExercise(
+                    start: effectiveStart,
+                    end: effectiveEnd,
+                    type: finalType,
+                    intensity: intensity
+                )
+            }
             await onSaved()
         } catch {
             errorMessage = error.localizedDescription

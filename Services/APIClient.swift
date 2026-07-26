@@ -46,6 +46,10 @@ actor APIClient {
         try await send(path: path, method: "DELETE", body: Optional<EmptyBody>.none, authorized: authorized)
     }
 
+    func patch<Body: Encodable, Response: Decodable>(_ path: String, body: Body, authorized: Bool = true) async throws -> Response {
+        try await send(path: path, method: "PATCH", body: body, authorized: authorized)
+    }
+
     private func send<Body: Encodable, Response: Decodable>(
         path: String,
         method: String,

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CoffeeEntryForm: View {
     let date: Date
+    // 이 값이 있으면 새로 만들지 않고 이 기록 하나만 수정한다(캘린더 날짜 요약 화면의 수정 아이콘).
+    var editingEntry: CoffeeLogEntry? = nil
     var onSaved: () async -> Void
     var onRefresh: () async -> Void
 
@@ -60,47 +62,71 @@ struct CoffeeEntryForm: View {
                 if isSaving {
                     ProgressView()
                 } else {
-                    Text("저장")
+                    Text(editingEntry == nil ? "저장" : "수정")
                 }
             }
             .disabled(isSaving)
 
-            Section("이 날의 기록") {
-                if isLoadingEntries {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    Text("이 날 기록된 커피가 없어요.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(entries) { entry in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.type ?? "커피")
-                                if let entryDate = DateKey.parseISODate(entry.date) {
-                                    Text(Self.timeFormatter.string(from: entryDate))
+            // 수정 모드는 이 기록 하나만 바꾸는 게 목적이라, 그날 전체 기록 목록은 필요 없다.
+            if editingEntry == nil {
+                Section("이 날의 기록") {
+                    if isLoadingEntries {
+                        ProgressView()
+                    } else if entries.isEmpty {
+                        Text("이 날 기록된 커피가 없어요.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(entries) { entry in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.type ?? "커피")
+                                    if let entryDate = DateKey.parseISODate(entry.date) {
+                                        Text(Self.timeFormatter.string(from: entryDate))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                if let memo = entry.memo, !memo.isEmpty {
+                                    Spacer()
+                                    Text(memo)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            if let memo = entry.memo, !memo.isEmpty {
-                                Spacer()
-                                Text(memo)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                        }
+                        .onDelete { offsets in
+                            Task { await removeEntries(at: offsets) }
                         }
                     }
-                    .onDelete { offsets in
-                        Task { await removeEntries(at: offsets) }
+                    if let entriesErrorMessage {
+                        Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
                     }
-                }
-                if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
                 }
             }
         }
-        .task { await loadEntries() }
+        .task {
+            if let editingEntry {
+                prefill(from: editingEntry)
+            } else {
+                await loadEntries()
+            }
+        }
+    }
+
+    private func prefill(from entry: CoffeeLogEntry) {
+        if let entryDate = DateKey.parseISODate(entry.date) {
+            time = entryDate
+        }
+        if let type = entry.type {
+            if CoffeeService.typeOptions.contains(type) {
+                selectedType = type
+            } else {
+                useCustomType = true
+                customType = type
+            }
+        }
+        memo = entry.memo ?? ""
     }
 
     private func loadEntries() async {
@@ -133,11 +159,20 @@ struct CoffeeEntryForm: View {
         let combined = DateKey.combine(date: date, time: time)
 
         do {
-            try await CoffeeService.logCoffee(
-                dateTime: combined,
-                type: finalType.isEmpty ? nil : finalType,
-                memo: memo.isEmpty ? nil : memo
-            )
+            if let editingEntry {
+                try await CoffeeService.updateCoffee(
+                    id: editingEntry.id,
+                    dateTime: combined,
+                    type: finalType.isEmpty ? nil : finalType,
+                    memo: memo.isEmpty ? nil : memo
+                )
+            } else {
+                try await CoffeeService.logCoffee(
+                    dateTime: combined,
+                    type: finalType.isEmpty ? nil : finalType,
+                    memo: memo.isEmpty ? nil : memo
+                )
+            }
             await onSaved()
         } catch {
             errorMessage = error.localizedDescription

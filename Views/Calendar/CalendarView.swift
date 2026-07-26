@@ -73,6 +73,8 @@ struct CalendarView: View {
                 exercises: viewModel.exercises(on: day.date)
             ) {
                 pendingEntryDay = day
+            } onRefresh: {
+                await viewModel.reload()
             }
         }
         .sheet(item: $selectedEntryDay) { day in

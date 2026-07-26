@@ -9,8 +9,16 @@ struct DayDetailSheet: View {
     let coffees: [CoffeeLogEntry]
     let exercises: [ExerciseLogEntry]
     var onAddEntry: () -> Void
+    // 수정/삭제 후 캘린더 데이터를 다시 불러온다 — 이 화면 자체는 mood/coffees/exercises를 그대로
+    // 받아 보여주기만 하므로(상태를 직접 들고 있지 않음), 부모가 다시 불러오면 이 시트가 열린 채로도
+    // 최신 값으로 갱신된다.
+    var onRefresh: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var isEditingMood = false
+    @State private var editingCoffee: CoffeeLogEntry?
+    @State private var editingExercise: ExerciseLogEntry?
+    @State private var deletionErrorMessage: String?
 
     private static let titleFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -41,7 +49,15 @@ struct DayDetailSheet: View {
 
                 if let mood {
                     Section("기분") {
-                        Text("\(MoodService.options.first { $0.score == mood.score }?.emoji ?? "") \(mood.score)점")
+                        HStack {
+                            Text("\(MoodService.options.first { $0.score == mood.score }?.emoji ?? "") \(mood.score)점")
+                            Spacer()
+                            rowActions {
+                                isEditingMood = true
+                            } onDelete: {
+                                Task { await deleteMood(mood) }
+                            }
+                        }
                     }
                 }
 
@@ -58,10 +74,15 @@ struct DayDetailSheet: View {
                                     }
                                 }
                                 if let memo = entry.memo, !memo.isEmpty {
-                                    Spacer()
                                     Text(memo)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                rowActions {
+                                    editingCoffee = entry
+                                } onDelete: {
+                                    Task { await deleteCoffee(entry) }
                                 }
                             }
                         }
@@ -71,17 +92,31 @@ struct DayDetailSheet: View {
                 if !exercises.isEmpty {
                     Section("운동 \(exercises.count)건") {
                         ForEach(exercises) { entry in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.type)
-                                if let start = DateKey.parseISODate(entry.startedAt),
-                                   let end = DateKey.parseISODate(entry.endedAt) {
-                                    Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.type)
+                                    if let start = DateKey.parseISODate(entry.startedAt),
+                                       let end = DateKey.parseISODate(entry.endedAt) {
+                                        Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                rowActions {
+                                    editingExercise = entry
+                                } onDelete: {
+                                    Task { await deleteExercise(entry) }
                                 }
                             }
                         }
                     }
+                }
+
+                if let deletionErrorMessage {
+                    Text(deletionErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
             }
             .navigationTitle(Self.titleFormatter.string(from: date))
@@ -99,6 +134,74 @@ struct DayDetailSheet: View {
                     Button("닫기") { dismiss() }
                 }
             }
+            .sheet(isPresented: $isEditingMood) {
+                NavigationStack {
+                    MoodEntryForm(date: date, editingEntry: mood, onSaved: {
+                        await onRefresh()
+                        isEditingMood = false
+                    }, onRefresh: onRefresh)
+                }
+            }
+            .sheet(item: $editingCoffee) { entry in
+                NavigationStack {
+                    CoffeeEntryForm(date: date, editingEntry: entry, onSaved: {
+                        await onRefresh()
+                        editingCoffee = nil
+                    }, onRefresh: onRefresh)
+                }
+            }
+            .sheet(item: $editingExercise) { entry in
+                NavigationStack {
+                    ExerciseEntryForm(date: date, editingEntry: entry, onSaved: {
+                        await onRefresh()
+                        editingExercise = nil
+                    }, onRefresh: onRefresh)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rowActions(onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) -> some View {
+        HStack(spacing: 16) {
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+            }
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+    }
+
+    private func deleteMood(_ entry: MoodLogEntry) async {
+        deletionErrorMessage = nil
+        do {
+            try await MoodService.removeMood(id: entry.id)
+            await onRefresh()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteCoffee(_ entry: CoffeeLogEntry) async {
+        deletionErrorMessage = nil
+        do {
+            try await CoffeeService.removeCoffee(id: entry.id)
+            await onRefresh()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteExercise(_ entry: ExerciseLogEntry) async {
+        deletionErrorMessage = nil
+        do {
+            try await ExerciseService.removeExercise(id: entry.id)
+            await onRefresh()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
         }
     }
 }
