@@ -12,6 +12,7 @@
 		0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C6AF9A7770E01E42D3583C /* HomeView.swift */; };
 		076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */; };
 		1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */; };
+		150A91D8E26AF3F979AB59AD /* DayDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */; };
 		1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */; };
 		1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = FDA976353F815393EF917200 /* GoogleSignIn */; };
 		202460BD9C82EE2421D087D9 /* design-system.md in Resources */ = {isa = PBXBuildFile; fileRef = BD8714E5A70D3B643DB60482 /* design-system.md */; };
@@ -138,6 +139,7 @@
 		A1F448D53B0E674CEA76B276 /* MindProfiler.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MindProfiler.entitlements; sourceTree = "<group>"; };
 		A260AC61F3C8A7585B32E365 /* ExamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamService.swift; sourceTree = "<group>"; };
 		A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisView.swift; sourceTree = "<group>"; };
+		B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayDetailSheet.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamped.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
 		BD8714E5A70D3B643DB60482 /* design-system.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "design-system.md"; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */,
 				A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */,
 				11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */,
+				B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -519,6 +522,7 @@
 				77174165062A55F13EF343F5 /* RRIntervalExportView.swift in Sources */,
 				3C332F9973A910F1A9C171AB /* RRIntervalExportViewModel.swift in Sources */,
 				7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */,
+				150A91D8E26AF3F979AB59AD /* DayDetailSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

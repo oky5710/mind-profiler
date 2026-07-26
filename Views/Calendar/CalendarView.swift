@@ -2,7 +2,10 @@ import SwiftUI
 
 struct CalendarView: View {
     @State private var viewModel = CalendarViewModel()
-    @State private var selectedDay: SelectedDay?
+    // 날짜를 탭하면 그날 입력된 내용을 보여주는 요약 시트, "+" 버튼(또는 요약 시트 안의 추가
+    // 버튼)을 탭하면 입력 화면으로 가는 시트 — 서로 다른 상태로 나눠서 각자 필요할 때만 뜨게 한다.
+    @State private var selectedDetailDay: SelectedDay?
+    @State private var selectedEntryDay: SelectedDay?
     // UIKit(UIScreen) 없이 실제 레이아웃 높이를 구하기 위해 GeometryReader로 실측한다
     // (AGENTS.md: UIKit 사용 금지) — 실측 전에는 대략적인 기본값으로 잠깐 대체한다.
     @State private var headerHeight: CGFloat = 44
@@ -38,6 +41,15 @@ struct CalendarView: View {
                 ToolbarItem(placement: .principal) {
                     Text("캘린더").font(Typography.screenTitle)
                 }
+                // 날짜를 탭하면 이제 그날 기록을 보여주기만 하므로, 입력은 이 버튼(오늘 날짜
+                // 기본)으로 따로 들어간다.
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        selectedEntryDay = SelectedDay(date: Date())
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
             }
         }
         // 캘린더 탭을 다시 들어올 때마다(다른 기기/화면에서 바뀌었을 수도 있으니) 매번 새로
@@ -45,7 +57,17 @@ struct CalendarView: View {
         .onAppear {
             Task { await viewModel.reload() }
         }
-        .sheet(item: $selectedDay) { day in
+        .sheet(item: $selectedDetailDay) { day in
+            DayDetailSheet(
+                date: day.date,
+                mood: viewModel.mood(on: day.date),
+                coffees: viewModel.coffees(on: day.date),
+                exercises: viewModel.exercises(on: day.date)
+            ) {
+                selectedEntryDay = day
+            }
+        }
+        .sheet(item: $selectedEntryDay) { day in
             DayEntrySheet(date: day.date) {
                 await viewModel.reload()
             }
@@ -170,7 +192,7 @@ struct CalendarView: View {
         let overflowCount = allBadges.count - visibleBadges.count
 
         return Button {
-            selectedDay = SelectedDay(date: date)
+            selectedDetailDay = SelectedDay(date: date)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(day)")

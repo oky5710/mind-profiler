@@ -40,7 +40,11 @@
 - 기록을 나중에 조회하는 화면은 없음("나의 Trend/통계" 화면을 삭제하고 "보고서"로 대체하면서 없어짐).
 
 ### 달력보기 (`Views/Calendar`)
-- 월 달력 그리드, 날짜 탭 → bottom sheet로 유형 선택 후 입력.
+- 월 달력 그리드. 날짜를 탭하면 입력이 아니라 그날 이미 입력된 내용(기분/커피/운동)을 보여주는
+  읽기 전용 요약 시트가 뜬다(`DayDetailSheet`, `CalendarViewModel.mood(on:)`/`coffees(on:)`/
+  `exercises(on:)` 재사용) — 기록이 없으면 안내 문구만 보여준다. 입력은 이 시트 우측 상단의
+  "+" 버튼(그 날짜 기준)이나, 캘린더 화면 자체의 우측 상단 "+" 버튼(오늘 날짜 기본)으로 들어간다 —
+  둘 다 기존의 bottom sheet 유형 선택 → 입력 흐름(`DayEntrySheet`)을 그대로 연다.
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
   운동(`ExerciseEntryForm`) / 약복용(`MedicationEntryForm`) / 이벤트(`LifeEventEntryForm`) —
   PRD의 유형 전부 구현됨(`EntryType.isImplemented`는 이제 항상 `true`라 제거).
