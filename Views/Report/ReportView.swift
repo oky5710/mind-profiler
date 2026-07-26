@@ -687,7 +687,7 @@ struct ReportView: View {
                         Text("rMSSD").font(.caption2).foregroundStyle(.secondary)
                         Text("차이").font(.caption2).foregroundStyle(.secondary)
                     }
-                    tableRowDivider
+                    tableRowDivider(columns: 4)
 
                     ForEach(viewModel.topSDNNRMSSDDifferences) { diff in
                         GridRow {
@@ -696,7 +696,7 @@ struct ReportView: View {
                             Text("\(String(format: "%.0f", diff.rmssd))ms").font(.caption2)
                             Text("\(String(format: "%.0f", diff.difference))ms").font(.caption2)
                         }
-                        tableRowDivider
+                        tableRowDivider(columns: 4)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -705,13 +705,13 @@ struct ReportView: View {
         .panelCard()
     }
 
-    // Grid 안에서 GridRow로 감싸지 않고 바로 두면 그 한 줄이 되고, gridCellColumns(4)로 4칸을
-    // 전부 차지하게 해서 표 너비 전체를 가로지르는 구분선이 된다.
-    private var tableRowDivider: some View {
+    // Grid 안에서 GridRow로 감싸지 않고 바로 두면 그 한 줄이 되고, gridCellColumns(columns)로
+    // 칸을 전부 차지하게 해서 표 너비 전체를 가로지르는 구분선이 된다.
+    private func tableRowDivider(columns: Int) -> some View {
         Rectangle()
             .fill(Theme.systemGray5)
             .frame(height: 1)
-            .gridCellColumns(4)
+            .gridCellColumns(columns)
     }
 
     // MARK: - 상관계수
@@ -720,59 +720,34 @@ struct ReportView: View {
         let id = UUID()
         // |r| — 정렬 기준. 비교할 데이터 자체가 부족한 항목은 맨 아래로 밀리게 -1을 준다.
         let strength: Double
-        let text: String
-        let isMissing: Bool
+        let variable: String
+        let rText: String
+        let strengthText: String
     }
 
-    // 상관관계 강한 순으로 보여준다 — 기분/커피는 실제 Pearson r, 운동은 운동 여부(0/1)와
-    // rMSSD의 점-이연 상관계수로 같은 기준(|r|)에 놓는다.
+    // 상관관계 강한 순으로 보여준다 — 기분/커피/전날 수면시간은 실제 Pearson r, 전날 운동은
+    // 운동 여부(0/1)와 rMSSD의 점-이연 상관계수로 같은 기준(|r|)에 놓는다.
     private var correlationRows: [CorrelationRow] {
         guard let findings = viewModel.correlationFindings else { return [] }
-        var rows: [CorrelationRow] = []
 
-        if let r = findings.moodRMSSDCorrelation {
-            rows.append(CorrelationRow(
+        func row(_ variable: String, _ r: Double?) -> CorrelationRow {
+            guard let r else {
+                return CorrelationRow(strength: -1, variable: variable, rText: "—", strengthText: "—")
+            }
+            return CorrelationRow(
                 strength: abs(r),
-                text: "기분 점수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
-                isMissing: false
-            ))
-        } else {
-            rows.append(CorrelationRow(strength: -1, text: "기분 상관관계: 같은 날짜의 기분·rMSSD 기록이 부족해요", isMissing: true))
+                variable: variable,
+                rText: String(format: "%.2f", r),
+                strengthText: HRVStatistics.correlationStrengthLabel(r)
+            )
         }
 
-        if let r = findings.coffeeRMSSDCorrelation {
-            rows.append(CorrelationRow(
-                strength: abs(r),
-                text: "커피 잔 수 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
-                isMissing: false
-            ))
-        } else {
-            rows.append(CorrelationRow(strength: -1, text: "커피 상관관계: 같은 날짜의 커피·rMSSD 기록이 부족해요", isMissing: true))
-        }
-
-        if let r = findings.exerciseRMSSDCorrelation,
-           let exerciseAvg = findings.exerciseDayAverageRMSSD,
-           let restAvg = findings.restDayAverageRMSSD {
-            rows.append(CorrelationRow(
-                strength: abs(r),
-                text: "전날 운동한 날 평균 rMSSD \(String(format: "%.0f", exerciseAvg))ms · " +
-                    "전날 운동 안 한 날 평균 \(String(format: "%.0f", restAvg))ms (r = \(String(format: "%.2f", r)))",
-                isMissing: false
-            ))
-        } else {
-            rows.append(CorrelationRow(strength: -1, text: "전날 운동 비교: 전날 운동한 날과 안 한 날이 둘 다 있어야 비교할 수 있어요", isMissing: true))
-        }
-
-        if let r = findings.sleepDurationRMSSDCorrelation {
-            rows.append(CorrelationRow(
-                strength: abs(r),
-                text: "전날 수면시간 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
-                isMissing: false
-            ))
-        } else {
-            rows.append(CorrelationRow(strength: -1, text: "전날 수면시간 상관관계: 전날 밤 수면·그날 rMSSD 기록이 부족해요", isMissing: true))
-        }
-
+        let rows = [
+            row("기분", findings.moodRMSSDCorrelation),
+            row("커피 잔 수", findings.coffeeRMSSDCorrelation),
+            row("전날 운동", findings.exerciseRMSSDCorrelation),
+            row("전날 수면시간", findings.sleepDurationRMSSDCorrelation)
+        ]
         return rows.sorted { $0.strength > $1.strength }
     }
 
@@ -782,11 +757,24 @@ struct ReportView: View {
                 .padding(.bottom, 8)
 
             if viewModel.correlationFindings != nil {
-                ForEach(correlationRows) { row in
-                    Text(row.text)
-                        .font(.footnote)
-                        .foregroundStyle(row.isMissing ? .secondary : .primary)
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+                    GridRow {
+                        Text("변수").font(.caption2).foregroundStyle(.secondary)
+                        Text("상관계수").font(.caption2).foregroundStyle(.secondary)
+                        Text("강도").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    tableRowDivider(columns: 3)
+
+                    ForEach(correlationRows) { row in
+                        GridRow {
+                            Text(row.variable).font(.caption2)
+                            Text(row.rText).font(.caption2)
+                            Text(row.strengthText).font(.caption2)
+                        }
+                        tableRowDivider(columns: 3)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text("해당 기간에 비교할 데이터가 없어요")
                     .font(.footnote)

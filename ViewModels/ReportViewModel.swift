@@ -57,13 +57,8 @@ final class ReportViewModel {
         let moodRMSSDCorrelation: Double?
         // 그날 커피 잔 수 vs rMSSD 중앙값의 Pearson 상관계수.
         let coffeeRMSSDCorrelation: Double?
-        // 전날 운동한 날 vs 안 한 날의 평균 rMSSD 비교 (상관계수보다 "전날 운동을 했는지" 자체가
-        // 이진값이라 두 그룹 평균 비교가 더 읽기 쉽다) — 회복 효과를 보려는 거라 그날이 아니라
-        // 전날 운동 여부를 그날 rMSSD와 짝짓는다.
-        let exerciseDayAverageRMSSD: Double?
-        let restDayAverageRMSSD: Double?
-        // 전날 운동 여부(0/1)와 그날 rMSSD의 점-이연 상관계수 — 위 평균 비교는 텍스트 설명용이고,
-        // 이 값은 기분/커피와 같은 기준(|r|)으로 정렬하기 위한 것.
+        // 전날 운동 여부(0/1)와 그날 rMSSD의 점-이연 상관계수 — 회복 효과를 보려는 거라 그날이
+        // 아니라 전날 운동 여부를 그날 rMSSD와 짝짓는다.
         let exerciseRMSSDCorrelation: Double?
         // 전날 밤 수면 시간(시간 단위) vs 그날 rMSSD 중앙값의 Pearson 상관계수.
         let sleepDurationRMSSDCorrelation: Double?
@@ -421,18 +416,10 @@ final class ReportViewModel {
         // 그날 운동이 아니라 "전날" 운동 여부와 그날 rMSSD를 짝짓는다 — 운동의 회복 효과가
         // 다음날 HRV에 나타나는지를 보려는 것.
         let exerciseDays = Set(workouts.map { calendar.startOfDay(for: $0.start) })
-        var exerciseValues: [Double] = []
-        var restValues: [Double] = []
         var exercisePairs: [(Double, Double)] = []
         for (day, value) in rmssdByDay {
             guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day) else { continue }
-            if exerciseDays.contains(previousDay) {
-                exerciseValues.append(value)
-                exercisePairs.append((1, value))
-            } else {
-                restValues.append(value)
-                exercisePairs.append((0, value))
-            }
+            exercisePairs.append((exerciseDays.contains(previousDay) ? 1 : 0, value))
         }
 
         // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다. 하루에 세션이 2개 이상(예: 이른
@@ -451,8 +438,6 @@ final class ReportViewModel {
         return CorrelationFindings(
             moodRMSSDCorrelation: HRVStatistics.pearsonCorrelation(moodPairs),
             coffeeRMSSDCorrelation: HRVStatistics.pearsonCorrelation(coffeePairs),
-            exerciseDayAverageRMSSD: exerciseValues.isEmpty ? nil : exerciseValues.reduce(0, +) / Double(exerciseValues.count),
-            restDayAverageRMSSD: restValues.isEmpty ? nil : restValues.reduce(0, +) / Double(restValues.count),
             exerciseRMSSDCorrelation: HRVStatistics.pearsonCorrelation(exercisePairs),
             sleepDurationRMSSDCorrelation: HRVStatistics.pearsonCorrelation(sleepPairs)
         )
