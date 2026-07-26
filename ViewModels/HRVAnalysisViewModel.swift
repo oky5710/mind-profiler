@@ -125,10 +125,7 @@ final class HRVAnalysisViewModel {
 
         do {
             try await HealthKitService.requestAuthorization()
-            let now = Date()
-            let thirtyDaysAgo = now.addingTimeInterval(-30 * 24 * 60 * 60)
-            let recentSamples = try await HealthKitService.fetchRMSSDSamples(start: thirtyDaysAgo, end: now)
-            recentThirtyDayRMSSDMedian = recentSamples.isEmpty ? nil : HRVStatistics.median(recentSamples.map(\.value))
+            recentThirtyDayRMSSDMedian = try await RMSSDThreshold.fetchRecentThirtyDayMedian()
         } catch {
             healthKitErrorMessage = error.localizedDescription
             hasCheckedRecentMedian = false

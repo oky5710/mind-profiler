@@ -35,6 +35,7 @@
 		5D19F5A91F7A12624AABB18C /* ExerciseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */; };
 		63D6917DE455882DFE349BB3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D406E7D6B4DE3F230832DE06 /* HealthKit.framework */; };
 		6663270304ED23D94FC361ED /* MedicationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D6C75DD02E38AA10033162 /* MedicationModels.swift */; };
+		67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */; };
 		6D57DF092916206B7C46BDEF /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 228203F978C4084F09581D10 /* architecture.md */; };
 		74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */; };
 		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
@@ -110,6 +111,7 @@
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
 		32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixabayService.swift; sourceTree = "<group>"; };
+		3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThreshold.swift; sourceTree = "<group>"; };
 		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
 		400923908367E8D00165474D /* CoffeeEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeEntryForm.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 				103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */,
 				A64708648392ADFC66B4F219 /* MedicationReminderService.swift */,
 				056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */,
+				3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -551,6 +554,7 @@
 				8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */,
 				46FD50BDB7766225F32BF817 /* ReminderEntryForm.swift in Sources */,
 				EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */,
+				67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

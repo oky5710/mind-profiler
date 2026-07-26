@@ -64,8 +64,11 @@ extension HRVAnalysisView {
                     .foregroundStyle(rmssdColor)
 
                     if showRMSSDPointMarkers {
-                        // 최근 30일 중앙값의 50% 미만으로 뚝 떨어진 값은 눈에 띄게 원 테두리를 빨강으로.
-                        let isCriticallyLow = viewModel.recentThirtyDayRMSSDMedian.map { point.value < $0 * 0.5 } ?? false
+                        // 최근 30일 중앙값의 50% 미만으로 뚝 떨어진 값은 눈에 띄게 원 테두리를 빨강으로
+                        // — 백그라운드 급격한 변화 알림(RMSSDThreshold)과 같은 기준을 쓴다.
+                        let isCriticallyLow = viewModel.recentThirtyDayRMSSDMedian.map {
+                            RMSSDThreshold.direction(value: point.value, median: $0) == .low
+                        } ?? false
 
                         PointMark(
                             x: .value("시간", point.date),
