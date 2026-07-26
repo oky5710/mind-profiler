@@ -163,7 +163,15 @@ struct ExerciseEntryForm: View {
 
     private func prefill(from entry: ExerciseLogEntry) {
         isPrefilling = true
-        defer { isPrefilling = false }
+        // onChange 핸들러는 이 함수가 동기적으로 끝난 뒤, 다음 SwiftUI 업데이트 패스에서 실행된다 —
+        // 그래서 defer로 여기서 바로 isPrefilling을 내리면 그 핸들러들이 실행되는 시점엔 이미
+        // false가 돼 있어 되먹임을 못 막는다. 다음 런루프 틱으로 미뤄서, 핸들러가 한 번 지나간
+        // 뒤에 내려야 확실히 막힌다.
+        defer {
+            DispatchQueue.main.async {
+                isPrefilling = false
+            }
+        }
 
         if ExerciseService.typeOptions.contains(entry.type) {
             selectedType = entry.type

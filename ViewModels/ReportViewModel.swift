@@ -376,9 +376,16 @@ final class ReportViewModel {
         return lowestDays.map { entry in
             let previousDay = calendar.date(byAdding: .day, value: -1, to: entry.date)
 
-            let previousNightSleepDuration = previousDay
-                .flatMap { prev in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: prev) } }
-                .map { $0.end.timeIntervalSince($0.start) }
+            // 나이트 라벨(위 "수면" 참고)로 그날 밤을 판정해야 한다 — 세션의 실제 시작 시각으로
+            // 비교하면 자정 넘어 시작한 세션이 하루 밀려서 빠지거나 엉뚱한 밤으로 잡힌다. 같은 밤에
+            // 세션이 여러 개(이른 아침에 잠깐 더 잔 것 + 그날 밤잠)면 합산한다.
+            let previousNightSleepDuration: TimeInterval? = previousDay.flatMap { prev -> TimeInterval? in
+                let matching = sleepRanges.filter {
+                    calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: prev)
+                }
+                guard !matching.isEmpty else { return nil }
+                return matching.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
+            }
 
             // 시작일만 비교하면 여러 날에 걸친 일정(휴가·출장 등)이 둘째 날부터는 누락된다 —
             // 일정 구간과 그날 하루 구간이 겹치는지로 판정해야 한다.

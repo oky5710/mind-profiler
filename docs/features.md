@@ -58,7 +58,10 @@
   시트가 열린 채로도 최신 값으로 갱신된다. `ExerciseEntryForm`은 시작/종료 시각·운동 시간(분) 세 값이
   서로 되먹임하는 구조라(위 "운동 기록 입력" 참고), 미리 채우는 동안만 그 되먹임을 꺼둔다
   (`isPrefilling`) — 안 그러면 운동 시간 입력칸의 300분(5시간) 상한 때문에, 5시간 넘는 기존 기록을
-  수정하려고 열기만 해도 종료 시각이 5시간짜리로 조용히 잘렸다.
+  수정하려고 열기만 해도 종료 시각이 5시간짜리로 조용히 잘렸다. 이 되먹임(`onChange`)은 값을 대입한
+  그 자리가 아니라 다음 SwiftUI 업데이트 패스에서 실행되므로, `isPrefilling`을 `defer`로 바로
+  내리면 이미 늦다 — 다음 런루프 틱(`DispatchQueue.main.async`)으로 미뤄서 그 업데이트 패스가 지나간
+  뒤에 내린다.
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
   운동(`ExerciseEntryForm`) / 약복용(`MedicationEntryForm`) / 이벤트(`LifeEventEntryForm`) —
   PRD의 유형 전부 구현됨(`EntryType.isImplemented`는 이제 항상 `true`라 제거).
@@ -208,6 +211,8 @@
   caption2 Regular, 색 `Theme.primary600`)으로 줄바꿈한 칩(`lowestDayChip`, 배경 `Theme.primary50`),
   오른쪽에 수면·운동을 "라벨 + 굵은 값" 텍스트로 가로로 나란히(`lowestDayInlineDetail`), 그 아래
   스케줄 — 라벨과 값을 옆으로 붙이지 않고 라벨(위)+값(아래)으로 줄바꿈한다(`lowestDayDetailLine`).
+  전날 수면시간도 위 "상관계수"와 같은 이유로 `nightLabel` 기준으로 그 전날 밤에 속한 세션을 찾고,
+  같은 밤에 세션이 여러 개면 합산한다.
   스케줄은 캘린더 일정(EventKit, `CalendarEventService.fetchEvents(start:end:)` — 분석 중인 보고서
   기간을 그대로 넘긴다, 제목에 "scrum"/"booktudy"가 들어간 정례 일정은 제외 —
   `excludedScheduleKeywords`)과 직접 입력한 생활 이벤트를 합친 것 — 캘린더 접근 권한이 없거나
