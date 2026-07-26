@@ -258,10 +258,12 @@ struct ReportView: View {
         return hour < 10 ? (calendar.date(byAdding: .day, value: -1, to: day) ?? day) : day
     }
 
-    // 세로축은 그 밤 날짜의 21시부터 다음날 21시까지(24시간)를 기준 삼아 시간을 잰다 — 자정이 축
-    // 가운데쯤 오게 해서, 취침~기상이 자정을 넘겨도 축 경계에서 끊을 필요가 없어진다.
+    // 세로축은 그 밤 날짜의 10시부터 다음날 10시까지(24시간)를 기준 삼아 시간을 잰다 — nightLabel의
+    // 날짜 배정 기준(10시 이전/이후)과 정확히 같은 경계를 써야, 그 라벨에 배정된 시각이 항상
+    // 0~24 범위 안에 들어온다. 21시를 기준으로 삼았더니 21시 이전(예: 저녁 7시 낮잠)이 음수
+    // 오프셋이 되어 차트 밖으로 빠지는 문제가 있었다.
     private func hourOffset(_ date: Date, from nightLabel: Date) -> Double {
-        guard let reference = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: nightLabel) else { return 0 }
+        guard let reference = Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: nightLabel) else { return 0 }
         return date.timeIntervalSince(reference) / 3600
     }
 
@@ -281,9 +283,9 @@ struct ReportView: View {
         viewModel.sleepRanges.map { SleepBar(range: $0, label: nightLabel(for: $0.start)) }
     }
 
-    // 세로축 눈금(0~24)을 실제 시각으로 바꾼다 — 0은 21시, 24는 다음날 21시.
+    // 세로축 눈금(0~24)을 실제 시각으로 바꾼다 — 0은 10시, 24는 다음날 10시.
     private func clockLabel(forHour hour: Double) -> String {
-        "\((21 + Int(hour.rounded(.down))) % 24)"
+        "\((10 + Int(hour.rounded(.down))) % 24)"
     }
 
     private static let sleepYAxisTicks: [Double] = [0, 6, 12, 18, 24]
