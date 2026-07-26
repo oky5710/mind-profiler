@@ -252,10 +252,7 @@ struct ReportView: View {
     // 예: 7/1 22시 취침 ~ 7/2 9시 기상은 7/1의 수면으로 표시한다. 그래서 세션이 속하는 "밤 날짜"는
     // 시작 시각의 시(hour)가 10시 이전이면 전날로 당기고, 그 외엔 시작한 날짜 그대로 쓴다.
     private func nightLabel(for date: Date) -> Date {
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: date)
-        let hour = calendar.component(.hour, from: date)
-        return hour < 10 ? (calendar.date(byAdding: .day, value: -1, to: day) ?? day) : day
+        SleepAnalysisService.nightLabel(for: date)
     }
 
     // 세로축은 그 밤 날짜의 10시부터 다음날 10시까지(24시간)를 기준 삼아 시간을 잰다 — nightLabel의

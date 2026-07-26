@@ -184,15 +184,16 @@ final class ReportViewModel {
                 .prefix(3)
                 .map { $0 }
 
-            let periodWorkouts = allWorkouts
-                .filter { $0.start < end && $0.end >= start }
-                .map { (start: $0.start, end: $0.end) }
             let periodMoods = Self.parseMoodEntries(allMoods).filter { $0.date >= start && $0.date < end }
             let periodCoffees = Self.parseCoffeeEntries(allCoffees).filter { $0.date >= start && $0.date < end }
 
+            // "전날 운동" 상관계수는 기간 첫날의 전날(기간 시작일 하루 전, workoutFetchStart부터
+            // 이미 가져와 둔 범위)도 봐야 하므로, 기간(start...end)으로 좁힌 목록이 아니라 이미
+            // 알맞게 앞당겨 가져온 allWorkouts를 그대로 쓴다 — 좁히면 기간 첫날 전날의 운동이
+            // 통째로 빠져서 그날이 실제로는 운동한 날인데도 "쉬는 날"로 잘못 분류된다.
             correlationFindings = Self.computeCorrelations(
                 dailyRMSSD: HRVStatistics.dailyMedian(periodRMSSD),
-                workouts: periodWorkouts,
+                workouts: allWorkouts.map { (start: $0.start, end: $0.end) },
                 moods: periodMoods,
                 coffees: periodCoffees,
                 sleepRanges: allRanges
@@ -435,8 +436,12 @@ final class ReportViewModel {
         // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다. 하루에 세션이 2개 이상(예: 이른
         // 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜 키가 중복되므로 uniqueKeysWithValues는
         // 크래시한다 — 합산(+)으로 합쳐서 그날 총 수면시간을 쓴다.
+        // 자정 넘어 시작한 세션(예: 7/2 00:30 시작)은 raw startOfDay로 키를 잡으면 그날(7/2) 것으로
+        // 잡히는데, 실제로는 전날(7/1) 밤이 이어진 것이라 위 exercisePairs와 같은 기준(nightLabel)으로
+        // 키를 잡아야 한다 — 안 그러면 7/2 rMSSD와 짝지어야 할 전날(7/1) 밤 수면이 여기서 빠지고,
+        // 대신 7/3 rMSSD와 잘못 짝지어진다.
         let sleepDurationByDay = Dictionary(
-            sleepRanges.map { (calendar.startOfDay(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600) },
+            sleepRanges.map { (SleepAnalysisService.nightLabel(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600) },
             uniquingKeysWith: +
         )
         let sleepPairs: [(Double, Double)] = rmssdByDay.compactMap { day, value in

@@ -32,6 +32,18 @@ enum SleepAnalysisService {
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
     }
 
+    // 오후 9시(21시) 이후에 시작해서 다음날 오전 10시 이전에 끝나는 수면을 그날 밤으로 본다 —
+    // 세션이 속하는 "밤 날짜"는 시작 시각의 시(hour)가 10시 이전이면 전날로 당기고, 그 외엔 시작한
+    // 날짜 그대로 쓴다. 보고서의 수면 차트(x축 날짜 배정)와 전날 수면시간 상관계수(날짜별 키)가
+    // 같은 기준을 써야, 자정 넘어 시작한 세션이 차트에서는 전날 것으로 보이는데 상관계수 계산에서는
+    // 그날 것으로 잡히는 식으로 서로 어긋나지 않는다.
+    static func nightLabel(for date: Date) -> Date {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: date)
+        let hour = calendar.component(.hour, from: date)
+        return hour < 10 ? (calendar.date(byAdding: .day, value: -1, to: day) ?? day) : day
+    }
+
     // 자다가 잠깐 깨는 간격(maxGap 이내)은 별도 수면으로 쪼개지 않고 하나로 합치되, 합쳐진 구간 안에서
     // 단계별로 실제 잔 시간이 얼마인지는 그대로 유지해서 탭했을 때 보여준다.
     static func buildSleepRanges(
