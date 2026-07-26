@@ -65,6 +65,9 @@ struct RMSSDEventEntryForm: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Theme.primary)
                 .disabled(viewModel.isSaving)
+                // Form 안 버튼은 기본적으로 흰 배경의 행(row)으로 감싸진다 — 이 버튼은 색 자체가
+                // 강조 배경이라 그 흰 배경이 테두리처럼 남아 어색해서 없앤다.
+                .listRowBackground(Color.clear)
             }
             .navigationTitle("기분 기록")
             .navigationBarTitleDisplayMode(.inline)
@@ -95,15 +98,24 @@ struct RMSSDEventEntryForm: View {
         return Button {
             viewModel.selectedEmotion = emotion
         } label: {
-            Text(emotion.label)
-                .font(.callout)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity)
+            // aspectRatio를 Text에 직접 걸면 Text의 원래(한 줄 높이) 크기를 기준으로 정사각형을
+            // 잡아서 버튼이 글씨 한 줄 높이만 한 작은 정사각형으로 쪼그라들고, 그 안에서 글씨가
+            // 잘려 안 보였다 — 자체 크기가 없는 도형(RoundedRectangle)에 aspectRatio를 걸어야
+            // 그리드 칸의 실제 너비(4등분, 25%)를 그대로 정사각형 한 변으로 쓴다.
+            RoundedRectangle(cornerRadius: 8)
+                .fill(color.opacity(isSelected ? 0.15 : 0.08))
                 .aspectRatio(1, contentMode: .fit)
-                .background(color.opacity(isSelected ? 0.15 : 0.08), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(isSelected ? color : Theme.systemGray5, lineWidth: isSelected ? 2 : 1)
+                )
+                .overlay(
+                    Text(emotion.label)
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .padding(.horizontal, 2)
                 )
         }
         .buttonStyle(.plain)
