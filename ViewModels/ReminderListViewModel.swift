@@ -45,22 +45,44 @@ final class ReminderListViewModel {
     }
 
     // 삭제하지 않고 잠깐 켜고 끈다 — 요청 바디는 항상 전체 필드를 보내는 관례라, 기존 값 그대로에
-    // isEnabled만 뒤집어서 다시 보낸다.
+    // isEnabled만 뒤집어서 다시 보낸다. 네트워크가 끝나기 전에 목록을 먼저 낙관적으로 바꿔서
+    // 스위치가 바로 반응하게 하고(안 그러면 PATCH+재조회가 끝날 때까지 스위치가 안 움직이는 것처럼
+    // 보인다), 실패하면 원래 값으로 되돌린다. load()가 시작하자마자 errorMessage를 지우므로, 실패
+    // 메시지는 load()가 끝난 뒤에 다시 세팅해야 화면에 남는다.
     func setEnabled(_ isEnabled: Bool, for reminder: MedicationReminderEntry) async {
+        guard let index = reminders.firstIndex(where: { $0.id == reminder.id }) else { return }
+        let previous = reminders[index]
+        reminders[index] = MedicationReminderEntry(
+            id: previous.id,
+            isEnabled: isEnabled,
+            timing: previous.timing,
+            repeatType: previous.repeatType,
+            weekdays: previous.weekdays,
+            time: previous.time,
+            startDate: previous.startDate,
+            endDate: previous.endDate
+        )
+
         let request = MedicationReminderRequest(
             isEnabled: isEnabled,
-            timing: reminder.timing,
-            repeatType: reminder.repeatType,
-            weekdays: reminder.weekdays,
-            time: reminder.time,
-            startDate: reminder.startDate,
-            endDate: reminder.endDate
+            timing: previous.timing,
+            repeatType: previous.repeatType,
+            weekdays: previous.weekdays,
+            time: previous.time,
+            startDate: previous.startDate,
+            endDate: previous.endDate
         )
+
+        var updateError: String?
         do {
-            try await MedicationReminderService.updateReminder(id: reminder.id, request)
+            try await MedicationReminderService.updateReminder(id: previous.id, request)
         } catch {
-            errorMessage = error.localizedDescription
+            updateError = error.localizedDescription
+            reminders[index] = previous
         }
         await load()
+        if let updateError {
+            errorMessage = updateError
+        }
     }
 }
