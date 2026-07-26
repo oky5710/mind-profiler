@@ -66,6 +66,14 @@ final class RMSSDThresholdMonitorService {
 
     @discardableResult
     private func postNotification(direction: RMSSDThresholdDirection, value: Double, occurredAt: Date) async -> Bool {
+        // 알림 권한을 거부한 상태면 add(request)는 에러 없이 그냥 받아주기만 하고 실제로는 아무것도
+        // 안 뜬다 — 그런데도 성공으로 치면, 나중에 사용자가 설정에서 권한을 다시 켜도 이미 오늘 자로
+        // "알렸다"고 기록돼 있어 재시도가 안 된다. 실제로 표시될 수 있는 상태인지 먼저 확인한다.
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            return false
+        }
+
         let content = UNMutableNotificationContent()
         content.title = direction == .low ? "rMSSD가 급격히 낮아졌어요" : "rMSSD가 평소보다 크게 높아졌어요"
         content.body = "지금 기분을 기록해보세요."
