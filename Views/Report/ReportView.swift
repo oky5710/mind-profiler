@@ -712,7 +712,7 @@ struct ReportView: View {
             .gridCellColumns(4)
     }
 
-    // MARK: - 기분/운동/커피 상관관계
+    // MARK: - 상관계수
 
     private struct CorrelationRow: Identifiable {
         let id = UUID()
@@ -753,12 +753,22 @@ struct ReportView: View {
            let restAvg = findings.restDayAverageRMSSD {
             rows.append(CorrelationRow(
                 strength: abs(r),
-                text: "운동한 날 평균 rMSSD \(String(format: "%.0f", exerciseAvg))ms · " +
-                    "운동 안 한 날 평균 \(String(format: "%.0f", restAvg))ms (r = \(String(format: "%.2f", r)))",
+                text: "전날 운동한 날 평균 rMSSD \(String(format: "%.0f", exerciseAvg))ms · " +
+                    "전날 운동 안 한 날 평균 \(String(format: "%.0f", restAvg))ms (r = \(String(format: "%.2f", r)))",
                 isMissing: false
             ))
         } else {
-            rows.append(CorrelationRow(strength: -1, text: "운동 비교: 운동한 날과 안 한 날이 둘 다 있어야 비교할 수 있어요", isMissing: true))
+            rows.append(CorrelationRow(strength: -1, text: "전날 운동 비교: 전날 운동한 날과 안 한 날이 둘 다 있어야 비교할 수 있어요", isMissing: true))
+        }
+
+        if let r = findings.sleepDurationRMSSDCorrelation {
+            rows.append(CorrelationRow(
+                strength: abs(r),
+                text: "전날 수면시간 상관계수 r = \(String(format: "%.2f", r)) (\(HRVStatistics.correlationStrengthLabel(r)))",
+                isMissing: false
+            ))
+        } else {
+            rows.append(CorrelationRow(strength: -1, text: "전날 수면시간 상관관계: 전날 밤 수면·그날 rMSSD 기록이 부족해요", isMissing: true))
         }
 
         return rows.sorted { $0.strength > $1.strength }
@@ -766,7 +776,7 @@ struct ReportView: View {
 
     private var correlationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("기분·운동·커피와 rMSSD 관계").font(Typography.sectionTitle)
+            Text("상관계수").font(Typography.sectionTitle)
                 .padding(.bottom, 8)
 
             if viewModel.correlationFindings != nil {

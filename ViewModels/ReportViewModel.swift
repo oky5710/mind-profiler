@@ -57,13 +57,16 @@ final class ReportViewModel {
         let moodRMSSDCorrelation: Double?
         // 그날 커피 잔 수 vs rMSSD 중앙값의 Pearson 상관계수.
         let coffeeRMSSDCorrelation: Double?
-        // 운동한 날 vs 안 한 날의 평균 rMSSD 비교 (상관계수보다 "그날 운동을 했는지" 자체가
-        // 이진값이라 두 그룹 평균 비교가 더 읽기 쉽다).
+        // 전날 운동한 날 vs 안 한 날의 평균 rMSSD 비교 (상관계수보다 "전날 운동을 했는지" 자체가
+        // 이진값이라 두 그룹 평균 비교가 더 읽기 쉽다) — 회복 효과를 보려는 거라 그날이 아니라
+        // 전날 운동 여부를 그날 rMSSD와 짝짓는다.
         let exerciseDayAverageRMSSD: Double?
         let restDayAverageRMSSD: Double?
-        // 운동 여부(0/1)와 rMSSD의 점-이연 상관계수 — 위 평균 비교는 텍스트 설명용이고, 이 값은
-        // 기분/커피와 같은 기준(|r|)으로 정렬하기 위한 것.
+        // 전날 운동 여부(0/1)와 그날 rMSSD의 점-이연 상관계수 — 위 평균 비교는 텍스트 설명용이고,
+        // 이 값은 기분/커피와 같은 기준(|r|)으로 정렬하기 위한 것.
         let exerciseRMSSDCorrelation: Double?
+        // 전날 밤 수면 시간(시간 단위) vs 그날 rMSSD 중앙값의 Pearson 상관계수.
+        let sleepDurationRMSSDCorrelation: Double?
     }
 
     // 선택 기간 동안의 안정시 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서
@@ -184,7 +187,8 @@ final class ReportViewModel {
                 dailyRMSSD: HRVStatistics.dailyMedian(periodRMSSD),
                 workouts: periodWorkouts,
                 moods: periodMoods,
-                coffees: periodCoffees
+                coffees: periodCoffees,
+                sleepRanges: allRanges
             )
 
             let workoutSummaries = Self.mergedWorkoutSummaries(healthKitWorkouts: allWorkouts, manualExercises: manualExercises)
@@ -391,7 +395,8 @@ final class ReportViewModel {
         dailyRMSSD: [(date: Date, value: Double)],
         workouts: [(start: Date, end: Date)],
         moods: [(date: Date, score: Int)],
-        coffees: [(date: Date, count: Int)]
+        coffees: [(date: Date, count: Int)],
+        sleepRanges: [SleepRange]
     ) -> CorrelationFindings {
         let calendar = Calendar.current
         let rmssdByDay = Dictionary(uniqueKeysWithValues: dailyRMSSD.map { (calendar.startOfDay(for: $0.date), $0.value) })
@@ -406,12 +411,15 @@ final class ReportViewModel {
             return (Double(coffee.count), rmssd)
         }
 
+        // 그날 운동이 아니라 "전날" 운동 여부와 그날 rMSSD를 짝짓는다 — 운동의 회복 효과가
+        // 다음날 HRV에 나타나는지를 보려는 것.
         let exerciseDays = Set(workouts.map { calendar.startOfDay(for: $0.start) })
         var exerciseValues: [Double] = []
         var restValues: [Double] = []
         var exercisePairs: [(Double, Double)] = []
         for (day, value) in rmssdByDay {
-            if exerciseDays.contains(day) {
+            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day) else { continue }
+            if exerciseDays.contains(previousDay) {
                 exerciseValues.append(value)
                 exercisePairs.append((1, value))
             } else {
@@ -420,12 +428,23 @@ final class ReportViewModel {
             }
         }
 
+        // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다.
+        let sleepDurationByDay = Dictionary(uniqueKeysWithValues: sleepRanges.map {
+            (calendar.startOfDay(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600)
+        })
+        let sleepPairs: [(Double, Double)] = rmssdByDay.compactMap { day, value in
+            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day),
+                  let duration = sleepDurationByDay[previousDay] else { return nil }
+            return (duration, value)
+        }
+
         return CorrelationFindings(
             moodRMSSDCorrelation: HRVStatistics.pearsonCorrelation(moodPairs),
             coffeeRMSSDCorrelation: HRVStatistics.pearsonCorrelation(coffeePairs),
             exerciseDayAverageRMSSD: exerciseValues.isEmpty ? nil : exerciseValues.reduce(0, +) / Double(exerciseValues.count),
             restDayAverageRMSSD: restValues.isEmpty ? nil : restValues.reduce(0, +) / Double(restValues.count),
-            exerciseRMSSDCorrelation: HRVStatistics.pearsonCorrelation(exercisePairs)
+            exerciseRMSSDCorrelation: HRVStatistics.pearsonCorrelation(exercisePairs),
+            sleepDurationRMSSDCorrelation: HRVStatistics.pearsonCorrelation(sleepPairs)
         )
     }
 
