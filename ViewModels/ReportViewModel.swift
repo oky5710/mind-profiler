@@ -196,19 +196,23 @@ final class ReportViewModel {
             let periodMoods = Self.parseMoodEntries(allMoods).filter { $0.date >= start && $0.date < end }
             let periodCoffees = Self.parseCoffeeEntries(allCoffees).filter { $0.date >= start && $0.date < end }
 
+            // HealthKit 운동과 수동 입력 운동(캘린더 ExerciseEntryForm)을 합친다 — HealthKit 연동이
+            // 안 된 수동 기록만 있는 날을 "전날 운동" 상관계수와 아래 rMSSD 최저일 요약 둘 다에서
+            // 똑같이 운동한 날로 잡아야 한다.
+            let workoutSummaries = Self.mergedWorkoutSummaries(healthKitWorkouts: allWorkouts, manualExercises: manualExercises)
+
             // "전날 운동" 상관계수는 기간 첫날의 전날(기간 시작일 하루 전, workoutFetchStart부터
             // 이미 가져와 둔 범위)도 봐야 하므로, 기간(start...end)으로 좁힌 목록이 아니라 이미
-            // 알맞게 앞당겨 가져온 allWorkouts를 그대로 쓴다 — 좁히면 기간 첫날 전날의 운동이
+            // 알맞게 앞당겨 가져온 workoutSummaries를 그대로 쓴다 — 좁히면 기간 첫날 전날의 운동이
             // 통째로 빠져서 그날이 실제로는 운동한 날인데도 "쉬는 날"로 잘못 분류된다.
             correlationFindings = Self.computeCorrelations(
                 dailyRMSSD: HRVStatistics.dailyMedian(periodRMSSD),
-                workouts: allWorkouts.map { (start: $0.start, end: $0.end) },
+                workouts: workoutSummaries.map { (start: $0.start, end: $0.end) },
                 moods: periodMoods,
                 coffees: periodCoffees,
                 sleepRanges: allRanges
             )
 
-            let workoutSummaries = Self.mergedWorkoutSummaries(healthKitWorkouts: allWorkouts, manualExercises: manualExercises)
             rmssdLowestDayRows = Self.computeLowestDayRows(
                 dailyMedians: HRVStatistics.dailyMedian(periodRMSSD),
                 sleepRanges: allRanges,
