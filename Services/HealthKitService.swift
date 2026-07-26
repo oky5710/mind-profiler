@@ -91,10 +91,12 @@ enum HealthKitService {
     // 보고서의 기간 요약(심박수 중앙값)용. 원시 heartRate 전체 샘플의 중앙값은 운동/활동 중 측정치가
     // 섞여서 지나치게 높게 나온다 — 애플워치가 하루 한 번쯤 계산해 두는 안정시 심박수
     // (restingHeartRate)를 대신 쓴다.
-    static func fetchRestingHeartRateSamples() async throws -> [(date: Date, value: Double)] {
+    static func fetchRestingHeartRateSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
         try await fetchQuantitySamples(
             type: HKQuantityType(.restingHeartRate),
-            unit: HKUnit.count().unitDivided(by: .minute())
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            start: start,
+            end: end
         )
     }
 

@@ -116,15 +116,22 @@ final class ReportViewModel {
         do {
             try await HealthKitService.requestAuthorization()
 
-            // 기간 시작일 전날 저녁에 잠들어 시작일 새벽까지 이어지는 밤이 중간에 잘리지 않도록
-            // 하루 전부터 가져온다 — 예전엔 이 인자를 아예 안 넘겨서 HealthKit에 기록된 수면
-            // 전체 역사를 매번 다 가져왔다(느려질 수 있고, 실제로 쓰는 범위보다 훨씬 넓었다).
+            // 아래 각 타입마다 실제로 필요한 만큼만 며칠 앞당겨서 가져온다 — 전부 인자 없이
+            // 부르면 HealthKit에 기록된 전체 역사를 매번 다 가져와서 느려진다(예전엔 실제로
+            // 그랬다). 필요한 lookback은 타입마다 다르다:
+            // - 수면: 기간 시작일 전날 저녁에 잠들어 시작일 새벽까지 이어지는 밤이 안 잘리게 1일 전.
+            // - rMSSD: CV 롤링 표준편차가 기간 시작일 근처도 온전한 7일 창을 보게 7일 전.
+            // - 운동: "전날 운동" 상관계수·rMSSD 최저점의 전날 운동 요약이 기간 시작일의 전날도
+            //   봐야 하니 1일 전.
+            // - SDNN/안정시 심박수: 전부 기간 안의 값만 쓰므로 lookback이 필요 없다.
             let sleepFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
+            let rmssdFetchStart = calendar.date(byAdding: .day, value: -7, to: start) ?? start
+            let workoutFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
             async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples(start: sleepFetchStart, end: end)
-            async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples()
-            async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples()
-            async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples()
-            async let workoutsTask = HealthKitService.fetchWorkoutRanges()
+            async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples(start: rmssdFetchStart, end: end)
+            async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples(start: start, end: end)
+            async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples(start: start, end: end)
+            async let workoutsTask = HealthKitService.fetchWorkoutRanges(start: workoutFetchStart, end: end)
             async let moodsTask = MoodService.allMoods()
             async let coffeesTask = CoffeeService.allCoffees()
             async let calendarEventsTask = Self.fetchCalendarEventsSafely()
