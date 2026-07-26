@@ -117,8 +117,17 @@ final class ReminderListViewModel {
                 reminders[currentIndex] = previous
             }
         }
-        await load()
-        if let updateError {
+
+        // load()를 그대로 쓰지 않고 목록만 가볍게 다시 받아온다 — load()는 어차피 목록을 통째로
+        // 덮어써서, 그 await가 끝나는 순간 다시 한번 generation을 확인해야 한다(fetch 도중에도
+        // 더 최신 토글이 끼어들 수 있어서, guard를 fetch "전"에만 하면 fetch "중"에 끼어든 경우를
+        // 놓친다).
+        let refreshed = try? await MedicationReminderService.allReminders()
+        if let refreshed, latestToggleGeneration[previous.id] == generation {
+            reminders = refreshed
+        }
+        await ReminderNotificationService.shared.resync()
+        if let updateError, latestToggleGeneration[previous.id] == generation {
             errorMessage = updateError
         }
     }
