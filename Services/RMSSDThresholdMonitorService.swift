@@ -24,6 +24,10 @@ final class RMSSDThresholdMonitorService {
         hasStarted = true
         do {
             try await HealthKitService.requestAuthorization()
+            // 이 화면은 메뉴로 진입하는 경로가 없어서, 알림 권한을 "알림 설정" 화면에 기대면 그
+            // 화면을 한 번도 안 연 사용자는 권한이 계속 미결정 상태로 남아 알림이 조용히 안 뜬다 —
+            // 여기서 직접 요청한다(이미 허용/거부됐으면 시스템이 그냥 그 상태를 반환한다).
+            try await ReminderNotificationService.shared.requestAuthorization()
             try await HealthKitService.enableBackgroundDeliveryForSDNNUpdates()
             observerQuery = HealthKitService.observeSDNNUpdates { [weak self] in
                 await self?.handleUpdate()
@@ -51,14 +55,17 @@ final class RMSSDThresholdMonitorService {
             let dedupKey = "rmssdThresholdNotified.\(direction.rawValue).\(DateKey.string(from: now))"
             guard UserDefaults.standard.string(forKey: dedupKey) == nil else { return }
 
-            await postNotification(direction: direction, value: latest.value, occurredAt: latest.date)
+            // 알림 예약이 실제로 성공했을 때만 "오늘 이 방향은 이미 알렸다"고 기록한다 — 실패했는데도
+            // 기록해 버리면(권한 없음, 일시적 오류 등) 그날 남은 시간 동안 다시는 재시도하지 않는다.
+            guard await postNotification(direction: direction, value: latest.value, occurredAt: latest.date) else { return }
             UserDefaults.standard.set(DateKey.isoString(from: now), forKey: dedupKey)
         } catch {
             // best-effort — 다음 업데이트나 앱 재실행 때 다시 시도된다.
         }
     }
 
-    private func postNotification(direction: RMSSDThresholdDirection, value: Double, occurredAt: Date) async {
+    @discardableResult
+    private func postNotification(direction: RMSSDThresholdDirection, value: Double, occurredAt: Date) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = direction == .low ? "rMSSD가 급격히 낮아졌어요" : "rMSSD가 평소보다 크게 높아졌어요"
         content.body = "지금 기분을 기록해보세요."
@@ -74,6 +81,11 @@ final class RMSSDThresholdMonitorService {
             content: content,
             trigger: nil
         )
-        try? await UNUserNotificationCenter.current().add(request)
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            return true
+        } catch {
+            return false
+        }
     }
 }
