@@ -83,7 +83,7 @@ struct RMSSDEventEntryForm: View {
     // 버튼 그리드. 긍정은 초록, 부정은 빨강 계열로 색만 다르고 모양은 같다 — 선택된 칸만 그 색
     // outline을 두껍게 둘러서 표시한다.
     private var emotionGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
             ForEach(RMSSDEmotion.allCases) { emotion in
                 emotionButton(for: emotion)
             }
@@ -111,8 +111,8 @@ struct RMSSDEventEntryForm: View {
                 )
                 .overlay(
                     Text(emotion.label)
-                        .font(.callout)
-                        .foregroundStyle(.primary)
+                        .font(.footnote)
+                        .foregroundStyle(color)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .padding(.horizontal, 2)
