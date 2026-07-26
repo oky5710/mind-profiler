@@ -829,9 +829,17 @@ private struct PeriodRangeRow: View {
     var onAnalyze: () -> Void
 
     @State private var isPresented = false
+    // 시트 안 피커는 이 draft 값만 편집한다 — "분석"을 눌러야만 실제 startDate/endDate에 반영되고
+    // onAnalyze()가 불린다. 그렇지 않으면 분석 안 하고 스와이프로 시트만 닫아도 상단에 보이는 기간
+    // 텍스트가 (실제 바인딩을 직접 고쳤으니) 새 날짜로 바뀌어 버리는데, 정작 분석 결과는 이전
+    // 기간 것 그대로라 화면이 서로 다른 기간을 보여주는 것처럼 어긋난다.
+    @State private var draftStartDate = Date()
+    @State private var draftEndDate = Date()
 
     var body: some View {
         Button {
+            draftStartDate = startDate
+            draftEndDate = endDate
             isPresented = true
         } label: {
             HStack {
@@ -860,15 +868,15 @@ private struct PeriodRangeRow: View {
                     // 빨라질 수 없게 서로의 현재 값을 상대 피커의 in: 범위 경계로 넘긴다.
                     HStack(spacing: 8) {
                         datePicker(
-                            for: $startDate,
+                            for: $draftStartDate,
                             title: "시작일",
-                            range: Date.distantPast...min(endDate, maximumDate ?? .distantFuture)
+                            range: Date.distantPast...min(draftEndDate, maximumDate ?? .distantFuture)
                         )
                         Text("~").foregroundStyle(.secondary)
                         datePicker(
-                            for: $endDate,
+                            for: $draftEndDate,
                             title: "종료일",
-                            range: startDate...(maximumDate ?? .distantFuture)
+                            range: draftStartDate...(maximumDate ?? .distantFuture)
                         )
                     }
                     .padding()
@@ -876,6 +884,8 @@ private struct PeriodRangeRow: View {
                 .safeAreaInset(edge: .bottom) {
                     // ui-style.md 버튼 크기 규칙의 Default(50pt).
                     Button {
+                        startDate = draftStartDate
+                        endDate = draftEndDate
                         isPresented = false
                         onAnalyze()
                     } label: {
