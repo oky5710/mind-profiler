@@ -76,6 +76,7 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     }
 
     private func occurrenceRequests(for reminder: MedicationReminderEntry, alreadyTakenTodayTimings: Set<String>) -> [UNNotificationRequest] {
+        guard reminder.isEnabled else { return [] }
         let calendar = Calendar.current
         guard let timeComponents = Self.parseTime(reminder.time),
               let startDate = DateKey.parseISODate(reminder.startDate) else { return [] }

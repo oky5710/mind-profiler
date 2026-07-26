@@ -46,7 +46,7 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
 | GET | `/medication-reminders` | 등록된 복용 알림 설정 전체 조회 | `MedicationReminderService.allReminders` |
 | POST | `/medication-reminders` | 복용 알림 설정 등록(설정값만 저장, 실제 알림 예약은 기기가 로컬로 함) | `MedicationReminderService.addReminder` |
-| PATCH | `/medication-reminders/:id` | 복용 알림 설정 수정 | `MedicationReminderService.updateReminder` |
+| PATCH | `/medication-reminders/:id` | 복용 알림 설정 수정(켜고 끄는 스위치도 `isEnabled` 필드로 이 엔드포인트를 씀) | `MedicationReminderService.updateReminder` |
 | DELETE | `/medication-reminders/:id` | 복용 알림 설정 삭제 | `MedicationReminderService.removeReminder` |
 | GET | `/events?date=yyyy-MM-dd` | 특정 날짜 이벤트 기록 조회 (`LifeEventEntryForm` 목록용) | `LifeEventService.entries` |
 | GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |

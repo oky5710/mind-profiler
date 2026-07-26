@@ -43,4 +43,24 @@ final class ReminderListViewModel {
         }
         await load()
     }
+
+    // 삭제하지 않고 잠깐 켜고 끈다 — 요청 바디는 항상 전체 필드를 보내는 관례라, 기존 값 그대로에
+    // isEnabled만 뒤집어서 다시 보낸다.
+    func setEnabled(_ isEnabled: Bool, for reminder: MedicationReminderEntry) async {
+        let request = MedicationReminderRequest(
+            isEnabled: isEnabled,
+            timing: reminder.timing,
+            repeatType: reminder.repeatType,
+            weekdays: reminder.weekdays,
+            time: reminder.time,
+            startDate: reminder.startDate,
+            endDate: reminder.endDate
+        )
+        do {
+            try await MedicationReminderService.updateReminder(id: reminder.id, request)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        await load()
+    }
 }

@@ -8,6 +8,9 @@ struct ReminderEntryForm: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // 켜고 끄는 스위치는 목록 화면 행에서 바로 조작한다 — 이 폼에서는 수정 시 기존 값을 그대로
+    // 들고 있다가 저장할 때 같이 보낸다(요청 바디는 항상 전체 필드를 보내는 관례).
+    @State private var isEnabled = true
     @State private var selectedTiming: MedicationTiming
     @State private var repeatType: ReminderRepeatType = .daily
     @State private var selectedWeekdays: Set<Int> = []
@@ -116,6 +119,7 @@ struct ReminderEntryForm: View {
     }
 
     private func prefill(from entry: MedicationReminderEntry) {
+        isEnabled = entry.isEnabled
         if let timing = MedicationTiming(rawValue: entry.timing) {
             selectedTiming = timing
         }
@@ -146,6 +150,7 @@ struct ReminderEntryForm: View {
 
         isSaving = true
         let request = MedicationReminderRequest(
+            isEnabled: isEnabled,
             timing: selectedTiming.rawValue,
             repeatType: repeatType.rawValue,
             weekdays: repeatType == .weekly ? Array(selectedWeekdays).sorted() : [],

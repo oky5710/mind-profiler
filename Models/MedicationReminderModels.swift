@@ -27,6 +27,7 @@ enum ReminderWeekday {
 }
 
 struct MedicationReminderRequest: Encodable {
+    let isEnabled: Bool
     let timing: String
     let repeatType: String
     let weekdays: [Int]
@@ -37,6 +38,7 @@ struct MedicationReminderRequest: Encodable {
 
 struct MedicationReminderEntry: Decodable, Identifiable {
     let id: String
+    let isEnabled: Bool
     let timing: String
     let repeatType: String
     let weekdays: [Int]

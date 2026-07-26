@@ -26,13 +26,16 @@ struct ReminderListView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                            // 꺼진 알림은 옅게 표시해서 "꺼져 있음" 상태를 바로 알 수 있게 한다
+                            // (ui-style.md 범례 항목 숨김 표시와 같은 원칙).
+                            .opacity(reminder.isEnabled ? 1 : 0.4)
                             Spacer()
-                            HStack(spacing: 16) {
-                                Button {
-                                    editingReminder = reminder
-                                } label: {
-                                    Image(systemName: "pencil")
-                                }
+                            Toggle("", isOn: enabledBinding(for: reminder))
+                                .labelsHidden()
+                            Button {
+                                editingReminder = reminder
+                            } label: {
+                                Image(systemName: "pencil")
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(.secondary)
@@ -75,6 +78,15 @@ struct ReminderListView: View {
                 await viewModel.load()
             }
         }
+    }
+
+    private func enabledBinding(for reminder: MedicationReminderEntry) -> Binding<Bool> {
+        Binding(
+            get: { reminder.isEnabled },
+            set: { newValue in
+                Task { await viewModel.setEnabled(newValue, for: reminder) }
+            }
+        )
     }
 
     private func summary(for reminder: MedicationReminderEntry) -> String {
