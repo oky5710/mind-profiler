@@ -17,6 +17,12 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    ReminderListView()
+                } label: {
+                    Label("알림 설정", systemImage: "bell.badge")
+                }
+
+                NavigationLink {
                     RRIntervalExportView()
                 } label: {
                     Label("RR 데이터 내보내기", systemImage: "waveform.path")

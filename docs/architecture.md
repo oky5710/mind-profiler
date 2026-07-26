@@ -5,7 +5,7 @@
 - **Views** — SwiftUI 화면/컴포넌트. 비즈니스 로직 없이 ViewModel이 노출한 상태만 그림.
 - **ViewModels** — `@Observable` + `@MainActor` 클래스. 화면 하나당 하나. `async/await`로 Service를 호출하고 결과를 `@State`로 노출.
 - **Models** — API 요청/응답 Codable 구조체 (`ExamModels`, `MoodModels`, `CoffeeModels`, `AuthModels` 등).
-- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음.
+- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음. 대부분 상태 없는 enum 네임스페이스지만, `ReminderNotificationService`는 예외로 class다 — `UNUserNotificationCenterDelegate`로 동작하려면 참조 타입(식별자)이 필요하고 예약된 알림을 잠깐 캐시해 둬야 해서다.
 - **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `SleepDetailPanel`).
 
 View 파일 하나가 너무 커지면(대략 500줄 이상) `extension`으로 여러 파일에 나눠 담는다 — 새 타입/프로토콜을
@@ -53,6 +53,18 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 - 공휴일/휴가는 EventKit에 전용 타입이 없어서, 일정이 속한 캘린더 이름으로 구분한다("Holiday"/"공휴일",
   "휴가"/"vacation" 포함 여부) — `CalendarEventCategory`.
 
+## 로컬 알림
+
+- `AppDelegate`(순수 SwiftUI 라이프사이클이던 이 앱에 이 기능 하나만을 위해 새로 추가함,
+  `MindProfilerApp`이 `@UIApplicationDelegateAdaptor`로 붙인다)의
+  `application(_:didFinishLaunchingWithOptions:)`에서 `UNUserNotificationCenter.current().delegate`를
+  `ReminderNotificationService.shared`로 등록한다 — 앱 struct의 `init()`에서 등록하면 앱이 완전히
+  종료된 상태에서 알림 액션으로 재실행되는 launch 경로에 타이밍이 너무 늦을 수 있어서, 애플이
+  문서화한 확실한 시점(`didFinishLaunchingWithOptions`)을 쓴다.
+- 알림 "설정값"은 백엔드(`MedicationReminder`)에 저장하고, 실제 `UNNotificationRequest` 예약은
+  기기에서 `ReminderNotificationService`가 로컬로 한다 — 자세한 스케줄링 방식은
+  [features.md](features.md)의 "알림 설정" 항목 참고.
+
 ## 화면 ↔ 코드 매핑
 
 | 화면(PRD.md) | View | ViewModel |
@@ -62,6 +74,7 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 | 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
 | 보고서 | `Views/Report/ReportView.swift` | `ReportViewModel` |
 | 설정 (SDNN vs rMSSD 분석) | `Views/Settings/SettingsView.swift` | `HRVCorrelationViewModel` |
+| 설정 (알림 설정) | `Views/Settings/ReminderListView.swift` / `ReminderEntryForm.swift` | `ReminderListViewModel` |
 
 PRD에는 없던 "보고서" 화면은 정신과 진료용 요약 보고서로, 원래 있던 "나의 Trend"(통계, 기분·커피
 막대그래프만 있던 화면)를 대체했다 — 자세한 내용은 [features.md](features.md) 참고.

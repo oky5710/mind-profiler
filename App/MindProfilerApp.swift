@@ -8,6 +8,7 @@ import SwiftUI
 
 @main
 struct MindProfilerApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var authViewModel = AuthViewModel()
     @State private var toastCenter = ToastCenter()
 

@@ -109,6 +109,11 @@ struct MedicationEntryForm: View {
         do {
             for timing in MedicationService.quickLogTimings where selectedQuickTimings.contains(timing) {
                 try await MedicationService.logTiming(timing, date: date)
+                // 지난 날짜를 소급 입력하는 경우 오늘 알림과 무관하니, 오늘 날짜를 기록할 때만
+                // 오늘 자 알림을 바로 취소한다.
+                if Calendar.current.isDateInToday(date) {
+                    ReminderNotificationService.shared.cancelTodayOccurrences(forTiming: timing)
+                }
             }
             await onSaved()
         } catch {
