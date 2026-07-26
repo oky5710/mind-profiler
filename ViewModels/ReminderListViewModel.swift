@@ -86,8 +86,6 @@ final class ReminderListViewModel {
         await task.value
     }
 
-    // load()가 시작하자마자 errorMessage를 지우므로, 실패 메시지는 load()가 끝난 뒤에 다시
-    // 세팅해야 화면에 남는다.
     private func applyToggle(isEnabled: Bool, previous: MedicationReminderEntry, generation: Int) async {
         let request = MedicationReminderRequest(
             isEnabled: isEnabled,
@@ -99,18 +97,18 @@ final class ReminderListViewModel {
             endDate: previous.endDate
         )
 
-        var updateError: String?
+        var resultError: String?
         do {
             try await MedicationReminderService.updateReminder(id: previous.id, request)
         } catch {
-            updateError = error.localizedDescription
+            resultError = error.localizedDescription
         }
 
         // 이 사이 같은 알림에 대해 더 최신 토글이 큐에 들어왔으면, 화면 갱신은 그 최신 것에
         // 맡기고 여기서는 손대지 않는다(서버 PATCH는 순서대로 이미 반영됐다).
         guard latestToggleGeneration[previous.id] == generation else { return }
 
-        if let updateError {
+        if resultError != nil {
             // 되돌릴 위치를 지금 다시 찾는다 — await 하는 동안 목록이 재조회/삭제로 바뀌었을 수
             // 있어 처음 잡아둔 index가 더 이상 유효하지 않을 수 있다.
             if let currentIndex = reminders.firstIndex(where: { $0.id == previous.id }) {
@@ -118,17 +116,20 @@ final class ReminderListViewModel {
             }
         }
 
-        // load()를 그대로 쓰지 않고 목록만 가볍게 다시 받아온다 — load()는 어차피 목록을 통째로
-        // 덮어써서, 그 await가 끝나는 순간 다시 한번 generation을 확인해야 한다(fetch 도중에도
-        // 더 최신 토글이 끼어들 수 있어서, guard를 fetch "전"에만 하면 fetch "중"에 끼어든 경우를
-        // 놓친다).
-        let refreshed = try? await MedicationReminderService.allReminders()
-        if let refreshed, latestToggleGeneration[previous.id] == generation {
+        // load()를 그대로 쓰지 않고 목록만 가볍게 다시 받아온다 — fetch 도중에도 더 최신 토글이
+        // 끼어들 수 있어서, 반영 직전에 한 번 더 generation을 확인한다. 이 fetch 자체가 실패하면
+        // (PATCH는 성공했더라도) 그 실패를 화면에 보여준다 — 조용히 무시하지 않는다. 둘 다
+        // 성공하면 이전에 남아있던 에러 메시지도 지운다(성공한 재시도인데 예전 실패 문구가 계속
+        // 보이면 안 된다).
+        do {
+            let refreshed = try await MedicationReminderService.allReminders()
+            guard latestToggleGeneration[previous.id] == generation else { return }
             reminders = refreshed
+            errorMessage = resultError
+        } catch {
+            guard latestToggleGeneration[previous.id] == generation else { return }
+            errorMessage = resultError ?? error.localizedDescription
         }
         await ReminderNotificationService.shared.resync()
-        if let updateError, latestToggleGeneration[previous.id] == generation {
-            errorMessage = updateError
-        }
     }
 }
