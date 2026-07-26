@@ -11,6 +11,7 @@ struct MindProfilerApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var authViewModel = AuthViewModel()
     @State private var toastCenter = ToastCenter()
+    @State private var rmssdThresholdAlertCenter = RMSSDThresholdAlertCenter()
 
     init() {
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(
@@ -36,6 +37,7 @@ struct MindProfilerApp: App {
             }
             .environment(authViewModel)
             .environment(toastCenter)
+            .environment(rmssdThresholdAlertCenter)
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }

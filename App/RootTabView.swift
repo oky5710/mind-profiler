@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct RootTabView: View {
+    @Environment(RMSSDThresholdAlertCenter.self) private var rmssdThresholdAlertCenter
+
     var body: some View {
+        @Bindable var rmssdThresholdAlertCenter = rmssdThresholdAlertCenter
         TabView {
             HomeView()
                 .tabItem {
@@ -33,10 +36,16 @@ struct RootTabView: View {
         .task {
             await ReminderNotificationService.shared.resync()
         }
+        .fullScreenCover(item: $rmssdThresholdAlertCenter.pendingEvent) { pendingEvent in
+            RMSSDEventEntryForm(pendingEvent: pendingEvent) {
+                rmssdThresholdAlertCenter.pendingEvent = nil
+            }
+        }
     }
 }
 
 #Preview {
     RootTabView()
         .environment(ToastCenter())
+        .environment(RMSSDThresholdAlertCenter())
 }

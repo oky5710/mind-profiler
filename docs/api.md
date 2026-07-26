@@ -52,6 +52,9 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |
 | POST | `/events` | 이벤트 기록 생성 | `LifeEventService.logEvent` |
 | DELETE | `/events/:id` | 이벤트 기록 삭제 | `LifeEventService.removeEvent` |
+| GET | `/rmssd-events` | rMSSD 급격한 변화 알림 때 기록한 감정/메모 전체 조회 | `RMSSDEventService.allEvents` |
+| POST | `/rmssd-events` | rMSSD 이벤트 기록 생성(발생 시각/rMSSD 값/방향/감정/선택 메모) | `RMSSDEventService.logEvent` |
+| DELETE | `/rmssd-events/:id` | rMSSD 이벤트 기록 삭제 | `RMSSDEventService.removeEvent` |
 
 ## 아직 안 씀
 
@@ -64,7 +67,9 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 rMSSD 계산용 원시 박동 시리즈(`HKSeriesType.heartbeat()`, iOS 13+), HRV(SDNN,
 `heartRateVariabilitySDNN`) — SDNN은 HealthKit 제약상 heartbeat series 권한과 반드시 같이
 요청해야 하고(안 하면 크래시), 화면에서는 rMSSD 참고용 옅은 라인으로만 쓴다 — 그리고 안정시 심박수
-(`HKQuantityType(.restingHeartRate)`, 보고서의 "기간 요약" 중앙값용). 자세한 내용은
+(`HKQuantityType(.restingHeartRate)`, 보고서의 "기간 요약" 중앙값용). SDNN 측정은
+`HKObserverQuery` + 백그라운드 배달(`RMSSDThresholdMonitorService`)로도 관찰해서, 새 측정이
+들어올 때마다 rMSSD 급격한 변화를 감지한다. 자세한 내용은
 [architecture.md](architecture.md)의 HealthKit 섹션 참고.
 
 ## EventKit (백엔드 API 아님, 구글 캘린더 대체)

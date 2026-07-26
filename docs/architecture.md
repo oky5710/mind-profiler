@@ -5,7 +5,7 @@
 - **Views** — SwiftUI 화면/컴포넌트. 비즈니스 로직 없이 ViewModel이 노출한 상태만 그림.
 - **ViewModels** — `@Observable` + `@MainActor` 클래스. 화면 하나당 하나. `async/await`로 Service를 호출하고 결과를 `@State`로 노출.
 - **Models** — API 요청/응답 Codable 구조체 (`ExamModels`, `MoodModels`, `CoffeeModels`, `AuthModels` 등).
-- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음. 대부분 상태 없는 enum 네임스페이스지만, `ReminderNotificationService`는 예외로 class다 — `UNUserNotificationCenterDelegate`로 동작하려면 참조 타입(식별자)이 필요하고 예약된 알림을 잠깐 캐시해 둬야 해서다.
+- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음. 대부분 상태 없는 enum 네임스페이스지만, `ReminderNotificationService`(`UNUserNotificationCenterDelegate` 구현, 예약된 알림 캐시)와 `RMSSDThresholdMonitorService`(`HKObserverQuery` 참조 보관)는 예외로 class다 — 둘 다 참조 타입으로 뭔가를 계속 들고 있어야 해서다.
 - **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `SleepDetailPanel`).
 
 View 파일 하나가 너무 커지면(대략 500줄 이상) `extension`으로 여러 파일에 나눠 담는다 — 새 타입/프로토콜을
@@ -42,6 +42,22 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
   `SleepAnalysisService`(수면 구간·추정 점수)와 `HRVStatistics`(중앙값·일별 중앙값·Pearson 상관계수)로
   분리해뒀다 — "오늘의 패턴"과 "보고서" 화면이 이 계산을 그대로 공유해서 쓴다.
 
+## 백그라운드 HealthKit 관찰
+
+- `RMSSDThresholdMonitorService`가 `HKObserverQuery` + `HKHealthStore.enableBackgroundDelivery`로
+  SDNN 측정을 관찰한다 — rMSSD 자체(원시 박동 시리즈, `HKSeriesType.heartbeat()`)가 아니라 SDNN을
+  보는 이유는, 관찰 쿼리는 `HKQuantityType`(SDNN)에 붙이는 게 표준적이고 잘 검증된 방식이고, SDNN과
+  그 짝이 되는 원시 박동 시리즈는 같은 측정에서 몇 초 이내로 같이 기록되기 때문이다(`HealthKitService`의
+  `fetchSDNNRMSSDPairs`가 이미 그 전제로 짝을 짓는다) — "새 SDNN이 왔다"가 "새 rMSSD도 계산 가능하다"의
+  안정적인 대리 신호가 된다.
+- 필요한 entitlement(`com.apple.developer.healthkit.background-delivery`)는 이미 있었다 — 새 Xcode
+  capability나 `Info.plist`의 `UIBackgroundModes` 추가는 필요 없었다(HealthKit 백그라운드 배달은
+  `UIBackgroundModes`가 아니라 이 entitlement로 게이트된다).
+- 관찰 시작은 `AppDelegate.didFinishLaunchingWithOptions`에서만 한다(뷰의 `.task` 등에서는 안 함) —
+  앱이 백그라운드로 깨어난 실행 경로를 포함해 유일하게 타이밍이 보장되는 시점이라, 여기서만 불러도
+  중복 등록 걱정이 없다.
+- 자세한 임계값·중복 방지·알림 흐름은 [features.md](features.md)의 "rMSSD 급격한 변화 알림" 참고.
+
 ## EventKit
 
 - 애플 캘린더 연동은 `CalendarEventService`가 `EKEventStore`로 기기의 모든 캘린더에서 직접 읽는다 —
@@ -64,6 +80,12 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 - 알림 "설정값"은 백엔드(`MedicationReminder`)에 저장하고, 실제 `UNNotificationRequest` 예약은
   기기에서 `ReminderNotificationService`가 로컬로 한다 — 자세한 스케줄링 방식은
   [features.md](features.md)의 "알림 설정" 항목 참고.
+- `ReminderNotificationService`는 이 앱에서 `UNUserNotificationCenterDelegate`를 구현하는 유일한
+  객체다(iOS는 앱마다 delegate를 하나만 허용) — rMSSD 급격한 변화 알림도 새 delegate를 만들지 않고
+  이 서비스에 카테고리(`RMSSD_THRESHOLD`)만 하나 더 등록해서 처리한다. 그 알림을 탭했을 때 특정
+  화면으로 이동해야 하는 건 이 서비스의 책임이 아니라서, `onRMSSDThresholdTapped` 콜백으로
+  `RMSSDThresholdAlertCenter`에 알려준다 — `APIClient.onUnauthorized`가 `AuthViewModel`에 로그아웃을
+  알려주는 것과 같은 패턴이다.
 
 ## 화면 ↔ 코드 매핑
 
@@ -75,6 +97,7 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 | 보고서 | `Views/Report/ReportView.swift` | `ReportViewModel` |
 | 설정 (SDNN vs rMSSD 분석) | `Views/Settings/SettingsView.swift` | `HRVCorrelationViewModel` |
 | 설정 (알림 설정) | `Views/Settings/ReminderListView.swift` / `ReminderEntryForm.swift` | `ReminderListViewModel` |
+| rMSSD 급격한 변화 알림 (메뉴 없음, 알림 탭으로만 진입) | `Views/RMSSDEvent/RMSSDEventEntryForm.swift` | `RMSSDEventEntryViewModel` |
 
 PRD에는 없던 "보고서" 화면은 정신과 진료용 요약 보고서로, 원래 있던 "나의 Trend"(통계, 기분·커피
 막대그래프만 있던 화면)를 대체했다 — 자세한 내용은 [features.md](features.md) 참고.

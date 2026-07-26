@@ -20,6 +20,12 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
 
     private var cachedReminders: [MedicationReminderEntry] = []
 
+    // rMSSD 급격한 변화 알림을 탭했을 때 앱이 곧바로 그 기록 입력 화면으로 이동하도록 알려주는
+    // 콜백 — APIClient.onUnauthorized가 AuthViewModel에 로그아웃을 알려주는 것과 같은 방식이다.
+    // UNUserNotificationCenter의 delegate는 앱 전체에 하나뿐이라(iOS 제약), rMSSD 알림도 별도
+    // delegate를 새로 만들지 않고 이 델리게이트에 카테고리만 하나 더 등록한다.
+    nonisolated(unsafe) static var onRMSSDThresholdTapped: (@Sendable ([AnyHashable: Any]) -> Void)?
+
     private override init() {
         super.init()
     }
@@ -27,13 +33,20 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     func registerCategories() {
         let confirm = UNNotificationAction(identifier: Self.confirmActionIdentifier, title: "확인", options: [])
         let cancel = UNNotificationAction(identifier: Self.cancelActionIdentifier, title: "취소", options: [.destructive])
-        let category = UNNotificationCategory(
+        let medicationCategory = UNNotificationCategory(
             identifier: Self.categoryIdentifier,
             actions: [confirm, cancel],
             intentIdentifiers: [],
             options: []
         )
-        UNUserNotificationCenter.current().setNotificationCategories([category])
+        // rMSSD 알림은 액션 버튼 없이 탭하면 앱을 열어 입력 화면으로 이동하는 것만 한다.
+        let rmssdCategory = UNNotificationCategory(
+            identifier: RMSSDThresholdMonitorService.categoryIdentifier,
+            actions: [],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([medicationCategory, rmssdCategory])
     }
 
     func requestAuthorization() async throws {
@@ -138,6 +151,12 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        // rMSSD 알림은 예약 전에 이미 하루 한 번 중복 방지를 거쳤으니, 뜨는 시점에 따로 확인할
+        // 서버 상태가 없다 — 그냥 보여준다.
+        guard notification.request.content.categoryIdentifier != RMSSDThresholdMonitorService.categoryIdentifier else {
+            completionHandler([.banner, .sound])
+            return
+        }
         Task { @MainActor in
             guard let timingRaw = notification.request.content.userInfo["timing"] as? String,
                   let timing = MedicationTiming(rawValue: timingRaw) else {
@@ -155,6 +174,12 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        if response.notification.request.content.categoryIdentifier == RMSSDThresholdMonitorService.categoryIdentifier {
+            Self.onRMSSDThresholdTapped?(response.notification.request.content.userInfo)
+            completionHandler()
+            return
+        }
+
         guard response.actionIdentifier == Self.confirmActionIdentifier,
               let timingRaw = response.notification.request.content.userInfo["timing"] as? String,
               let timing = MedicationTiming(rawValue: timingRaw) else {

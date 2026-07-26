@@ -76,6 +76,29 @@ enum HealthKitService {
         )
     }
 
+    // rMSSD 자체(HKHeartbeatSeriesSample 기반)가 아니라 SDNN 측정을 관찰한다 — SDNN과 그 짝이 되는
+    // 원시 박동 시리즈는 같은 측정에서 몇 초 이내로 같이 기록되므로(위 fetchSDNNRMSSDPairs의
+    // pairingTolerance), "새 SDNN 샘플이 들어왔다"는 "새 rMSSD를 계산할 데이터도 들어왔다"의 안정적인
+    // 대리 신호로 쓴다. HKObserverQuery는 이 앱이 백그라운드에 있어도(entitlements의
+    // com.apple.developer.healthkit.background-delivery 덕분에) 새 데이터가 들어오면 호출된다.
+    @discardableResult
+    static func observeSDNNUpdates(onUpdate: @escaping () async -> Void) -> HKObserverQuery {
+        let query = HKObserverQuery(sampleType: HKQuantityType(.heartRateVariabilitySDNN), predicate: nil) { _, completionHandler, _ in
+            Task {
+                await onUpdate()
+                completionHandler()
+            }
+        }
+        store.execute(query)
+        return query
+    }
+
+    // .immediate는 "가능한 한 빨리 깨워달라"는 우선순위 힌트일 뿐, 실제 배달 시점은 iOS가 배터리·
+    // 사용 패턴에 따라 늦출 수 있다 — 보장된 실시간이 아니다.
+    static func enableBackgroundDeliveryForSDNNUpdates() async throws {
+        try await store.enableBackgroundDelivery(for: HKQuantityType(.heartRateVariabilitySDNN), frequency: .immediate)
+    }
+
     // rMSSD보다 덜 중요한 참고값이라 화면에서는 옅게(회색 반투명) 보여주기만 한다.
     // start/end를 주면 그 구간만 조회한다 — "오늘의 패턴"이 보이는 구간의 5배만 불러오는 용도.
     // 기본값(nil)은 기존처럼 전체 이력을 조회한다(보고서 등 다른 화면은 그대로 전체가 필요).

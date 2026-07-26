@@ -293,7 +293,8 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
   범례 항목 문구 옆에 실제 값(예: "42ms")을 볼드로 같이 보여준다.
 - **급격한 rMSSD 저하 강조**: 시간별 모드에서 rMSSD 값이 이 최근 30일 중앙값의 50% 미만으로
   떨어지면, 그 지점의 원 테두리(바깥쪽 링)를 평소 보라색 대신 빨간색으로 그린다 — 중앙값이 아직
-  없으면(측정 초기 등) 이 강조는 적용하지 않는다.
+  없으면(측정 초기 등) 이 강조는 적용하지 않는다. 이 50% 기준은 `RMSSDThreshold`로 뽑아내서 아래
+  "rMSSD 급격한 변화 알림"과 공유한다 — 차트에는 안 뜨는데 알림은 오는(혹은 그 반대) 일이 없다.
 - 라인 차트에 검사(병원) 시점의 rMSSD를 세모 마커로 오버레이 — `ExamEntryForm`은 SDNN도 같이 입력받아
   백엔드에 저장하지만(`ExamRequest.sdnn`), 조회 응답(`ExamEntry`)은 rMSSD만 디코딩해서 이 화면에 쓴다.
   월별 모드에서도 같은 검사 rMSSD 마커를 쓰고, 이제 월별 막대도 rMSSD 기준이라 척도가 같다.
@@ -387,6 +388,40 @@ CV 막대 차트를 대신 쌓는다 — 아래 참고).
 - **x축 라벨 겹침 생략**: 인접한 라벨의 픽셀 간격이 라벨 텍스트 너비만큼(40px) 안 되면 뒤쪽 라벨은
   생략한다(그리드 선은 유지) — 틱 간격 자체는 고정 시간 단위라, 핀치로 축소해서 같은 폭에 더 촘촘한
   눈금이 들어와도 라벨끼리 겹쳐 보이지 않는다.
+
+### rMSSD 급격한 변화 알림 (`Views/RMSSDEvent`, mind-record 웹에는 없는 iOS 전용 기능)
+rMSSD가 최근 30일 중앙값 대비 급격히 낮아지거나(50% 미만, 위 "급격한 rMSSD 저하 강조"와 같은 기준)
+높아지면(150% 이상, `RMSSDThreshold.highMultiplier`) 백그라운드에서 감지해 로컬 알림을 보낸다.
+설정 메뉴에 들어있는 기능이 아니라 — 알림을 탭하면 바로 전용 입력 화면(`RMSSDEventEntryForm`)이
+뜨고, 감정(불안/스트레스/짜증/슬픔/피곤/평온/기쁨 7가지, 기존 1~5점 기분 점수와는 별개의 카테고리)과
+선택적으로 상세 메모를 기록한다 — 백엔드에 새 모델(`RmssdEvent`, `/rmssd-events`)로 저장한다.
+
+- **감지 방식**: rMSSD 자체(원시 박동 시리즈)가 아니라 SDNN 측정을 `HKObserverQuery` +
+  `enableBackgroundDelivery`로 관찰한다 — SDNN과 그 짝이 되는 원시 박동 시리즈는 같은 측정에서
+  몇 초 이내로 같이 기록되므로, "새 SDNN이 들어왔다"를 "새 rMSSD를 계산할 데이터도 들어왔다"의
+  대리 신호로 쓴다(`RMSSDThresholdMonitorService`). entitlements에 이미 있던
+  `com.apple.developer.healthkit.background-delivery`를 그대로 쓰고, 새 Xcode capability는
+  필요 없었다.
+- **중복 알림 방지**: 같은 방향(낮음/높음)으로 하루에 한 번만 알린다 — 낮은/높은 상태가 몇 시간
+  이어지는 동안 SDNN이 측정될 때마다 매번 울리면 스팸이 된다. 로컬 `UserDefaults`에 날짜별 마커만
+  남긴다(이 앱에 Keychain 말고는 로컬 저장소가 없어서, 이 용도엔 그 이상이 필요 없다).
+  약 복용 알림(`ReminderNotificationService`)과 같은 델리게이트를 쓴다 — iOS는 앱마다
+  `UNUserNotificationCenterDelegate`를 하나만 허용해서, 카테고리만 하나(`RMSSD_THRESHOLD`, 액션
+  버튼 없이 탭하면 열기만 함) 더 등록했다.
+- **알림 탭 → 입력 화면**: 이 앱에서 처음 쓰는 `fullScreenCover`로 뜬다(다른 입력은 전부 `.sheet`) —
+  트리거가 특정 탭/화면과 무관하게 최상단에서 오는 것이라 반쯤 걸치는 시트보다 화면 전체 전환이
+  맞다고 판단했다. 알림 → 화면 전환은 `ReminderNotificationService.onRMSSDThresholdTapped` 콜백 →
+  `RMSSDThresholdAlertCenter`(`ToastCenter`와 같은 자리·역할의 전역 environment 객체) →
+  `RootTabView`의 `.fullScreenCover(item:)` 순서로 이어진다.
+- **앱을 한 번도 안 열었으면 감지가 시작되지 않는다**: HealthKit 권한을 받아야 관찰을 시작할 수
+  있어서, 관찰 시작(`RMSSDThresholdMonitorService.start()`)을 `AppDelegate.didFinishLaunchingWithOptions`에서
+  호출한다 — 앱이 백그라운드로 깨어난 실행 경로를 포함해 유일하게 타이밍이 보장되는 시점이라
+  뷰의 `.task` 등에서는 따로 부르지 않는다(이중 등록 방지).
+- **정직한 한계**: `.immediate`는 "최대한 빨리 깨워달라"는 우선순위 힌트일 뿐 보장된 실시간이
+  아니다 — iOS가 배터리/사용 패턴/저전력 모드에 따라 배달을 몇 분~몇 시간 늦출 수 있다. 앱을
+  스와이프로 완전히 종료하면 iOS가 이 백그라운드 배달 자체를 해지하며, 다음에 앱을 직접 열어야
+  다시 등록된다 — 앱 차원에서 고칠 수 없는 iOS 자체의 동작이다. 시뮬레이터로는 백그라운드 HealthKit
+  배달을 재현할 수 없어 실제 기기 + 페어링된 애플워치로만 확인 가능하다.
 
 ### 설정 (`Views/Settings`)
 `SettingsView`는 목록 항목(분석 / 약 등록 / 알림 설정 / RR 데이터 내보내기)만 있는 메뉴 화면이고,
