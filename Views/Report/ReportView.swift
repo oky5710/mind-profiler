@@ -890,7 +890,10 @@ private struct PeriodRangeRow: View {
                         datePicker(
                             for: $draftEndDate,
                             title: "종료일",
-                            range: draftStartDate...max(draftStartDate, maximumSelectableDate),
+                            // draftEndDate 자체가 23:59:59로 정규화돼 있으니, 상한도 그 날의
+                            // 23:59:59여야 한다 — 상한이 자정(00:00)이면 "오늘"이 기본값일 때부터
+                            // 이미 자기 자신의 range 밖이라 피커가 그 값을 제대로 못 받는다.
+                            range: draftStartDate...max(draftStartDate, Self.endOfDay(maximumSelectableDate)),
                             normalize: Self.endOfDay
                         )
                     }
