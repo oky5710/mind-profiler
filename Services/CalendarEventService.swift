@@ -26,17 +26,19 @@ enum CalendarEventService {
         }
     }
 
-    // HealthKit 쿼리와 달리 EventKit은 조회 기간을 반드시 명시해야 해서(무제한 조회 불가),
-    // 차트가 실제로 스크롤해서 볼 법한 범위보다 넉넉하게 과거 1년~미래 3개월로 고정한다.
-    static func fetchEvents() async -> [Event] {
+    // HealthKit 쿼리와 달리 EventKit은 조회 기간을 반드시 명시해야 해서(무제한 조회 불가), 인자를
+    // 안 넘기면 "오늘의 패턴" 화면이 실제로 스크롤해서 볼 법한 범위보다 넉넉하게 과거 1년~미래
+    // 3개월로 고정한다. 보고서처럼 임의의 과거 기간을 분석할 때는 그 기간을 직접 넘겨야, 1년보다
+    // 오래된 기간을 분석해도 일정이 조용히 누락되지 않는다.
+    static func fetchEvents(start: Date? = nil, end: Date? = nil) async -> [Event] {
         let calendar = Calendar.current
-        let start = calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date()
-        let end = calendar.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+        let rangeStart = start ?? calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date()
+        let rangeEnd = end ?? calendar.date(byAdding: .month, value: 3, to: Date()) ?? Date()
 
         // events(matching:)는 동기 호출이라 detached task로 넘겨서 메인 액터(호출부인
         // HRVAnalysisViewModel/ReportViewModel)를 막지 않게 한다.
         return await Task.detached(priority: .userInitiated) {
-            let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+            let predicate = store.predicateForEvents(withStart: rangeStart, end: rangeEnd, calendars: nil)
             return store.events(matching: predicate).compactMap { event -> Event? in
                 let category = category(forCalendarTitle: event.calendar.title)
                 // "Holidays in ..." 캘린더에는 실제 쉬는 공휴일뿐 아니라 어버이날처럼 안 쉬는

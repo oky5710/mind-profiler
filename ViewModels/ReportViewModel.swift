@@ -129,7 +129,7 @@ final class ReportViewModel {
             async let workoutsTask = HealthKitService.fetchWorkoutRanges(start: workoutFetchStart, end: end)
             async let moodsTask = MoodService.allMoods()
             async let coffeesTask = CoffeeService.allCoffees()
-            async let calendarEventsTask = Self.fetchCalendarEventsSafely()
+            async let calendarEventsTask = Self.fetchCalendarEventsSafely(start: start, end: end)
             async let lifeEventsTask = Self.fetchLifeEventsSafely()
             async let manualExercisesTask = Self.fetchManualExercisesSafely()
 
@@ -296,10 +296,10 @@ final class ReportViewModel {
 
     // 캘린더 접근 권한이 없거나 거부돼도 나머지 보고서는 정상적으로 보여준다 —
     // "일정" 컨텍스트만 빠진다.
-    private static func fetchCalendarEventsSafely() async -> [CalendarEventService.Event] {
+    private static func fetchCalendarEventsSafely(start: Date, end: Date) async -> [CalendarEventService.Event] {
         do {
             try await CalendarEventService.requestAuthorization()
-            return await CalendarEventService.fetchEvents()
+            return await CalendarEventService.fetchEvents(start: start, end: end)
         } catch {
             return []
         }
@@ -360,10 +360,15 @@ final class ReportViewModel {
                 .flatMap { prev in sleepRanges.first { calendar.isDate($0.start, inSameDayAs: prev) } }
                 .map { $0.end.timeIntervalSince($0.start) }
 
+            // 시작일만 비교하면 여러 날에 걸친 일정(휴가·출장 등)이 둘째 날부터는 누락된다 —
+            // 일정 구간과 그날 하루 구간이 겹치는지로 판정해야 한다.
+            let dayStart = calendar.startOfDay(for: entry.date)
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+
             // 매일 반복되는 정례 회의(Scrum/BookStudy 등)는 그날의 특별한 스케줄이라 보기
             // 어려워서 뺀다.
             let calendarTitles = calendarEvents
-                .filter { calendar.isDate($0.start, inSameDayAs: entry.date) }
+                .filter { $0.start < dayEnd && $0.end > dayStart }
                 .map(\.title)
                 .filter { title in
                     !Self.excludedScheduleKeywords.contains { title.localizedCaseInsensitiveContains($0) }
