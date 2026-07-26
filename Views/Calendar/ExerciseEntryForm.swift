@@ -156,7 +156,13 @@ struct ExerciseEntryForm: View {
         }
         .onChange(of: endTime) { _, newEnd in
             guard !isPrefilling else { return }
-            let minutes = Int((newEnd.timeIntervalSince(startTime) / 60).rounded())
+            // 종료 시각 피커는 시:분만 고르므로, 시작보다 이른 시각을 고르면(예: 시작 23시에
+            // 종료 1시) 자정을 넘겨서 다음날을 뜻하는 것으로 본다 — 안 그러면 음수 시간차가
+            // 1분으로 clamp되고, 그 durationMinutes 변경이 다시 종료 시각을 시작+1분으로 덮어써서
+            // 자정 넘는 운동을 직접 입력할 방법이 없어진다.
+            var interval = newEnd.timeIntervalSince(startTime)
+            if interval < 0 { interval += 24 * 60 * 60 }
+            let minutes = Int((interval / 60).rounded())
             durationMinutes = min(300, max(1, minutes))
         }
     }
