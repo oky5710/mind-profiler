@@ -106,6 +106,7 @@ final class ReportViewModel {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: previousVisitDate)
         guard let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: thisVisitDate)) else {
+            hasAnalyzed = false
             errorMessage = "날짜 범위를 계산할 수 없어요."
             return
         }
@@ -124,10 +125,14 @@ final class ReportViewModel {
             // - 운동: "전날 운동" 상관계수·rMSSD 최저점의 전날 운동 요약이 기간 시작일의 전날도
             //   봐야 하니 1일 전.
             // - SDNN/안정시 심박수: 전부 기간 안의 값만 쓰므로 lookback이 필요 없다.
+            // 종료일 밤(그날 저녁에 잠들어 다음날 새벽에 깨는 마지막 밤)도 안 잘리게, 수면만 종료
+            // 경계도 하루 뒤로 넉넉히 늘린다 — 여기서 안 늘리면 마지막 밤이 자정에서 뚝 끊겨서
+            // 그 밤의 길이·단계 구성·점수·평균·수면시간 상관계수가 전부 실제보다 짧게 나온다.
             let sleepFetchStart = calendar.date(byAdding: .day, value: -(SleepAnalysisService.bedtimeConsistencyWindow + 1), to: start) ?? start
+            let sleepFetchEnd = calendar.date(byAdding: .day, value: 1, to: end) ?? end
             let rmssdFetchStart = calendar.date(byAdding: .day, value: -7, to: start) ?? start
             let workoutFetchStart = calendar.date(byAdding: .day, value: -1, to: start) ?? start
-            async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples(start: sleepFetchStart, end: end)
+            async let sleepSamplesTask = HealthKitService.fetchSleepStageSamples(start: sleepFetchStart, end: sleepFetchEnd)
             async let rmssdSamplesTask = HealthKitService.fetchRMSSDSamples(start: rmssdFetchStart, end: end)
             async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples(start: start, end: end)
             async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples(start: start, end: end)
@@ -210,6 +215,11 @@ final class ReportViewModel {
 
             hasAnalyzed = true
         } catch {
+            // 재분석이 실패하면 이전 결과를 그대로 남겨두지 않는다 — 위 기간 텍스트는 이미 새로
+            // 고른 기간으로 바뀌어 있는데, 화면엔 실패한 새 기간이 아니라 이전(다른) 기간의 결과가
+            // 그대로 남아 마치 그게 새 기간 결과인 것처럼 보이면 안 된다. 로딩 중에만 이전 결과를
+            // 살려 두고(위 chartLoadingOverlay), 실패가 확정되면 지운다.
+            hasAnalyzed = false
             errorMessage = error.localizedDescription
         }
     }
