@@ -107,5 +107,8 @@ struct RMSSDEventEntryForm: View {
                 )
         }
         .buttonStyle(.plain)
+        // Picker 대신 커스텀 버튼으로 바꾸면서 선택 상태가 테두리 색으로만 표현돼, VoiceOver는
+        // 어느 칸이 선택됐는지 구분할 수 없었다 — 선택된 칸에 명시적으로 트레잇을 붙인다.
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
