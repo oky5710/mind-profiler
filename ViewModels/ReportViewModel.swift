@@ -155,10 +155,14 @@ final class ReportViewModel {
             let allPairs = HealthKitService.pairSDNNAndRMSSD(sdnn: allSDNNSamples, rmssd: allRMSSDSamples)
 
             // 수면은 기간 경계에 걸친 밤이 중간에 잘리지 않도록 전체 샘플을 먼저 병합한 뒤,
-            // 그 기간에 "시작하는" 밤만 추린다.
+            // 그 기간에 속하는 밤만 추린다 — 세션의 실제 시작 시각이 아니라 나이트 라벨(위 "수면"
+            // 참고: 오전 10시 이전 시작은 전날 밤으로 취급)로 판정해야, 이 목록이 차트에 실제로
+            // 그려지는 밤과 정확히 일치한다. 그렇지 않으면 기간 첫날 새벽에 시작한 세션이 차트에는
+            // (나이트 라벨상 전날로 밀려) 안 보이는데 평균·집계에는 그대로 들어가는 식으로 화면과
+            // 숫자가 어긋난다.
             let allRanges = SleepAnalysisService.buildSleepRanges(allSleepSamples)
             sleepRanges = allRanges
-                .filter { $0.start >= start && $0.start < end }
+                .filter { let label = SleepAnalysisService.nightLabel(for: $0.start); return label >= start && label < end }
                 .sorted { $0.start < $1.start }
 
             if sleepRanges.isEmpty {

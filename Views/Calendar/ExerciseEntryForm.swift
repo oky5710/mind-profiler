@@ -39,8 +39,14 @@ struct ExerciseEntryForm: View {
         DateKey.combine(date: date, time: startTime)
     }
 
+    // endTime은 시(hour)·분(minute)만 의미가 있고(피커가 .hourAndMinute만 보여줌) 그 자신의
+    // 날짜는 의미 없는 값이라, combine은 그 시각을 그대로 date(시작일)에 붙인다 — 그런데 자정을
+    // 넘기는 운동(예: 23시 시작~다음날 1시 종료)은 그 결과가 시작 시각보다 빠른 시각이 돼 버린다.
+    // 그런 경우에만 하루를 더해 종료일을 다음날로 미룬다.
     private var effectiveEnd: Date {
-        DateKey.combine(date: date, time: endTime)
+        let combined = DateKey.combine(date: date, time: endTime)
+        guard combined < effectiveStart else { return combined }
+        return Calendar.current.date(byAdding: .day, value: 1, to: combined) ?? combined
     }
 
     var body: some View {
