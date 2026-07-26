@@ -94,6 +94,9 @@ struct RMSSDEventEntryForm: View {
     private func emotionButton(for emotion: RMSSDEmotion) -> some View {
         let isSelected = viewModel.selectedEmotion == emotion
         let color: Color = emotion.category == .positive ? Theme.systemGreen : Theme.systemRed
+        // systemGreen은 글씨로 쓰기엔 너무 옅어서 잘 안 보인다 — 배경/테두리는 그대로 두고, 글씨
+        // 색만 검정을 섞어 더 진하게 만든다.
+        let textColor: Color = emotion.category == .positive ? color.mix(with: .black, by: 0.35) : color
 
         return Button {
             viewModel.selectedEmotion = emotion
@@ -112,7 +115,7 @@ struct RMSSDEventEntryForm: View {
                 .overlay(
                     Text(emotion.label)
                         .font(.footnote)
-                        .foregroundStyle(color)
+                        .foregroundStyle(textColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .padding(.horizontal, 2)
