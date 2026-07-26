@@ -88,9 +88,7 @@ struct ReportView: View {
                             .foregroundStyle(.red)
                     }
 
-                    if viewModel.isAnalyzing {
-                        HeartLoader(height: 200)
-                    } else if viewModel.hasAnalyzed {
+                    if viewModel.hasAnalyzed {
                         vitalsSection
                         sleepSection
                         cvSection
@@ -98,6 +96,8 @@ struct ReportView: View {
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
                         correlationSection
+                    } else if viewModel.isAnalyzing {
+                        HeartLoader(height: 200)
                     } else {
                         Text("분석 기간을 선택해주세요")
                             .font(.footnote)
@@ -235,7 +235,7 @@ struct ReportView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                sleepBarChart
+                sleepBarChart.chartLoadingOverlay(viewModel.isAnalyzing)
             }
 
             // 세로축이 이제 시각이라 세션마다 실제 시간대에 막대가 그려지고, 탭도 x(날짜)와
@@ -496,7 +496,7 @@ struct ReportView: View {
             .padding(.bottom, 8)
 
             if let findings = viewModel.cvFindings {
-                cvChart(findings)
+                cvChart(findings).chartLoadingOverlay(viewModel.isAnalyzing)
             } else {
                 Text("해당 기간에 rMSSD 데이터가 없어요")
                     .font(.footnote)
@@ -845,10 +845,18 @@ private struct PeriodRangeRow: View {
         return Calendar.current.startOfDay(for: maximumDate)
     }
 
+    // 종료일은 그날 자정(0시)이 아니라 그날 23:59:59으로 둔다 — 자정으로 두면 그 종료 날짜 자체가
+    // "포함"되는 느낌이 안 나고, 실수로 어딘가에서 자정 인스턴트를 그대로 상한/하한으로 쓰면 그날
+    // 데이터가 빠질 수 있다. 하루 전체를 확실히 포함하는 시각으로 저장해 둔다.
+    private static func endOfDay(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: calendar.startOfDay(for: date)) ?? date
+    }
+
     var body: some View {
         Button {
             draftStartDate = Calendar.current.startOfDay(for: startDate)
-            draftEndDate = Calendar.current.startOfDay(for: endDate)
+            draftEndDate = Self.endOfDay(endDate)
             isPresented = true
         } label: {
             HStack {
@@ -885,7 +893,8 @@ private struct PeriodRangeRow: View {
                         datePicker(
                             for: $draftEndDate,
                             title: "종료일",
-                            range: draftStartDate...max(draftStartDate, maximumSelectableDate)
+                            range: draftStartDate...max(draftStartDate, maximumSelectableDate),
+                            normalize: Self.endOfDay
                         )
                     }
                     .padding()
@@ -918,13 +927,19 @@ private struct PeriodRangeRow: View {
         }
     }
 
-    private func datePicker(for date: Binding<Date>, title: String, range: ClosedRange<Date>) -> some View {
+    private func datePicker(
+        for date: Binding<Date>,
+        title: String,
+        range: ClosedRange<Date>,
+        normalize: @escaping (Date) -> Date = { Calendar.current.startOfDay(for: $0) }
+    ) -> some View {
         // DatePicker가 고른 날짜를 정확히 자정으로 돌려주지 않을 수 있어서(구현에 따라 다름), 여기서
-        // 항상 자정으로 정규화해 저장한다 — 그래야 이 값을 다시 다른 range의 경계로 쓸 때(예: 종료일
-        // range의 하한이 시작일) 시각 차이 때문에 범위가 뒤집히는 일이 없다.
+        // 항상 정해진 시각(시작일은 자정, 종료일은 23:59:59)으로 정규화해 저장한다 — 그래야 이 값을
+        // 다시 다른 range의 경계로 쓸 때(예: 종료일 range의 하한이 시작일) 시각 차이 때문에 범위가
+        // 뒤집히는 일이 없고, 종료 날짜의 데이터도 확실히 포함된다.
         let normalized = Binding<Date>(
             get: { date.wrappedValue },
-            set: { date.wrappedValue = Calendar.current.startOfDay(for: $0) }
+            set: { date.wrappedValue = normalize($0) }
         )
         return DatePicker(title, selection: normalized, in: range, displayedComponents: .date)
             .datePickerStyle(.compact)
@@ -932,6 +947,29 @@ private struct PeriodRangeRow: View {
             // 상대 피커가 좌우로 밀리는 걸 막는다 — 폭을 고정해서 어떤 날짜든 같은 자리에 보이게 한다.
             .frame(width: 130)
             .labelsHidden()
+    }
+}
+
+// 기간을 다시 골라 재분석하는 동안에도 이전 차트를 화면에 그대로 두고, 그 위에 로딩 중임을
+// 겹쳐 보여준다 — 전체 화면이 로더로 바뀌면 방금까지 보던 결과가 사라져 어색하다.
+private struct ChartLoadingOverlay: ViewModifier {
+    let isLoading: Bool
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if isLoading {
+                ZStack {
+                    Color(.systemBackground).opacity(0.6)
+                    HeartLoader(height: 60)
+                }
+            }
+        }
+    }
+}
+
+private extension View {
+    func chartLoadingOverlay(_ isLoading: Bool) -> some View {
+        modifier(ChartLoadingOverlay(isLoading: isLoading))
     }
 }
 
