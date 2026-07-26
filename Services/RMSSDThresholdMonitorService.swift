@@ -40,6 +40,15 @@ final class RMSSDThresholdMonitorService {
         }
     }
 
+    #if DEBUG
+    // 실제 rMSSD를 마음대로 낮추거나 높일 수 없어서, 감지 로직(HealthKit 관찰)은 건너뛰고 "알림이
+    // 뜬 이후" 흐름(탭 → 입력 화면 → 저장)만 확인할 수 있게 하는 디버그 전용 트리거.
+    func debugTriggerNotification(direction: RMSSDThresholdDirection) async {
+        let fakeValue = direction == .low ? 20.0 : 120.0
+        await postNotification(direction: direction, value: fakeValue, occurredAt: Date())
+    }
+    #endif
+
     private func handleUpdate() async {
         do {
             let now = Date()
