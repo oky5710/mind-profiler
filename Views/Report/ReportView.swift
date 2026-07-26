@@ -273,14 +273,32 @@ struct ReportView: View {
         return min(start, end)...max(start, end)
     }
 
-    private struct SleepBar: Identifiable {
+    private struct SleepBarSegment: Identifiable {
+        let id: UUID
         let range: SleepRange
         let label: Date
-        var id: UUID { range.id }
+        let yRange: ClosedRange<Double>
     }
 
-    private var sleepBars: [SleepBar] {
-        viewModel.sleepRanges.map { SleepBar(range: $0, label: nightLabel(for: $0.start)) }
+    // nightLabel은 세션의 시작 시각만으로 밤 날짜를 정하기 때문에, 세션 자체가 경계 시각(오전
+    // 10시)을 걸치면(예: 9시~11시 낮잠) yRange.upperBound가 24를 넘는다 — 그대로 그리면 24를 넘는
+    // 부분이 고정 0...24 y축 밖으로 잘려 보이지 않는다. 그 경우 경계에서 둘로 나눠 앞부분은 이
+    // 밤 날짜의 24시(자정 아님, 경계 시각)까지, 뒷부분은 다음 밤 날짜의 0시부터로 각각 그린다.
+    private func sleepBarSegments(for range: SleepRange) -> [SleepBarSegment] {
+        let label = nightLabel(for: range.start)
+        let yRange = sleepBarYRange(for: range, nightLabel: label)
+        guard yRange.upperBound > 24 else {
+            return [SleepBarSegment(id: range.id, range: range, label: label, yRange: yRange)]
+        }
+        let nextLabel = Calendar.current.date(byAdding: .day, value: 1, to: label) ?? label
+        return [
+            SleepBarSegment(id: UUID(), range: range, label: label, yRange: yRange.lowerBound...24),
+            SleepBarSegment(id: UUID(), range: range, label: nextLabel, yRange: 0...(yRange.upperBound - 24)),
+        ]
+    }
+
+    private var sleepBarSegmentsAll: [SleepBarSegment] {
+        viewModel.sleepRanges.flatMap(sleepBarSegments)
     }
 
     // 세로축 눈금(0~24)을 실제 시각으로 바꾼다 — 0은 10시, 24는 다음날 10시.
@@ -292,12 +310,11 @@ struct ReportView: View {
 
     private var sleepBarChart: some View {
         Chart {
-            ForEach(sleepBars) { bar in
-                let yRange = sleepBarYRange(for: bar.range, nightLabel: bar.label)
+            ForEach(sleepBarSegmentsAll) { segment in
                 BarMark(
-                    x: .value("날짜", bar.label, unit: .day),
-                    yStart: .value("잠든 시각", yRange.lowerBound),
-                    yEnd: .value("일어난 시각", yRange.upperBound),
+                    x: .value("날짜", segment.label, unit: .day),
+                    yStart: .value("잠든 시각", segment.yRange.lowerBound),
+                    yEnd: .value("일어난 시각", segment.yRange.upperBound),
                     width: .fixed(sleepBarWidth)
                 )
                 .foregroundStyle(Theme.sleep.opacity(0.7))
@@ -338,19 +355,18 @@ struct ReportView: View {
                             let localY = location.y - plotRect.minY
                             guard let tappedDate: Date = proxy.value(atX: localX) else { return }
                             let calendar = Calendar.current
-                            let sameDayBars = sleepBars.filter {
+                            let sameDaySegments = sleepBarSegmentsAll.filter {
                                 calendar.isDate($0.label, inSameDayAs: tappedDate)
                             }
                             // 같은 날짜에 세션이 여러 개면(예: 이른 아침에 잠깐 더 잔 것 + 그날
                             // 밤잠) 탭한 세로 위치와 가장 가까운 세션을 고른다 — x만으로는 그날
                             // 중 어느 세션인지 구분이 안 된다.
                             if let tappedHour: Double = proxy.value(atY: localY) {
-                                selectedSleepRange = sameDayBars.min {
-                                    distance(from: tappedHour, to: sleepBarYRange(for: $0.range, nightLabel: $0.label)) <
-                                        distance(from: tappedHour, to: sleepBarYRange(for: $1.range, nightLabel: $1.label))
+                                selectedSleepRange = sameDaySegments.min {
+                                    distance(from: tappedHour, to: $0.yRange) < distance(from: tappedHour, to: $1.yRange)
                                 }?.range
                             } else {
-                                selectedSleepRange = sameDayBars.first?.range
+                                selectedSleepRange = sameDaySegments.first?.range
                             }
                         }
                 }
@@ -422,12 +438,13 @@ struct ReportView: View {
     // 차트 마크 자체는 shadow()를 지원하지 않아서 같은 위치·크기·색의 실제 도형을 겹쳐 그린다.
     @ViewBuilder
     private func selectedSleepBarShadow(_ range: SleepRange, proxy: ChartProxy, geo: GeometryProxy) -> some View {
-        if let bar = sleepBars.first(where: { $0.range.id == range.id }) {
-            let yRange = sleepBarYRange(for: bar.range, nightLabel: bar.label)
+        // 경계 시각(10시)을 걸친 세션은 세그먼트가 두 개로 나뉘어 있으므로, 선택된 세션에 속하는
+        // 세그먼트 각각에 그림자를 그려야 두 조각 모두 강조된다.
+        ForEach(sleepBarSegmentsAll.filter { $0.range.id == range.id }) { segment in
             if let plotFrame = proxy.plotFrame,
-               let x = proxy.position(forX: dayMidpoint(of: bar.label)),
-               let yTop = proxy.position(forY: yRange.upperBound),
-               let yBottom = proxy.position(forY: yRange.lowerBound) {
+               let x = proxy.position(forX: dayMidpoint(of: segment.label)),
+               let yTop = proxy.position(forY: segment.yRange.upperBound),
+               let yBottom = proxy.position(forY: segment.yRange.lowerBound) {
                 let plotRect = geo[plotFrame]
                 // 선택 안 된 막대는 Theme.sleep.opacity(0.7)라 반투명 위에 반투명을 겹치면 뿌옇게
                 // 흐려 보인다 — 선택된 막대는 불투명 단색으로 확실히 구분되게 그린다.
