@@ -6,6 +6,9 @@ struct CalendarView: View {
     // 버튼)을 탭하면 입력 화면으로 가는 시트 — 서로 다른 상태로 나눠서 각자 필요할 때만 뜨게 한다.
     @State private var selectedDetailDay: SelectedDay?
     @State private var selectedEntryDay: SelectedDay?
+    // 요약 시트의 "추가" 버튼을 누르면, 시트가 아직 떠 있는 동안 바로 입력 시트를 띄우지 않고
+    // 여기 담아뒀다가 onDismiss에서 연다 — SwiftUI는 형제 .sheet를 동시에 못 띄운다.
+    @State private var pendingEntryDay: SelectedDay?
     // UIKit(UIScreen) 없이 실제 레이아웃 높이를 구하기 위해 GeometryReader로 실측한다
     // (AGENTS.md: UIKit 사용 금지) — 실측 전에는 대략적인 기본값으로 잠깐 대체한다.
     @State private var headerHeight: CGFloat = 44
@@ -57,14 +60,19 @@ struct CalendarView: View {
         .onAppear {
             Task { await viewModel.reload() }
         }
-        .sheet(item: $selectedDetailDay) { day in
+        .sheet(item: $selectedDetailDay, onDismiss: {
+            if let pendingEntryDay {
+                selectedEntryDay = pendingEntryDay
+                self.pendingEntryDay = nil
+            }
+        }) { day in
             DayDetailSheet(
                 date: day.date,
                 mood: viewModel.mood(on: day.date),
                 coffees: viewModel.coffees(on: day.date),
                 exercises: viewModel.exercises(on: day.date)
             ) {
-                selectedEntryDay = day
+                pendingEntryDay = day
             }
         }
         .sheet(item: $selectedEntryDay) { day in
