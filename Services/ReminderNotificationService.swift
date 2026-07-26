@@ -8,9 +8,11 @@ import UserNotifications
 final class ReminderNotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = ReminderNotificationService()
 
-    static let categoryIdentifier = "MEDICATION_REMINDER"
-    static let confirmActionIdentifier = "CONFIRM_ACTION"
-    static let cancelActionIdentifier = "CANCEL_ACTION"
+    // 순수 문자열 상수라 액터 격리가 필요 없다 — UNUserNotificationCenterDelegate의 nonisolated
+    // 콜백에서도(메인 액터로 넘어가기 전에) 바로 비교할 수 있어야 한다.
+    nonisolated static let categoryIdentifier = "MEDICATION_REMINDER"
+    nonisolated static let confirmActionIdentifier = "CONFIRM_ACTION"
+    nonisolated static let cancelActionIdentifier = "CANCEL_ACTION"
     private static let identifierPrefix = "medreminder."
     // 매번 전체를 새로 예약하기엔 너무 머니, 앞으로 이만큼만 미리 채워둔다 — resync가 앱 실행/화면
     // 진입/입력 변경마다 불리므로 이 창이 계속 앞으로 밀리면서 갱신된다.
@@ -160,7 +162,7 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
             return
         }
         Task { @MainActor in
-            try? await MedicationService.logTiming(timing, date: Date())
+            _ = try? await MedicationService.logTiming(timing, date: Date())
             ReminderNotificationService.shared.cancelTodayOccurrences(forTiming: timing)
             completionHandler()
         }
