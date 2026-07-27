@@ -219,10 +219,15 @@ struct CalendarView: View {
                     Text(badge.text)
                         .font(.caption2)
                         .foregroundStyle(badge.color)
+                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: cellHeight, alignment: .topLeading)
+            // maxBadgeLines는 실측이 아니라 대략적인 줄 높이 가정으로 계산한 추정치라, 배지
+            // 줄 수를 살짝 넘겨 잡으면 글자가 칸 경계 아래로 삐져나와 다음 줄과 겹쳐 보일 수 있다
+            // — clipped()로 칸 높이를 넘는 내용은 실제로 보이지 않게 확실히 잘라낸다.
+            .clipped()
         }
         .buttonStyle(.plain)
     }

@@ -139,6 +139,11 @@ struct DayDetailSheet: View {
                                     }
                                 }
                                 Spacer()
+                                if let takenAt = entry.takenAt, let takenAtDate = DateKey.parseISODate(takenAt) {
+                                    Text(Self.timeFormatter.string(from: takenAtDate))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                                 Button {
                                     editingMedicationLog = entry
                                 } label: {
