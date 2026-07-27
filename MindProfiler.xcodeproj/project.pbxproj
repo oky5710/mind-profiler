@@ -90,6 +90,7 @@
 		DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */; };
 		DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */; };
 		DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441617D9A1D63082D4432F0C /* DateKey.swift */; };
+		EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */; };
 		EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225DD3DE88849264BC0A42B7 /* AppDelegate.swift */; };
 		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
@@ -144,6 +145,7 @@
 		88F7EE3749D826B753973FC3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		8AF23AC877DAF03E6DD07A49 /* PRD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRD.md; sourceTree = "<group>"; };
 		8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminderModels.swift; sourceTree = "<group>"; };
+		92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BadgeFlowLayout.swift; sourceTree = "<group>"; };
 		983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventEntryViewModel.swift; sourceTree = "<group>"; };
 		983D87F35A4B0F9CE144B7C4 /* DailyValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyValue.swift; sourceTree = "<group>"; };
 		99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationEntryForm.swift; sourceTree = "<group>"; };
@@ -378,6 +380,7 @@
 				B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */,
 				EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */,
 				139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */,
+				92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -592,6 +595,7 @@
 				1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */,
 				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,
 				06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */,
+				EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

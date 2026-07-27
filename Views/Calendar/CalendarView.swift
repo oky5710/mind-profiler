@@ -127,8 +127,6 @@ struct CalendarView: View {
     private static let rowSpacing: CGFloat = 4
     private static let columnSpacing: CGFloat = 4
     private static let dateCircleSize: CGFloat = 24
-    // 배지 한 줄(이모지+캡션 폰트)의 대략적인 높이 — 칸에 몇 줄까지 들어갈 수 있는지 계산하는 데만 쓴다.
-    private static let badgeLineHeight: CGFloat = 16
     private static let minRowHeight: CGFloat = 40
     // 실제 그 달의 주 수(4~6주)와 무관하게 항상 6주 기준으로 칸 높이를 나눈다 — 달마다 칸 크기가
     // 들쭉날쭉해지지 않고, 6주짜리 달이 와도 제목줄/하단 탭바를 침범하지 않는다.
@@ -169,26 +167,57 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    private struct DayBadge {
-        let text: String
-        let color: Color
+    // 기분만 이모지 그대로 두고(어떤 기분이었는지가 색보다 중요), 나머지는 유형별 색이 있는 원
+    // 배지로 통일한다 — 여러 건이면 원 안에 개수를 숫자로 보여준다.
+    private enum DayBadgeKind {
+        case emoji(String)
+        case circle(color: Color, count: Int)
     }
+
+    private struct DayBadge: Identifiable {
+        let id = UUID()
+        let kind: DayBadgeKind
+    }
+
+    private static let circleBadgeSize: CGFloat = 14
 
     private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int, medicationCount: Int) -> [DayBadge] {
         var result: [DayBadge] = []
-        if let mood {
-            result.append(DayBadge(text: MoodService.options.first { $0.score == mood.score }?.emoji ?? "", color: .primary))
+        if let mood, let emoji = MoodService.options.first(where: { $0.score == mood.score })?.emoji {
+            result.append(DayBadge(kind: .emoji(emoji)))
         }
         if coffeeCount > 0 {
-            result.append(DayBadge(text: coffeeCount > 1 ? "☕×\(coffeeCount)" : "☕", color: .brown))
+            result.append(DayBadge(kind: .circle(color: .brown, count: coffeeCount)))
         }
         if exerciseCount > 0 {
-            result.append(DayBadge(text: exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃", color: .primary))
+            result.append(DayBadge(kind: .circle(color: Theme.exercise, count: exerciseCount)))
         }
         if medicationCount > 0 {
-            result.append(DayBadge(text: medicationCount > 1 ? "💊×\(medicationCount)" : "💊", color: .primary))
+            result.append(DayBadge(kind: .circle(color: .yellow, count: medicationCount)))
         }
         return result
+    }
+
+    @ViewBuilder
+    private func badgeView(_ badge: DayBadge) -> some View {
+        switch badge.kind {
+        case .emoji(let text):
+            Text(text)
+                .font(.caption2)
+        case .circle(let color, let count):
+            Circle()
+                .fill(color)
+                .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
+                .overlay {
+                    if count > 1 {
+                        // 노랑처럼 밝은 배경엔 흰 숫자가 잘 안 보여서, 배경 밝기에 따라 글자
+                        // 색을 검정/흰색으로 바꾼다.
+                        Text("\(count)")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(color == .yellow ? .black : .white)
+                    }
+                }
+        }
     }
 
     private func dayCell(date: Date, columnIndex: Int, cellHeight: CGFloat) -> some View {
@@ -200,10 +229,6 @@ struct CalendarView: View {
         let isToday = Calendar.current.isDateInToday(date)
 
         let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount)
-        // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수만큼만 보여주고, 넘치는 나머지는 "+N" 같은
-        // 표시 없이 그냥 숨긴다 — 자세한 내용은 어차피 날짜를 탭하면 요약 시트에서 다 보인다.
-        let maxBadgeLines = max(Int((cellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
-        let visibleBadges = Array(allBadges.prefix(maxBadgeLines))
 
         return Button {
             selectedDetailDay = SelectedDay(date: date)
@@ -215,18 +240,17 @@ struct CalendarView: View {
                     .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
                     .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
 
-                ForEach(Array(visibleBadges.enumerated()), id: \.offset) { _, badge in
-                    Text(badge.text)
-                        .font(.caption2)
-                        .foregroundStyle(badge.color)
-                        .lineLimit(1)
+                // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
+                // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은
+                // 아래 .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면 요약 시트에서 어차피 전부 보인다.
+                BadgeFlowLayout(spacing: 3) {
+                    ForEach(allBadges) { badge in
+                        badgeView(badge)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: cellHeight, alignment: .topLeading)
-            // maxBadgeLines는 실측이 아니라 대략적인 줄 높이 가정으로 계산한 추정치라, 배지
-            // 줄 수를 살짝 넘겨 잡으면 글자가 칸 경계 아래로 삐져나와 다음 줄과 겹쳐 보일 수 있다
-            // — clipped()로 칸 높이를 넘는 내용은 실제로 보이지 않게 확실히 잘라낸다.
             .clipped()
         }
         .buttonStyle(.plain)
