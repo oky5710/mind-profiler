@@ -168,9 +168,10 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    // 기분은 날짜 숫자와 같은 줄에 이모지로 따로 보여주고(어떤 기분이었는지가 중요해서 색으로
-    // 뭉뚱그리지 않음), 나머지(커피/운동/약복용/이벤트)만 유형별 색이 있는 원 배지로 통일한다 —
-    // 개수만큼 원을 그대로 나란히 그린다(숫자로 뭉뚱그리지 않음).
+    // 기분 이모지도 아래 배지 줄과 함께 줄바꿈되도록 같은 BadgeFlowLayout 안에 넣는다 — 예전엔
+    // 날짜 숫자와 같은 줄 오른쪽 끝에 따로 떠 있어서, 그 줄만 보면 옆 칸 날짜의 기분처럼 헷갈릴 수
+    // 있었다. 색으로 뭉뚱그리지 않는 유일한 항목이라(어떤 기분이었는지가 중요) 이모지 그대로 쓰고,
+    // 나머지(커피/운동/약복용/이벤트)만 유형별 색이 있는 원 배지로 통일해서 개수만큼 나란히 그린다.
     private struct DayBadge: Identifiable {
         let id = UUID()
         let color: Color
@@ -200,9 +201,10 @@ struct CalendarView: View {
     }
 
     // 배지 하나하나는 색만 있는 원이라 VoiceOver에 개별로 노출하면 "커피, 커피, 커피"처럼 겹쳐
-    // 읽힌다 — 원 배지 전체를 하나로 묶어서 유형별 개수 요약 하나로만 읽히게 한다.
-    private func badgesAccessibilitySummary(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> String {
+    // 읽힌다 — 이모지를 포함한 줄 전체를 하나로 묶어서 유형별 개수 요약 하나로만 읽히게 한다.
+    private func badgesAccessibilitySummary(moodScore: Int?, coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> String {
         var parts: [String] = []
+        if let moodScore { parts.append("기분 \(moodScore)점") }
         if coffeeCount > 0 { parts.append("커피 \(coffeeCount)건") }
         if exerciseCount > 0 { parts.append("운동 \(exerciseCount)건") }
         if medicationCount > 0 { parts.append("약 복용 \(medicationCount)건") }
@@ -222,7 +224,10 @@ struct CalendarView: View {
         let moodEmoji = mood.flatMap { entry in MoodService.options.first { $0.score == entry.score }?.emoji }
         let coffeeCount = viewModel.coffees(on: date).count
         let exerciseCount = viewModel.exercises(on: date).count
-        let medicationCount = viewModel.medicationLogs(on: date).count
+        // 아침약 10개를 먹었어도 그건 "아침" 한 번이지 10번이 아니다 — 실제 개별 복용 로그 개수가
+        // 아니라, 그날 챙긴 서로 다른 시간대(아침/점심/저녁/취침전/필요시) 개수만큼만 원을 그린다
+        // (DayDetailSheet의 시간대 그룹핑과 같은 기준).
+        let medicationCount = Set(viewModel.medicationLogs(on: date).map(\.timing)).count
         let eventCount = viewModel.events(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
@@ -232,28 +237,22 @@ struct CalendarView: View {
             selectedDetailDay = SelectedDay(date: date)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                // 날짜 숫자와 기분 이모지를 한 줄에 양 끝으로 배치한다 — 기분은 그 자체가 중요한
-                // 정보라 아래 배지 줄로 내려서 다른 유형과 뒤섞이지 않고 항상 날짜 바로 옆에 보인다.
-                HStack {
-                    Text("\(day)")
-                        .font(.footnote.bold())
-                        .foregroundStyle(color(forColumn: columnIndex))
-                        .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
-                        .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
-                    Spacer(minLength: 0)
+                Text("\(day)")
+                    .font(.footnote.bold())
+                    .foregroundStyle(color(forColumn: columnIndex))
+                    .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
+                    .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
+
+                // 기분 이모지도 이 줄에 합쳐서 배지들과 함께 줄바꿈한다(BadgeFlowLayout) — 날짜 바로
+                // 아래 첫 항목으로 두면 항상 그 날짜 소속임이 명확하다. 가로로 나란히 놓다가 칸
+                // 너비를 넘기면 다음 줄로 줄바꿈하고, 정확히 몇 줄까지 들어가는지는 미리 계산하지
+                // 않고 칸 높이를 넘는 나머지 줄은 아래 .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면
+                // 요약 시트에서 어차피 전부 보인다.
+                BadgeFlowLayout(spacing: 3) {
                     if let moodEmoji {
                         Text(moodEmoji)
                             .font(.caption2)
                     }
-                }
-                // 정렬을 명시하지 않으면 기본값(center)이라, 날짜 숫자의 왼쪽 끝이 아래 배지 줄의
-                // 왼쪽 끝과 안 맞을 수 있다 — 둘 다 leading으로 명시해서 같은 세로선에 맞춘다.
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
-                // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은
-                // 아래 .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면 요약 시트에서 어차피 전부 보인다.
-                BadgeFlowLayout(spacing: 3) {
                     ForEach(allBadges) { badge in
                         badgeView(badge)
                     }
@@ -261,6 +260,7 @@ struct CalendarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(badgesAccessibilitySummary(
+                    moodScore: mood?.score,
                     coffeeCount: coffeeCount,
                     exerciseCount: exerciseCount,
                     medicationCount: medicationCount,

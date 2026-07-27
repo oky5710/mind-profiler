@@ -382,12 +382,14 @@ struct HRVAnalysisView: View {
         let dateText = chartMode == .daily
             ? Self.monthDayFormatter.string(from: point.date)
             : Self.tooltipDateFormatter.string(from: point.date)
+        let matchedEvent = matchedRMSSDEvent(for: point.date)
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(dateText)
                 .font(.caption2)
             // 라벨(rMSSD/SDNN)은 작게, 숫자는 크게 — Grid로 두 줄의 라벨 칸 너비를 맞춰서
-            // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다.
+            // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다. 기분은 rMSSD/SDNN처럼 측정값이
+            // 아니라 사용자가 고른 짧은 단어라 굳이 크게 강조하지 않고 라벨과 같은 작은 크기로 둔다.
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 4, verticalSpacing: 2) {
                 GridRow {
                     Text("rMSSD").font(.caption2)
@@ -399,13 +401,17 @@ struct HRVAnalysisView: View {
                         Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
                     }
                 }
-                if let event = matchedRMSSDEvent(for: point.date),
-                   let emotion = RMSSDEmotion(rawValue: event.emotion) {
+                if let emotion = matchedEvent.flatMap({ RMSSDEmotion(rawValue: $0.emotion) }) {
                     GridRow {
                         Text("기분").font(.caption2)
-                        Text(emotion.label).font(.callout.bold())
+                        Text(emotion.label).font(.caption2)
                     }
                 }
+            }
+            if let note = matchedEvent?.note, !note.isEmpty {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.85))
             }
         }
         .foregroundStyle(.white)
