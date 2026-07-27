@@ -27,13 +27,14 @@ enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, sleep, exercise, median, sdnn, calendarEvent, cv
+    case rmssd, examRmssd, restingHeartRate, sleep, exercise, median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .rmssd: "rMSSD (계산값)"
         case .examRmssd: "검사 rMSSD"
+        case .restingHeartRate: "안정시 심박수"
         case .sleep: "수면"
         case .exercise: "운동"
         case .median: "최근 30일 중앙값"
@@ -47,6 +48,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         switch self {
         case .rmssd: "circle.fill"
         case .examRmssd: "triangle.fill"
+        case .restingHeartRate: "chart.bar.fill"
         case .sleep: "square.fill"
         case .exercise: "square.fill"
         case .median: "minus"
@@ -62,7 +64,9 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         switch self {
         case .rmssd, .examRmssd, .median: true
         case .sdnn: mode == .hourly
-        case .sleep, .exercise, .calendarEvent: mode != .monthly
+        case .restingHeartRate: mode == .daily
+        case .sleep: mode != .monthly
+        case .exercise, .calendarEvent: mode == .hourly
         case .cv: mode == .monthly
         }
     }
@@ -396,6 +400,13 @@ struct HRVAnalysisView: View {
         }?.value
     }
 
+    private func dailyRestingHeartRate(on date: Date) -> Double? {
+        guard chartMode == .daily else { return nil }
+        return viewModel.wearableRestingHeartRatePointsDaily.first {
+            Calendar.current.isDate($0.date, inSameDayAs: date)
+        }?.value
+    }
+
     func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
         // 일별 모드는 하루 대표값(중앙값)이라 시각을 붙이면 의미 없는 00:00 같은 값이 나온다.
         let dateText = chartMode == .daily
@@ -418,6 +429,12 @@ struct HRVAnalysisView: View {
                     GridRow {
                         Text("SDNN").font(.caption2)
                         Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
+                    }
+                }
+                if let restingHeartRate = dailyRestingHeartRate(on: point.date) {
+                    GridRow {
+                        Text("안정시 심박수").font(.caption2)
+                        Text("\(String(format: "%.0f", restingHeartRate))bpm").font(.callout.bold())
                     }
                 }
                 if let emotion = matchedEvent.flatMap({ RMSSDEmotion(rawValue: $0.emotion) }) {
@@ -696,7 +713,7 @@ struct HRVAnalysisView: View {
                 LegendItem(
                     id: series.id,
                     series: series,
-                    label: series.label,
+                    label: series == .sleep && chartMode == .daily ? "야간 수면시간" : series.label,
                     boldValue: series == .median ? medianLegendValue : nil,
                     swatch: AnyView(
                         Image(systemName: series.symbol)
@@ -761,6 +778,7 @@ struct HRVAnalysisView: View {
         switch series {
         case .rmssd: rmssdColor
         case .examRmssd: examRmssdColor
+        case .restingHeartRate: Theme.systemMint
         case .sleep: sleepColor
         case .exercise: exerciseColor
         case .median: .gray

@@ -18,6 +18,7 @@ extension HRVAnalysisView {
             // 아이콘 레인(1/3 높이)을 새로 추가한다.
             if chartMode == .daily {
                 restingHeartRateChart
+                nightlySleepChart
             } else {
                 ganttChart
                 hourlyMarkerLane
@@ -389,12 +390,16 @@ extension HRVAnalysisView {
 
         return Chart {
             ForEach(points) { point in
-                BarMark(
-                    x: .value("날짜", point.date, unit: .day),
-                    y: .value("안정시 심박수", point.value)
-                )
-                .foregroundStyle(Theme.heart)
-                .cornerRadius(2)
+                if !hiddenSeries.contains(.restingHeartRate) {
+                    // unit: .day 대역을 쓰지 않고 rMSSD PointMark와 정확히 같은 날짜 좌표에 고정한다.
+                    BarMark(
+                        x: .value("날짜", point.date),
+                        y: .value("안정시 심박수", point.value),
+                        width: .fixed(8)
+                    )
+                    .foregroundStyle(Theme.systemMint.opacity(0.7))
+                    .cornerRadius(4)
+                }
             }
 
             if visibleDateRange.contains(Date()) {
@@ -403,7 +408,7 @@ extension HRVAnalysisView {
                     .lineStyle(StrokeStyle(lineWidth: 1))
             }
         }
-        .frame(height: ganttChartHeight)
+        .frame(height: ganttChartHeight * 0.65)
         .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
         .chartXAxis(.hidden)
@@ -416,7 +421,54 @@ extension HRVAnalysisView {
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                 xAxisLabelBelow: true,
-                showsXAxisLabels: false
+                showsXAxisLabels: false,
+                showsXAxisBaseline: false
+            )
+        }
+    }
+
+    // 일별 모드 전용 — 오후 9시부터 다음 날 오전 10시까지 실제로 잔 시간만 합산한다.
+    // 안정시 심박수 차트 아래에 두고, 전체 일별 스택의 x축은 이 최하단 차트에서만 표시한다.
+    var nightlySleepChart: some View {
+        let points = viewModel.nightlySleepPointsDaily
+
+        return Chart {
+            if !hiddenSeries.contains(.sleep) {
+                ForEach(points) { point in
+                    BarMark(
+                        x: .value("날짜", point.date),
+                        y: .value("수면시간", point.hours),
+                        width: .fixed(8)
+                    )
+                    .foregroundStyle(sleepColor.opacity(0.7))
+                    .cornerRadius(4)
+                }
+            }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+        }
+        .frame(height: ganttChartHeight * 0.65)
+        .chartXScale(domain: visibleDateRange)
+        .chartYScale(domain: 0...13)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.gray.opacity(0.4))
+                .frame(height: 1)
+        }
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: [0, 4, 8, 12],
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                xAxisLabelBelow: true
             )
         }
     }

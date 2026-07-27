@@ -17,6 +17,13 @@ final class HRVAnalysisViewModel {
         var id: Date { date }
     }
 
+    struct DailySleepPoint: Identifiable {
+        // 해당 밤이 시작되는 날짜의 자정. rMSSD/안정시 심박수 일별 포인트와 같은 x 좌표를 쓴다.
+        let date: Date
+        let hours: Double
+        var id: Date { date }
+    }
+
     struct MonthlyHRVStat: Identifiable {
         let monthStart: Date
         let min: Double
@@ -99,6 +106,8 @@ final class HRVAnalysisViewModel {
     // 일별 모드는 간트 차트 대신 안정시 심박수 막대 차트를 보여준다 — 그날그날 뚝뚝 튀지 않는
     // 안정적인 지표라 하루 대표값(중앙값) 하나로 충분하다(rMSSD 일별 집계와 같은 방식).
     private(set) var wearableRestingHeartRatePointsDaily: [HRVPoint] = []
+    // 오후 9시~다음 날 오전 10시 수면만 날짜별로 합산한 값. 낮잠은 시간 창 밖이라 제외된다.
+    private(set) var nightlySleepPointsDaily: [DailySleepPoint] = []
 
     // 시간별 모드 아이콘 레인 전용 데이터 — HealthKit 윈도우 로딩과 무관하게(양이 많지 않아) 캘린더
     // 일정처럼 한 번에 전체 이력을 불러온다.
@@ -376,6 +385,7 @@ final class HRVAnalysisViewModel {
                 Self.dailyMedian(rawRestingHRSamples),
                 gapThreshold: Self.hrvGapThresholdDaily
             )
+            nightlySleepPointsDaily = Self.nightlySleepDurations(sleepSamples)
             let healthKitWorkouts = workoutRanges.map {
                 WorkoutRange(
                     start: $0.start,
@@ -452,6 +462,34 @@ final class HRVAnalysisViewModel {
     private static func dailyMedian(_ samples: [(Date, Double)]) -> [(Date, Double)] {
         HRVStatistics.dailyMedian(samples.map { (date: $0.0, value: $0.1) })
             .map { ($0.date, $0.value) }
+    }
+
+    // 각 수면 단계 샘플에서 그날 21:00~다음 날 10:00과 실제로 겹치는 부분만 합산한다.
+    // 시작/종료 시각만 보고 세션 전체를 포함하면 21시 전이나 10시 이후 구간까지 섞일 수 있으므로
+    // 경계에서 잘라 계산한다. 낮 시간 수면은 창과 겹치지 않아 자연스럽게 제외된다.
+    private static func nightlySleepDurations(
+        _ samples: [(start: Date, end: Date, stage: HealthKitService.SleepStage)]
+    ) -> [DailySleepPoint] {
+        let calendar = Calendar.current
+        var durationByNight: [Date: TimeInterval] = [:]
+
+        for sample in samples {
+            let night = SleepAnalysisService.nightLabel(for: sample.start)
+            guard
+                let windowStart = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: night),
+                let nextDay = calendar.date(byAdding: .day, value: 1, to: night),
+                let windowEnd = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: nextDay)
+            else { continue }
+
+            let overlapStart = max(sample.start, windowStart)
+            let overlapEnd = min(sample.end, windowEnd)
+            guard overlapEnd > overlapStart else { continue }
+            durationByNight[calendar.startOfDay(for: night), default: 0] += overlapEnd.timeIntervalSince(overlapStart)
+        }
+
+        return durationByNight
+            .map { DailySleepPoint(date: $0.key, hours: $0.value / 3_600) }
+            .sorted { $0.date < $1.date }
     }
 
     private static func monthlyStats(_ samples: [(Date, Double)]) -> [MonthlyHRVStat] {
