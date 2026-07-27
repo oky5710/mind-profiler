@@ -200,11 +200,10 @@ struct CalendarView: View {
         let isToday = Calendar.current.isDateInToday(date)
 
         let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount)
-        // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면 마지막 한 자리를
-        // "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
+        // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수만큼만 보여주고, 넘치는 나머지는 "+N" 같은
+        // 표시 없이 그냥 숨긴다 — 자세한 내용은 어차피 날짜를 탭하면 요약 시트에서 다 보인다.
         let maxBadgeLines = max(Int((cellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
-        let visibleBadges = allBadges.count > maxBadgeLines ? Array(allBadges.prefix(max(maxBadgeLines - 1, 0))) : allBadges
-        let overflowCount = allBadges.count - visibleBadges.count
+        let visibleBadges = Array(allBadges.prefix(maxBadgeLines))
 
         return Button {
             selectedDetailDay = SelectedDay(date: date)
@@ -220,11 +219,6 @@ struct CalendarView: View {
                     Text(badge.text)
                         .font(.caption2)
                         .foregroundStyle(badge.color)
-                }
-                if overflowCount > 0 {
-                    Text("+\(overflowCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)

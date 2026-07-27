@@ -119,15 +119,25 @@ struct DayDetailSheet: View {
                 }
 
                 if !medicationLogs.isEmpty {
-                    // 실제 약 이름 대신 어느 시간대(아침/점심/저녁/취침전/필요시)에 복용했는지만
-                    // 보여준다 — 이 화면에서는 "그 시간대를 챙겼는지"가 중요하지, 약 이름 자체는
-                    // 필요 없다(등록 목록은 설정의 약 등록 화면에 따로 있음). 삭제는 지원하지 않고
-                    // (실수로 지웠다가 잘못된 시간대로 다시 체크하기보다 수정으로 바로잡는 게 안전)
-                    // 수정 아이콘만 남긴다.
+                    // 실제 약 이름 대신 어느 시간대(아침/점심/저녁/취침전/필요시)에 복용했는지를
+                    // 주로 보여준다 — 이 화면에서는 "그 시간대를 챙겼는지"가 중요하지, 약 이름
+                    // 자체는 필요 없다(등록 목록은 설정의 약 등록 화면에 따로 있음). 삭제는
+                    // 지원하지 않고(실수로 지웠다가 잘못된 시간대로 다시 체크하기보다 수정으로
+                    // 바로잡는 게 안전) 수정 아이콘만 남긴다.
                     Section("약 복용 \(medicationLogs.count)건") {
                         ForEach(medicationLogs) { entry in
                             HStack {
-                                Text(entry.timing.flatMap(MedicationTiming.init(rawValue:))?.label ?? "약 복용")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.timing.flatMap(MedicationTiming.init(rawValue:))?.label ?? "약 복용")
+                                    // 같은 시간대에 등록된 약이 여러 개면 행이 전부 "아침"처럼 똑같아
+                                    // 보여서, 어느 기록을 수정하는 건지 구분이 안 된다 — 그 경우에만
+                                    // 약 이름을 작게 곁들인다(그 외엔 시간대만으로 충분해 안 보여준다).
+                                    if hasAmbiguousTiming(entry), let name = entry.medication?.name {
+                                        Text(name)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                                 Spacer()
                                 Button {
                                     editingMedicationLog = entry
@@ -209,6 +219,10 @@ struct DayDetailSheet: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
+    }
+
+    private func hasAmbiguousTiming(_ entry: MedicationLogEntry) -> Bool {
+        medicationLogs.filter { $0.timing == entry.timing }.count > 1
     }
 
     private func deleteMood(_ entry: MoodLogEntry) async {
