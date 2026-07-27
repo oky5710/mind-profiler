@@ -239,7 +239,7 @@ struct DayDetailSheet: View {
                     MedicationLogEditForm(entries: group.entries, onSaved: {
                         await onRefresh()
                         editingMedicationGroup = nil
-                    })
+                    }, onRefresh: onRefresh)
                 }
             }
         }

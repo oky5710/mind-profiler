@@ -170,17 +170,16 @@ struct CalendarView: View {
 
     // 기분은 날짜 숫자와 같은 줄에 이모지로 따로 보여주고(어떤 기분이었는지가 중요해서 색으로
     // 뭉뚱그리지 않음), 나머지(커피/운동/약복용/이벤트)만 유형별 색이 있는 원 배지로 통일한다 —
-    // 여러 건이면 원 안에 개수를 숫자로 보여준다.
+    // 개수만큼 원을 그대로 나란히 그린다(숫자로 뭉뚱그리지 않음).
     private struct DayBadge: Identifiable {
         let id = UUID()
         let color: Color
-        let count: Int
-        // 화면에는 안 보이고 VoiceOver 접근성 문구에만 쓴다 — 원 배지 자체는 색으로만 구분돼서,
+        // 화면에는 안 보이고 VoiceOver 접근성 요약에만 쓴다 — 원 배지 자체는 색으로만 구분돼서,
         // 그것만으로는 "커피"인지 "운동"인지 시각 정보 없이는 알 수 없다.
         let label: String
     }
 
-    private static let circleBadgeSize: CGFloat = 13
+    private static let circleBadgeSize: CGFloat = 12
     // 채도를 낮춘 파스텔 톤 — 원래 브랜드/차트 색(Theme.exercise 등)은 진해서 작은 원 배지로 쓰면
     // 너무 튀어 보인다.
     private static let coffeeBadgeColor = Color(red: 0.80, green: 0.65, blue: 0.52)
@@ -189,35 +188,32 @@ struct CalendarView: View {
     private static let eventBadgeColor = Color(red: 0.72, green: 0.82, blue: 0.95)
 
     private func badges(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> [DayBadge] {
-        var result: [DayBadge] = []
-        if coffeeCount > 0 {
-            result.append(DayBadge(color: Self.coffeeBadgeColor, count: coffeeCount, label: "커피"))
+        // Array(repeating:count:)는 단 하나의 인스턴스를 복사하므로 id(UUID())가 전부 같아져
+        // ForEach가 요구하는 고유성이 깨진다 — 매번 새로 만들어야 한다.
+        func dots(_ count: Int, color: Color, label: String) -> [DayBadge] {
+            (0..<count).map { _ in DayBadge(color: color, label: label) }
         }
-        if exerciseCount > 0 {
-            result.append(DayBadge(color: Self.exerciseBadgeColor, count: exerciseCount, label: "운동"))
-        }
-        if medicationCount > 0 {
-            result.append(DayBadge(color: Self.medicationBadgeColor, count: medicationCount, label: "약 복용"))
-        }
-        if eventCount > 0 {
-            result.append(DayBadge(color: Self.eventBadgeColor, count: eventCount, label: "이벤트"))
-        }
-        return result
+        return dots(coffeeCount, color: Self.coffeeBadgeColor, label: "커피")
+            + dots(exerciseCount, color: Self.exerciseBadgeColor, label: "운동")
+            + dots(medicationCount, color: Self.medicationBadgeColor, label: "약 복용")
+            + dots(eventCount, color: Self.eventBadgeColor, label: "이벤트")
+    }
+
+    // 배지 하나하나는 색만 있는 원이라 VoiceOver에 개별로 노출하면 "커피, 커피, 커피"처럼 겹쳐
+    // 읽힌다 — 원 배지 전체를 하나로 묶어서 유형별 개수 요약 하나로만 읽히게 한다.
+    private func badgesAccessibilitySummary(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> String {
+        var parts: [String] = []
+        if coffeeCount > 0 { parts.append("커피 \(coffeeCount)건") }
+        if exerciseCount > 0 { parts.append("운동 \(exerciseCount)건") }
+        if medicationCount > 0 { parts.append("약 복용 \(medicationCount)건") }
+        if eventCount > 0 { parts.append("이벤트 \(eventCount)건") }
+        return parts.joined(separator: ", ")
     }
 
     private func badgeView(_ badge: DayBadge) -> some View {
         Circle()
             .fill(badge.color)
             .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
-            .overlay {
-                if badge.count > 1 {
-                    // 파스텔 톤은 전부 밝은 배경이라 검정 글자로 통일해도 대비가 충분하다.
-                    Text("\(badge.count)")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.black)
-                }
-            }
-            .accessibilityLabel("\(badge.label)\(badge.count > 1 ? " \(badge.count)건" : "")")
     }
 
     private func dayCell(date: Date, columnIndex: Int, cellHeight: CGFloat) -> some View {
@@ -250,7 +246,9 @@ struct CalendarView: View {
                             .font(.caption2)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                // 정렬을 명시하지 않으면 기본값(center)이라, 날짜 숫자의 왼쪽 끝이 아래 배지 줄의
+                // 왼쪽 끝과 안 맞을 수 있다 — 둘 다 leading으로 명시해서 같은 세로선에 맞춘다.
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
                 // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은
@@ -260,6 +258,14 @@ struct CalendarView: View {
                         badgeView(badge)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(badgesAccessibilitySummary(
+                    coffeeCount: coffeeCount,
+                    exerciseCount: exerciseCount,
+                    medicationCount: medicationCount,
+                    eventCount: eventCount
+                ))
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: cellHeight, alignment: .topLeading)
