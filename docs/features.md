@@ -40,22 +40,27 @@
 - 기록을 나중에 조회하는 화면은 없음("나의 Trend/통계" 화면을 삭제하고 "보고서"로 대체하면서 없어짐).
 
 ### 달력보기 (`Views/Calendar`)
-- 월 달력 그리드. 날짜를 탭하면 입력이 아니라 그날 이미 입력된 내용(기분/커피/운동)을 보여주는
-  요약 시트가 뜬다(`DayDetailSheet`, `CalendarViewModel.mood(on:)`/`coffees(on:)`/
-  `exercises(on:)` 재사용) — 기록이 없으면 안내 문구만 보여준다. 입력은 이 시트 우측 상단의
+- 월 달력 그리드. 날짜를 탭하면 입력이 아니라 그날 이미 입력된 내용(기분/커피/운동/약복용)을
+  보여주는 요약 시트가 뜬다(`DayDetailSheet`, `CalendarViewModel.mood(on:)`/`coffees(on:)`/
+  `exercises(on:)`/`medicationLogs(on:)` 재사용) — 기록이 없으면 안내 문구만 보여준다. 입력은 이 시트 우측 상단의
   "+" 버튼(그 날짜 기준)이나, 캘린더 화면 자체의 우측 상단 "+" 버튼(오늘 날짜 기본)으로 들어간다 —
   둘 다 기존의 bottom sheet 유형 선택 → 입력 흐름(`DayEntrySheet`)을 그대로 연다. 유형을 고르기 전
   화면 맨 위에 `DatePicker`가 있어(상한은 오늘까지) 두 진입 경로 모두 날짜를 바로 바꿀 수 있다 —
   캘린더 우측 상단 "+"는 항상 오늘 날짜로 열리지만, 다른 날짜에 기록하고 싶으면 그 칸을 직접 찾아
   탭하지 않고 이 피커로 바꾸면 된다.
-- **수정/삭제**: 요약 시트의 각 기록 줄 오른쪽에 연필(수정)/휴지통(삭제) 아이콘 버튼이 있다
-  (`DayDetailSheet.rowActions`). 삭제는 해당 서비스의 `removeMood`/`removeCoffee`/`removeExercise`를
-  바로 호출한다. 수정은 `MoodEntryForm`/`CoffeeEntryForm`/`ExerciseEntryForm`을 그 기록의 기존 값으로
-  미리 채운 채로 열고(`editingEntry` 파라미터), 저장 시 생성이 아니라 해당 서비스의
+- **수정/삭제**: 요약 시트의 각 기록 줄 오른쪽에 연필(수정)/휴지통(삭제) 아이콘 버튼이 있고
+  (`DayDetailSheet.rowActions`), 표준 iOS 스와이프 삭제 제스처(`.swipeActions(edge: .trailing)`)도
+  똑같이 지원한다 — 둘 다 같은 삭제 함수를 부르므로 어느 쪽을 써도 결과는 같다. 삭제는 해당
+  서비스의 `removeMood`/`removeCoffee`/`removeExercise`/`removeLog`를 바로 호출한다. 수정은
+  `MoodEntryForm`/`CoffeeEntryForm`/`ExerciseEntryForm`을 그 기록의 기존 값으로 미리 채운 채로
+  열고(`editingEntry` 파라미터), 저장 시 생성이 아니라 해당 서비스의
   `updateMood`/`updateCoffee`/`updateExercise`(PATCH)를 호출한다 — 수정 모드에서는 폼 안의
-  "이 날의 기록" 목록(다른 기록까지 같이 보여주고 지울 수 있는 목록)은 숨긴다. 수정/삭제 후에는
-  `DayDetailSheet`가 직접 상태를 들고 있지 않고 부모(`CalendarViewModel`)를 다시 불러오는 방식이라,
-  시트가 열린 채로도 최신 값으로 갱신된다. `ExerciseEntryForm`은 시작/종료 시각·운동 시간(분) 세 값이
+  "이 날의 기록" 목록(다른 기록까지 같이 보여주고 지울 수 있는 목록)은 숨긴다. 약복용은 기록
+  자체가 "그 시간대 체크했다"는 단순한 사실이라 별도 입력 폼이 아니라 시간대만 바로잡는 작은
+  화면(`MedicationLogEditForm`, `MedicationService.updateLog` → `PATCH /medications/logs/:id`)을
+  연다. 수정/삭제 후에는 `DayDetailSheet`가 직접 상태를 들고 있지 않고 부모(`CalendarViewModel`)를
+  다시 불러오는 방식이라, 시트가 열린 채로도 최신 값으로 갱신된다. `ExerciseEntryForm`은 시작/종료
+  시각·운동 시간(분) 세 값이
   서로 되먹임하는 구조라(위 "운동 기록 입력" 참고), 미리 채우는 동안만 그 되먹임을 꺼둔다
   (`isPrefilling`) — 안 그러면 운동 시간 입력칸의 300분(5시간) 상한 때문에, 5시간 넘는 기존 기록을
   수정하려고 열기만 해도 종료 시각이 5시간짜리로 조용히 잘렸다. 이 되먹임(`onChange`)은 값을 대입한
@@ -65,7 +70,7 @@
 - 구현된 유형: 검사(HRV, `ExamEntryForm`) / 커피(`CoffeeEntryForm`) / 기분(`MoodEntryForm`) /
   운동(`ExerciseEntryForm`) / 약복용(`MedicationEntryForm`) / 이벤트(`LifeEventEntryForm`) —
   PRD의 유형 전부 구현됨(`EntryType.isImplemented`는 이제 항상 `true`라 제거).
-- **날짜 칸 정렬/높이**: 각 칸의 내용(날짜 숫자 + 기분/커피/운동 배지)은 세로 top·가로 left로
+- **날짜 칸 정렬/높이**: 각 칸의 내용(날짜 숫자 + 기분/커피/운동/약복용 배지)은 세로 top·가로 left로
   정렬한다(`VStack(alignment: .leading)` + `.frame(alignment: .topLeading)`). 칸 높이는 가변
   `minHeight`가 아니라 고정 `height`(`CalendarView.dayCellHeight`, 배지 3개가 다 붙는 최악의
   경우까지 잘리지 않을 만큼 넉넉하게)로 둬서, 그날의 배지 개수와 무관하게 같은 주의 칸들은 물론
@@ -81,7 +86,8 @@
   `date`+`durationMinutes` 대신 `startedAt`/`endedAt`을 저장하도록 바뀌면서 mind-record 웹도 같이
   이 필드로 옮겨갔다. 이 수동 입력은 "오늘의 패턴"의 Gantt 차트에도 HealthKit 운동과 함께
   표시된다(아래 "운동 상세" 참고) — 달력 그리드에 그날 운동 기록이 있으면 🏃 배지(2건 이상이면
-  "🏃×N")도 표시한다. 종료 시각 피커는 시:분만 고르고(`displayedComponents: .hourAndMinute`) 그
+  "🏃×N")를, 그날 체크된 약 복용이 있으면 💊 배지(2건 이상이면 "💊×N")도 표시한다. 종료 시각
+  피커는 시:분만 고르고(`displayedComponents: .hourAndMinute`) 그
   자체 날짜는 의미가 없어서, 저장할 땐 항상 시작일(`date`)에 그 시:분을 붙인다 — 자정을 넘기는
   운동(예: 23시 시작~다음날 1시 종료)은 그렇게 붙인 종료 시각이 시작 시각보다 빨라져 버리므로, 그
   경우에만 종료일을 하루 미룬다(`effectiveEnd`). 종료 시각 피커에서 시작보다 이른 시각을 직접
@@ -95,10 +101,10 @@
   삭제할 수 있다. `DayEntrySheet`가 폼마다 `onSaved`(저장 성공 시 — 캘린더 새로고침 후 시트를
   닫음)와 `onRefresh`(삭제 시 — 캘린더만 새로고침하고 시트는 열어둔 채 유지) 두 콜백을 따로
   넘긴다 — 원래 커피 폼만 있었을 때는 삭제도 `onSaved`를 태워서 하나만 지워도 시트 전체가
-  닫혔는데, 여러 개를 연달아 지우려면 그때마다 다시 열어야 해서 불편했다. 검사/약복용/이벤트는
-  수정 기능이 없어서 잘못 입력했으면 여기서 지우고 다시 입력해야 한다 — 기분/커피/운동은 위
-  "수정/삭제"에서 설명한 대로 `DayDetailSheet`에서 바로 수정할 수 있다(`editingEntry`가 있을 땐
-  이 폼에서 이 목록 자체를 숨긴다).
+  닫혔는데, 여러 개를 연달아 지우려면 그때마다 다시 열어야 해서 불편했다. 검사/이벤트는 수정
+  기능이 없어서 잘못 입력했으면 여기서 지우고 다시 입력해야 한다 — 기분/커피/운동/약복용은 위
+  "수정/삭제"에서 설명한 대로 `DayDetailSheet`에서 바로 수정할 수 있다(기분/커피/운동은
+  `editingEntry`가 있을 땐 이 폼에서 이 목록 자체를 숨긴다).
 - **기분 하루 1건 제약**: 백엔드가 같은 날 중복 기록을 409로 거부한다 — mind-record 웹과 동일하게
   "오늘 기분은 이미 입력됐어요" 문구로 안내한다(`MoodEntryForm`).
 - **약복용 (`MedicationEntryForm`)**: 그날의 복용 체크만 한다 — mind-record 웹 캘린더용

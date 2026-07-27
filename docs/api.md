@@ -41,7 +41,9 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | POST | `/medications` | 약 등록(검색 결과+복용 시간대) | `MedicationService.addMedication` |
 | DELETE | `/medications/:id` | 약 삭제(soft delete) | `MedicationService.removeMedication` |
 | GET | `/medications/logs?date=yyyy-MM-dd` | 특정 날짜 복용 기록 조회(홈 화면 퀵버튼 체크 표시용) | `MedicationService.logs` |
+| GET | `/medications/logs` | 전체 복용 기록 조회(캘린더 배지/날짜 요약 시트용, 날짜 필터 없음) | `MedicationService.allLogs` |
 | POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
+| PATCH | `/medications/logs/:id` | 복용 기록의 시간대 수정(날짜 요약 시트의 수정 아이콘) | `MedicationService.updateLog` |
 | DELETE | `/medications/logs/:id` | 복용 기록 삭제 | `MedicationService.removeLog` |
 | GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
 | GET | `/medication-reminders` | 등록된 복용 알림 설정 전체 조회 | `MedicationReminderService.allReminders` |

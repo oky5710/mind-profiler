@@ -8,6 +8,7 @@ struct DayDetailSheet: View {
     let mood: MoodLogEntry?
     let coffees: [CoffeeLogEntry]
     let exercises: [ExerciseLogEntry]
+    let medicationLogs: [MedicationLogEntry]
     var onAddEntry: () -> Void
     // 수정/삭제 후 캘린더 데이터를 다시 불러온다 — 이 화면 자체는 mood/coffees/exercises를 그대로
     // 받아 보여주기만 하므로(상태를 직접 들고 있지 않음), 부모가 다시 불러오면 이 시트가 열린 채로도
@@ -18,6 +19,7 @@ struct DayDetailSheet: View {
     @State private var isEditingMood = false
     @State private var editingCoffee: CoffeeLogEntry?
     @State private var editingExercise: ExerciseLogEntry?
+    @State private var editingMedicationLog: MedicationLogEntry?
     @State private var deletionErrorMessage: String?
 
     private static let titleFormatter: DateFormatter = {
@@ -35,7 +37,7 @@ struct DayDetailSheet: View {
     }()
 
     private var isEmpty: Bool {
-        mood == nil && coffees.isEmpty && exercises.isEmpty
+        mood == nil && coffees.isEmpty && exercises.isEmpty && medicationLogs.isEmpty
     }
 
     var body: some View {
@@ -58,6 +60,7 @@ struct DayDetailSheet: View {
                                 Task { await deleteMood(mood) }
                             }
                         }
+                        .swipeToDelete { Task { await deleteMood(mood) } }
                     }
                 }
 
@@ -85,6 +88,7 @@ struct DayDetailSheet: View {
                                     Task { await deleteCoffee(entry) }
                                 }
                             }
+                            .swipeToDelete { Task { await deleteCoffee(entry) } }
                         }
                     }
                 }
@@ -109,6 +113,31 @@ struct DayDetailSheet: View {
                                     Task { await deleteExercise(entry) }
                                 }
                             }
+                            .swipeToDelete { Task { await deleteExercise(entry) } }
+                        }
+                    }
+                }
+
+                if !medicationLogs.isEmpty {
+                    Section("약 복용 \(medicationLogs.count)건") {
+                        ForEach(medicationLogs) { entry in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.medication?.name ?? "약")
+                                    if let timing = entry.timing.flatMap(MedicationTiming.init(rawValue:)) {
+                                        Text(timing.label)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                rowActions {
+                                    editingMedicationLog = entry
+                                } onDelete: {
+                                    Task { await deleteMedicationLog(entry) }
+                                }
+                            }
+                            .swipeToDelete { Task { await deleteMedicationLog(entry) } }
                         }
                     }
                 }
@@ -158,6 +187,14 @@ struct DayDetailSheet: View {
                     }, onRefresh: onRefresh)
                 }
             }
+            .sheet(item: $editingMedicationLog) { entry in
+                NavigationStack {
+                    MedicationLogEditForm(entry: entry, onSaved: {
+                        await onRefresh()
+                        editingMedicationLog = nil
+                    })
+                }
+            }
         }
     }
 
@@ -202,6 +239,28 @@ struct DayDetailSheet: View {
             await onRefresh()
         } catch {
             deletionErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteMedicationLog(_ entry: MedicationLogEntry) async {
+        deletionErrorMessage = nil
+        do {
+            try await MedicationService.removeLog(id: entry.id)
+            await onRefresh()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
+    }
+}
+
+private extension View {
+    // rowActions의 명시적 휴지통 버튼과는 별개로, 표준 iOS 스와이프 삭제 제스처도 그대로 지원한다 —
+    // 둘 다 같은 삭제 동작을 부르므로 어느 쪽을 써도 결과는 같다.
+    func swipeToDelete(action: @escaping () -> Void) -> some View {
+        swipeActions(edge: .trailing) {
+            Button(role: .destructive, action: action) {
+                Label("삭제", systemImage: "trash")
+            }
         }
     }
 }

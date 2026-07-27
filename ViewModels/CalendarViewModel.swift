@@ -11,6 +11,7 @@ final class CalendarViewModel {
     private var moodsByDate: [String: MoodLogEntry] = [:]
     private var coffeesByDate: [String: [CoffeeLogEntry]] = [:]
     private var exercisesByDate: [String: [ExerciseLogEntry]] = [:]
+    private var medicationLogsByDate: [String: [MedicationLogEntry]] = [:]
 
     init(referenceDate: Date = Date()) {
         let components = Calendar.current.dateComponents([.year, .month], from: referenceDate)
@@ -26,7 +27,8 @@ final class CalendarViewModel {
             async let moods = MoodService.allMoods()
             async let coffees = CoffeeService.allCoffees()
             async let exercises = ExerciseService.allExercises()
-            let (moodList, coffeeList, exerciseList) = try await (moods, coffees, exercises)
+            async let medicationLogs = MedicationService.allLogs()
+            let (moodList, coffeeList, exerciseList, medicationLogList) = try await (moods, coffees, exercises, medicationLogs)
 
             var moodMap: [String: MoodLogEntry] = [:]
             for entry in moodList {
@@ -48,6 +50,13 @@ final class CalendarViewModel {
                 exerciseMap[DateKey.string(from: start), default: []].append(entry)
             }
             exercisesByDate = exerciseMap
+
+            var medicationLogMap: [String: [MedicationLogEntry]] = [:]
+            for entry in medicationLogList where entry.taken {
+                guard let date = DateKey.parseISODate(entry.date) else { continue }
+                medicationLogMap[DateKey.string(from: date), default: []].append(entry)
+            }
+            medicationLogsByDate = medicationLogMap
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -104,5 +113,9 @@ final class CalendarViewModel {
 
     func exercises(on date: Date) -> [ExerciseLogEntry] {
         exercisesByDate[DateKey.string(from: date)] ?? []
+    }
+
+    func medicationLogs(on date: Date) -> [MedicationLogEntry] {
+        medicationLogsByDate[DateKey.string(from: date)] ?? []
     }
 }

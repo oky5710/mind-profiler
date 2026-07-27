@@ -70,7 +70,8 @@ struct CalendarView: View {
                 date: day.date,
                 mood: viewModel.mood(on: day.date),
                 coffees: viewModel.coffees(on: day.date),
-                exercises: viewModel.exercises(on: day.date)
+                exercises: viewModel.exercises(on: day.date),
+                medicationLogs: viewModel.medicationLogs(on: day.date)
             ) {
                 pendingEntryDay = day
             } onRefresh: {
@@ -173,7 +174,7 @@ struct CalendarView: View {
         let color: Color
     }
 
-    private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int) -> [DayBadge] {
+    private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int, medicationCount: Int) -> [DayBadge] {
         var result: [DayBadge] = []
         if let mood {
             result.append(DayBadge(text: MoodService.options.first { $0.score == mood.score }?.emoji ?? "", color: .primary))
@@ -184,6 +185,9 @@ struct CalendarView: View {
         if exerciseCount > 0 {
             result.append(DayBadge(text: exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃", color: .primary))
         }
+        if medicationCount > 0 {
+            result.append(DayBadge(text: medicationCount > 1 ? "💊×\(medicationCount)" : "💊", color: .primary))
+        }
         return result
     }
 
@@ -192,9 +196,10 @@ struct CalendarView: View {
         let mood = viewModel.mood(on: date)
         let coffeeCount = viewModel.coffees(on: date).count
         let exerciseCount = viewModel.exercises(on: date).count
+        let medicationCount = viewModel.medicationLogs(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
-        let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount)
+        let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount)
         // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면 마지막 한 자리를
         // "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
         let maxBadgeLines = max(Int((cellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)

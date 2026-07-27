@@ -72,6 +72,11 @@ struct MedicationLogEntry: Decodable, Identifiable {
     let medication: MedicationSummary?
 }
 
+// 캘린더 날짜 요약 시트의 수정 아이콘 — 잘못 고른 시간대를 바로잡는 용도라 timing 하나만 보낸다.
+struct MedicationLogUpdateRequest: Encodable {
+    let timing: String
+}
+
 struct MedicationSummary: Decodable {
     let name: String
 }
