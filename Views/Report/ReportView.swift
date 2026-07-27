@@ -92,6 +92,7 @@ struct ReportView: View {
                         vitalsSection
                         sleepSection
                         cvSection
+                        hourlyPatternSection
                         rmssdLowestFindingsSection
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
@@ -565,6 +566,80 @@ struct ReportView: View {
     // 맞춰서 커스텀 오버레이 눈금과 실제 축 범위가 어긋나지 않게 한다.
     private func cvYAxisTicks(_ findings: ReportViewModel.CVFindings) -> [Double] {
         let maxValue = findings.dailyPoints.map(\.upperBand).max() ?? 0
+        guard maxValue > 0 else { return [0] }
+        let step = max((maxValue / 4).rounded(.up), 10)
+        return Array(stride(from: 0, through: step * 4, by: step))
+    }
+
+    // MARK: - 하루 패턴
+
+    // 선택 기간 전체를 시(0~23)별로 뭉쳐 중앙값을 낸 라인 차트 — 날짜를 다 무시하고 "그 시각대엔
+    // 보통 rMSSD가 어땠는지"만 하루 24시간 축 하나에 겹쳐 보여준다. 변동계수 섹션 바로 아래에 둔다.
+    private var hourlyPatternSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("하루 패턴").font(Typography.sectionTitle)
+                .padding(.bottom, 8)
+
+            if viewModel.hourOfDayPattern.isEmpty {
+                Text("해당 기간에 rMSSD 데이터가 없어요")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                hourlyPatternChart(viewModel.hourOfDayPattern).chartLoadingOverlay(viewModel.isAnalyzing)
+            }
+        }
+        .panelCard()
+    }
+
+    private func hourlyPatternChart(_ points: [ReportViewModel.HourOfDayPoint]) -> some View {
+        Chart(points) { point in
+            LineMark(
+                x: .value("시", point.hour),
+                y: .value("rMSSD", point.median)
+            )
+            .foregroundStyle(Theme.rmssd)
+
+            PointMark(
+                x: .value("시", point.hour),
+                y: .value("rMSSD", point.median)
+            )
+            .symbolSize(20)
+            .foregroundStyle(Theme.rmssd)
+        }
+        .frame(height: 180)
+        .chartXScale(domain: 0...23)
+        .chartYScale(domain: 0...(hourlyPatternYAxisTicks(points).last ?? 100))
+        .chartYAxis(.hidden)
+        .chartXAxis {
+            AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                AxisGridLine().foregroundStyle(.gray.opacity(0.25))
+                AxisTick().foregroundStyle(.gray.opacity(0.85))
+                AxisValueLabel {
+                    if let hour = value.as(Int.self) {
+                        Text("\(hour)시")
+                            .font(.system(size: 9))
+                            .tracking(1)
+                    }
+                }
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                ZStack {
+                    xAxisBaseline(proxy: proxy, geo: geo)
+                    yAxisOverlay(
+                        proxy: proxy,
+                        geo: geo,
+                        tickValues: hourlyPatternYAxisTicks(points),
+                        label: { String(format: "%.0f", $0) }
+                    )
+                }
+            }
+        }
+    }
+
+    private func hourlyPatternYAxisTicks(_ points: [ReportViewModel.HourOfDayPoint]) -> [Double] {
+        let maxValue = points.map(\.median).max() ?? 0
         guard maxValue > 0 else { return [0] }
         let step = max((maxValue / 4).rounded(.up), 10)
         return Array(stride(from: 0, through: step * 4, by: step))
