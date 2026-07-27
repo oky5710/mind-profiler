@@ -76,8 +76,10 @@ extension HRVAnalysisView {
         }
     }
 
-    // 선택된 Gantt 막대(캘린더 일정/수면 구간) 강조용 그림자 도형 — 차트 마크 자체는 shadow()를
-    // 지원하지 않아서, 같은 위치·크기·색으로 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 대신 그림자를 준다.
+    // 선택된 Gantt 막대(캘린더 일정/수면 구간) 강조 도형 — 차트 마크 자체는 진하게(불투명) 다시
+    // 그릴 수 없어서, 같은 위치·크기·색의 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 대신 진하게 보이게
+    // 한다. 예전엔 여기에 shadow()도 줬는데, 그 그림자가 테두리(stroke)처럼 보인다는 피드백을 받아
+    // 뺐다 — 지금은 그냥 불투명 색만으로 선택 상태를 나타낸다.
     @ViewBuilder
     private func selectionShadow(start: Date, end: Date, color: Color, proxy: ChartProxy, geo: GeometryProxy) -> some View {
         if let plotFrame = proxy.plotFrame,
@@ -88,7 +90,6 @@ extension HRVAnalysisView {
                 .fill(color)
                 .frame(width: abs(x1 - x0), height: abs(y1 - y0))
                 .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
-                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
                 .allowsHitTesting(false)
         }
     }

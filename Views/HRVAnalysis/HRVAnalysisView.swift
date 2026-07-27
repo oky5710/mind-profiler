@@ -189,21 +189,27 @@ struct HRVAnalysisView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                VStack(alignment: .leading, spacing: 24) {
-                    hrvChart
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 10)
-                .padding(.bottom)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
-                    // 탭했을 때만 걸린다.
-                    tooltipPoint = nil
-                    tooltipCalendarEvent = nil
-                    tooltipSleepRange = nil
-                    tooltipWorkoutRange = nil
+                // .refreshable(아래 배치)은 ScrollView/List 같은 실제 스크롤 가능한 조상이 있어야
+                // 당겨서 새로고침 제스처를 인식한다 — VStack만 있던 예전 구조에선 아래로 당겨도
+                // 아무 반응이 없었다.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        hrvChart
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    .padding(.bottom)
+                    .frame(minHeight: geo.size.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
+                        // 탭했을 때만 걸린다.
+                        tooltipPoint = nil
+                        tooltipCalendarEvent = nil
+                        tooltipSleepRange = nil
+                        tooltipWorkoutRange = nil
+                    }
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -230,6 +236,9 @@ struct HRVAnalysisView: View {
         }
         .task {
             await viewModel.loadCalendarEventsIfNeeded()
+        }
+        .task {
+            await viewModel.loadRMSSDEventsIfNeeded()
         }
         // 스크롤(드래그)이나 핀치 줌으로 보이는 구간이 바뀔 때마다 호출하지만, 이미 여유 있게
         // 로드된 범위 안이면 ensureHealthKitDataLoaded가 그냥 바로 반환하므로 실제 HealthKit
@@ -262,6 +271,7 @@ struct HRVAnalysisView: View {
             // 워치에서 새로 동기화된 데이터가 있을 수 있어서다.
             await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
             await viewModel.loadCalendarEventsIfNeeded()
+            await viewModel.reloadRMSSDEvents()
             recomputeRange()
         }
         // 탭을 나갔다가 다시 들어올 때마다 pull-to-refresh와 같은 강제 새로고침을 한다 — 캘린더에서
@@ -275,6 +285,7 @@ struct HRVAnalysisView: View {
                 await viewModel.reload()
                 await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
                 await viewModel.loadCalendarEventsIfNeeded()
+                await viewModel.reloadRMSSDEvents()
                 recomputeRange()
             }
         }
@@ -376,6 +387,13 @@ struct HRVAnalysisView: View {
                     GridRow {
                         Text("SDNN").font(.caption2)
                         Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
+                    }
+                }
+                if let event = viewModel.rmssdEvent(near: point.date),
+                   let emotion = RMSSDEmotion(rawValue: event.emotion) {
+                    GridRow {
+                        Text("기분").font(.caption2)
+                        Text(emotion.label).font(.callout.bold())
                     }
                 }
             }

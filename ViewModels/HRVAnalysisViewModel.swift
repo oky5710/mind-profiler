@@ -73,6 +73,12 @@ final class HRVAnalysisViewModel {
     private(set) var isCalendarAuthorized = false
     private(set) var isLoadingCalendar = false
     private(set) var calendarErrorMessage: String?
+    // 알림 임계값을 트리거한 실제 샘플의 시각(occurredAt)을 그대로 기록하므로, 차트 포인트의 date와
+    // 나노초 단위 반올림 오차 정도만 있을 뿐 사실상 같은 시각이다 — 오차 허용치를 넉넉히 5분으로
+    // 잡아도 정상 측정 간격(~2시간)보다 훨씬 좁아서 엉뚱한 포인트와 잘못 매칭될 일이 없다.
+    private static let rmssdEventMatchTolerance: TimeInterval = 5 * 60
+    private(set) var rmssdEvents: [RMSSDEventEntry] = []
+    private var hasCheckedRMSSDEvents = false
 
     // HealthKit(rMSSD 등)을 "전체 이력"이 아니라 화면에 보이는 구간의 loadWindowMultiplier배만
     // 불러온다 — rMSSD 계산이 원시 박동 시리즈를 전부 순회하는 무거운 연산이라, 데이터가 몇 년치
@@ -130,6 +136,43 @@ final class HRVAnalysisViewModel {
             healthKitErrorMessage = error.localizedDescription
             hasCheckedRecentMedian = false
         }
+    }
+
+    // rMSSD 알림에 응답해 기록한 기분 — 스크롤 위치와 무관하게 항상 전체 이력을 불러온다(30일
+    // 중앙값과 같은 이유로 windowed 로딩과 분리).
+    func loadRMSSDEventsIfNeeded() async {
+        guard !hasCheckedRMSSDEvents else { return }
+        hasCheckedRMSSDEvents = true
+
+        do {
+            rmssdEvents = try await RMSSDEventService.allEvents()
+        } catch {
+            hasCheckedRMSSDEvents = false
+        }
+    }
+
+    // pull-to-refresh처럼 강제로 다시 불러와야 할 때 씀 — 방금 알림에 응답해 새로 기록한 기분이
+    // 있어도 hasCheckedRMSSDEvents가 이미 true라 loadRMSSDEventsIfNeeded는 아무것도 안 한다.
+    func reloadRMSSDEvents() async {
+        do {
+            rmssdEvents = try await RMSSDEventService.allEvents()
+        } catch {
+            // best-effort — 실패해도 기존 값을 그대로 보여준다.
+        }
+    }
+
+    // 라인 차트 포인트 하나(point.date)에 매칭되는, 사용자가 실제로 응답해 기분까지 남긴 rMSSD
+    // 이벤트가 있는지 찾는다. 있으면 그 포인트는 (원 테두리 대신) 다이아몬드로 그려서 "알림에 응답한
+    // 순간"임을 표시한다.
+    func rmssdEvent(near date: Date) -> RMSSDEventEntry? {
+        rmssdEvents
+            .compactMap { event -> (RMSSDEventEntry, TimeInterval)? in
+                guard let occurredAt = DateKey.parseISODate(event.occurredAt) else { return nil }
+                let distance = abs(occurredAt.timeIntervalSince(date))
+                guard distance <= Self.rmssdEventMatchTolerance else { return nil }
+                return (event, distance)
+            }
+            .min { $0.1 < $1.1 }?.0
     }
 
     // 지금 로딩 중일 때 새로 들어온 요청 — 버리지 않고 여기 남겨서, 지금 도는 로딩이 끝나면

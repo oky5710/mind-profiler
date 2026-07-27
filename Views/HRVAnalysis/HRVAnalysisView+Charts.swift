@@ -64,25 +64,38 @@ extension HRVAnalysisView {
                     .foregroundStyle(rmssdColor)
 
                     if showRMSSDPointMarkers {
-                        // 최근 30일 중앙값의 50% 미만으로 뚝 떨어진 값은 눈에 띄게 원 테두리를 빨강으로
-                        // — 백그라운드 급격한 변화 알림(RMSSDThreshold)과 같은 기준을 쓴다.
-                        let isCriticallyLow = viewModel.recentThirtyDayRMSSDMedian.map {
-                            RMSSDThreshold.direction(value: point.value, median: $0) == .low
-                        } ?? false
+                        // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
+                        // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강, 높음(150%+)이면 초록. 응답하지 않은
+                        // 낮음 포인트는 기존 그대로 빨강 테두리 원만 준다.
+                        if let event = viewModel.rmssdEvent(near: point.date) {
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbol(.diamond)
+                            .symbolSize(90)
+                            .foregroundStyle(event.direction == RMSSDThresholdDirection.high.rawValue ? .green : .red)
+                        } else {
+                            // 최근 30일 중앙값의 50% 미만으로 뚝 떨어진 값은 눈에 띄게 원 테두리를 빨강으로
+                            // — 백그라운드 급격한 변화 알림(RMSSDThreshold)과 같은 기준을 쓴다.
+                            let isCriticallyLow = viewModel.recentThirtyDayRMSSDMedian.map {
+                                RMSSDThreshold.direction(value: point.value, median: $0) == .low
+                            } ?? false
 
-                        PointMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value)
-                        )
-                        .symbolSize(80)
-                        .foregroundStyle(isCriticallyLow ? .red : rmssdColor)
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(80)
+                            .foregroundStyle(isCriticallyLow ? .red : rmssdColor)
 
-                        PointMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value)
-                        )
-                        .symbolSize(32)
-                        .foregroundStyle(.white)
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(32)
+                            .foregroundStyle(.white)
+                        }
                     }
                 }
             }
