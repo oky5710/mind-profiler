@@ -921,9 +921,13 @@ private struct PeriodRangeRow: View {
     // 종료일은 그날 자정(0시)이 아니라 그날 23:59:59으로 둔다 — 자정으로 두면 그 종료 날짜 자체가
     // "포함"되는 느낌이 안 나고, 실수로 어딘가에서 자정 인스턴트를 그대로 상한/하한으로 쓰면 그날
     // 데이터가 빠질 수 있다. 하루 전체를 확실히 포함하는 시각으로 저장해 둔다.
-    private static func endOfDay(_ date: Date) -> Date {
+    nonisolated private static func endOfDay(_ date: Date) -> Date {
         let calendar = Calendar.current
         return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: calendar.startOfDay(for: date)) ?? date
+    }
+
+    private var hasValidDraftRange: Bool {
+        Calendar.current.startOfDay(for: draftStartDate) <= Calendar.current.startOfDay(for: draftEndDate)
     }
 
     var body: some View {
@@ -953,27 +957,30 @@ private struct PeriodRangeRow: View {
         .sheet(isPresented: $isPresented) {
             NavigationStack {
                 VStack {
-                    // "시작일"/"종료일" 글자 라벨 없이, 두 compact 피커를 "~"로 이어서 하나의
-                    // 입력처럼 보이게 한다. 시작일이 종료일보다 늦어질 수 없고, 종료일이 시작일보다
-                    // 빨라질 수 없게 서로의 현재 값을 상대 피커의 in: 범위 경계로 넘긴다.
+                    // 두 피커의 range가 서로를 직접 참조하면 한쪽 선택 순간 SwiftUI가 다른 쪽 값을
+                    // 새 범위 안으로 자동 보정하면서 두 날짜가 같은 날로 붙는다. 둘은 오늘까지만
+                    // 허용하는 독립 범위를 쓰고, 순서가 뒤집힌 동안은 아래 분석 버튼만 비활성화한다.
                     HStack(spacing: 8) {
                         datePicker(
                             for: $draftStartDate,
                             title: "시작일",
-                            range: Date.distantPast...min(draftEndDate, maximumSelectableDate)
+                            range: Date.distantPast...maximumSelectableDate
                         )
                         Text("~").foregroundStyle(.secondary)
                         datePicker(
                             for: $draftEndDate,
                             title: "종료일",
-                            // draftEndDate 자체가 23:59:59로 정규화돼 있으니, 상한도 그 날의
-                            // 23:59:59여야 한다 — 상한이 자정(00:00)이면 "오늘"이 기본값일 때부터
-                            // 이미 자기 자신의 range 밖이라 피커가 그 값을 제대로 못 받는다.
-                            range: draftStartDate...max(draftStartDate, Self.endOfDay(maximumSelectableDate)),
+                            range: Date.distantPast...Self.endOfDay(maximumSelectableDate),
                             normalize: Self.endOfDay
                         )
                     }
                     .padding()
+
+                    if !hasValidDraftRange {
+                        Text("종료일은 시작일과 같거나 이후여야 해요.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
                 .safeAreaInset(edge: .bottom) {
                     // ui-style.md 버튼 크기 규칙의 Default(50pt).
@@ -988,7 +995,7 @@ private struct PeriodRangeRow: View {
                             .frame(maxWidth: .infinity, minHeight: 50)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(isDisabled)
+                    .disabled(isDisabled || !hasValidDraftRange)
                     .padding()
                     .background(.bar)
                 }
@@ -999,7 +1006,7 @@ private struct PeriodRangeRow: View {
             // 날짜 입력 한 줄 + 분석 버튼뿐이라 내용에 딱 맞는 높이로 줄인다. compact 피커의 달력
             // 팝업은 시스템이 화면 안에 들어오게 알아서 위/아래로 뒤집어 띄우므로 시트가 낮아도 잘리지
             // 않는다.
-            .presentationDetents([.height(230)])
+            .presentationDetents([.height(250)])
         }
     }
 
