@@ -48,17 +48,21 @@
   화면 맨 위에 `DatePicker`가 있어(상한은 오늘까지) 두 진입 경로 모두 날짜를 바로 바꿀 수 있다 —
   캘린더 우측 상단 "+"는 항상 오늘 날짜로 열리지만, 다른 날짜에 기록하고 싶으면 그 칸을 직접 찾아
   탭하지 않고 이 피커로 바꾸면 된다.
-- **수정/삭제**: 요약 시트의 각 기록 줄 오른쪽에 연필(수정)/휴지통(삭제) 아이콘 버튼이 있고
+- **수정/삭제**: 기분/커피/운동 줄 오른쪽에는 연필(수정)/휴지통(삭제) 아이콘 버튼이 있고
   (`DayDetailSheet.rowActions`), 표준 iOS 스와이프 삭제 제스처(`.swipeActions(edge: .trailing)`)도
   똑같이 지원한다 — 둘 다 같은 삭제 함수를 부르므로 어느 쪽을 써도 결과는 같다. 삭제는 해당
-  서비스의 `removeMood`/`removeCoffee`/`removeExercise`/`removeLog`를 바로 호출한다. 수정은
+  서비스의 `removeMood`/`removeCoffee`/`removeExercise`를 바로 호출한다. 수정은
   `MoodEntryForm`/`CoffeeEntryForm`/`ExerciseEntryForm`을 그 기록의 기존 값으로 미리 채운 채로
   열고(`editingEntry` 파라미터), 저장 시 생성이 아니라 해당 서비스의
   `updateMood`/`updateCoffee`/`updateExercise`(PATCH)를 호출한다 — 수정 모드에서는 폼 안의
-  "이 날의 기록" 목록(다른 기록까지 같이 보여주고 지울 수 있는 목록)은 숨긴다. 약복용은 기록
-  자체가 "그 시간대 체크했다"는 단순한 사실이라 별도 입력 폼이 아니라 시간대만 바로잡는 작은
-  화면(`MedicationLogEditForm`, `MedicationService.updateLog` → `PATCH /medications/logs/:id`)을
-  연다. 수정/삭제 후에는 `DayDetailSheet`가 직접 상태를 들고 있지 않고 부모(`CalendarViewModel`)를
+  "이 날의 기록" 목록(다른 기록까지 같이 보여주고 지울 수 있는 목록)은 숨긴다. 약복용 줄은 실제
+  약 이름 대신 시간대(아침/점심/저녁/취침전/필요시)만 보여준다 — "그 시간대를 챙겼는지"가
+  중요하지 약 이름 자체는 이 화면에 필요 없어서다(등록된 약 목록은 설정의 약 등록 화면에 따로
+  있다). 삭제 버튼/스와이프는 없고 수정 아이콘만 있다 — 실수로 지웠다가 다시 체크하기보다,
+  잘못 고른 시간대를 바로잡는 편이 더 안전한 조작이라고 판단했다. 수정은 기록 자체가 "그 시간대
+  체크했다"는 단순한 사실이라 별도 입력 폼이 아니라 시간대만 바로잡는 작은 화면
+  (`MedicationLogEditForm`, `MedicationService.updateLog` → `PATCH /medications/logs/:id`)을 연다.
+  수정/삭제 후에는 `DayDetailSheet`가 직접 상태를 들고 있지 않고 부모(`CalendarViewModel`)를
   다시 불러오는 방식이라, 시트가 열린 채로도 최신 값으로 갱신된다. `ExerciseEntryForm`은 시작/종료
   시각·운동 시간(분) 세 값이
   서로 되먹임하는 구조라(위 "운동 기록 입력" 참고), 미리 채우는 동안만 그 되먹임을 꺼둔다

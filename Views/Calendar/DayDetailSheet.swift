@@ -119,25 +119,24 @@ struct DayDetailSheet: View {
                 }
 
                 if !medicationLogs.isEmpty {
+                    // 실제 약 이름 대신 어느 시간대(아침/점심/저녁/취침전/필요시)에 복용했는지만
+                    // 보여준다 — 이 화면에서는 "그 시간대를 챙겼는지"가 중요하지, 약 이름 자체는
+                    // 필요 없다(등록 목록은 설정의 약 등록 화면에 따로 있음). 삭제는 지원하지 않고
+                    // (실수로 지웠다가 잘못된 시간대로 다시 체크하기보다 수정으로 바로잡는 게 안전)
+                    // 수정 아이콘만 남긴다.
                     Section("약 복용 \(medicationLogs.count)건") {
                         ForEach(medicationLogs) { entry in
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.medication?.name ?? "약")
-                                    if let timing = entry.timing.flatMap(MedicationTiming.init(rawValue:)) {
-                                        Text(timing.label)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
+                                Text(entry.timing.flatMap(MedicationTiming.init(rawValue:))?.label ?? "약 복용")
                                 Spacer()
-                                rowActions {
+                                Button {
                                     editingMedicationLog = entry
-                                } onDelete: {
-                                    Task { await deleteMedicationLog(entry) }
+                                } label: {
+                                    Image(systemName: "pencil")
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
                             }
-                            .swipeToDelete { Task { await deleteMedicationLog(entry) } }
                         }
                     }
                 }
@@ -236,16 +235,6 @@ struct DayDetailSheet: View {
         deletionErrorMessage = nil
         do {
             try await ExerciseService.removeExercise(id: entry.id)
-            await onRefresh()
-        } catch {
-            deletionErrorMessage = error.localizedDescription
-        }
-    }
-
-    private func deleteMedicationLog(_ entry: MedicationLogEntry) async {
-        deletionErrorMessage = nil
-        do {
-            try await MedicationService.removeLog(id: entry.id)
             await onRefresh()
         } catch {
             deletionErrorMessage = error.localizedDescription
