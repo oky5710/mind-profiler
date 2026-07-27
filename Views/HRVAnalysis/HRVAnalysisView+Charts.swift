@@ -200,8 +200,8 @@ extension HRVAnalysisView {
 
     func dailyMarkerColor(for kind: HRVAnalysisViewModel.DailyMarkerKind) -> Color {
         switch kind {
-        case .coffee: Theme.calendarCoffeeBadge
-        case .medication: Theme.calendarMedicationBadge
+        case .coffee: Theme.hourlyCoffeeMarker
+        case .medication: Theme.hourlyMedicationMarker
         case .event: calendarEventColor
         }
     }
@@ -313,6 +313,8 @@ extension HRVAnalysisView {
                     xAxisTickDates: xAxisTickDates,
                     xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                     xAxisLabelBelow: false,
+                    showsXAxisLabels: false,
+                    showsXAxisBaseline: false,
                     tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
                     tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
                     tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,

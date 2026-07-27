@@ -50,6 +50,7 @@ extension HRVAnalysisView {
         // 위로 붙을지, 바깥쪽 아래로 붙을지 다르다 — 위 차트는 위로, 아래 차트는 아래로.
         xAxisLabelBelow: Bool = false,
         showsXAxisLabels: Bool = true,
+        showsXAxisBaseline: Bool = true,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
@@ -64,7 +65,8 @@ extension HRVAnalysisView {
                 label: xAxisLabel,
                 labelPositionDate: xAxisLabelPositionDate,
                 labelBelow: xAxisLabelBelow,
-                showsLabels: showsXAxisLabels
+                showsLabels: showsXAxisLabels,
+                showsBaseline: showsXAxisBaseline
             )
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(
@@ -475,7 +477,8 @@ extension HRVAnalysisView {
         label: @escaping (Date) -> AnyView,
         labelPositionDate: @escaping (Date) -> Date = { $0 },
         labelBelow: Bool = false,
-        showsLabels: Bool = true
+        showsLabels: Bool = true,
+        showsBaseline: Bool = true
     ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
@@ -496,11 +499,13 @@ extension HRVAnalysisView {
 
                 ZStack(alignment: .topLeading) {
                     // 차트 하단을 가로지르는 x축 기준선 (틱마다 그리는 세로 그리드와는 별개).
-                    Path { path in
-                        path.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
-                        path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+                    if showsBaseline {
+                        Path { path in
+                            path.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+                            path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+                        }
+                        .stroke(Color(white: 0.35), lineWidth: 1)
                     }
-                    .stroke(Color(white: 0.35), lineWidth: 1)
 
                     ForEach(tickDates, id: \.self) { date in
                         if let x = proxy.position(forX: date) {
