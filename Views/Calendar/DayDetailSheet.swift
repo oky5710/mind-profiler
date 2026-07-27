@@ -70,8 +70,6 @@ struct DayDetailSheet: View {
                             Spacer()
                             rowActions {
                                 isEditingMood = true
-                            } onDelete: {
-                                Task { await deleteMood(mood) }
                             }
                         }
                         .swipeToDelete { Task { await deleteMood(mood) } }
@@ -98,8 +96,6 @@ struct DayDetailSheet: View {
                                 Spacer()
                                 rowActions {
                                     editingCoffee = entry
-                                } onDelete: {
-                                    Task { await deleteCoffee(entry) }
                                 }
                             }
                             .swipeToDelete { Task { await deleteCoffee(entry) } }
@@ -123,8 +119,6 @@ struct DayDetailSheet: View {
                                 Spacer()
                                 rowActions {
                                     editingExercise = entry
-                                } onDelete: {
-                                    Task { await deleteExercise(entry) }
                                 }
                             }
                             .swipeToDelete { Task { await deleteExercise(entry) } }
@@ -162,8 +156,9 @@ struct DayDetailSheet: View {
                 }
 
                 if !events.isEmpty {
-                    // 이벤트는 아직 수정(PATCH) 엔드포인트가 없어서 삭제만 지원한다 — 약복용 줄이
-                    // 수정만 되고 삭제가 없는 것과 반대되는 이유(여긴 반대로 삭제만 가능)다.
+                    // 이벤트는 아직 수정(PATCH) 엔드포인트가 없어서 삭제만 지원한다 — 스와이프로만
+                    // 지운다(휴지통 아이콘 버튼은 다른 섹션들과 마찬가지로 빼서 중복 없이 스와이프
+                    // 하나로 통일).
                     Section("이벤트 \(events.count)건") {
                         ForEach(events) { entry in
                             HStack {
@@ -176,13 +171,6 @@ struct DayDetailSheet: View {
                                     }
                                 }
                                 Spacer()
-                                Button(role: .destructive) {
-                                    Task { await deleteEvent(entry) }
-                                } label: {
-                                    Image(systemName: "trash")
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.secondary)
                             }
                             .swipeToDelete { Task { await deleteEvent(entry) } }
                         }
@@ -245,15 +233,12 @@ struct DayDetailSheet: View {
         }
     }
 
+    // 휴지통 아이콘 버튼은 뺐다 — 삭제는 스와이프(.swipeToDelete)만으로 충분하고, 아이콘 버튼까지
+    // 같이 있으면 같은 동작이 중복으로 보인다.
     @ViewBuilder
-    private func rowActions(onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) -> some View {
-        HStack(spacing: 16) {
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-            }
-            Button(role: .destructive, action: onDelete) {
-                Image(systemName: "trash")
-            }
+    private func rowActions(onEdit: @escaping () -> Void) -> some View {
+        Button(action: onEdit) {
+            Image(systemName: "pencil")
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)

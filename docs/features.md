@@ -49,9 +49,9 @@
   화면 맨 위에 `DatePicker`가 있어(상한은 오늘까지) 두 진입 경로 모두 날짜를 바로 바꿀 수 있다 —
   캘린더 우측 상단 "+"는 항상 오늘 날짜로 열리지만, 다른 날짜에 기록하고 싶으면 그 칸을 직접 찾아
   탭하지 않고 이 피커로 바꾸면 된다.
-- **수정/삭제**: 기분/커피/운동 줄 오른쪽에는 연필(수정)/휴지통(삭제) 아이콘 버튼이 있고
-  (`DayDetailSheet.rowActions`), 표준 iOS 스와이프 삭제 제스처(`.swipeActions(edge: .trailing)`)도
-  똑같이 지원한다 — 둘 다 같은 삭제 함수를 부르므로 어느 쪽을 써도 결과는 같다. 삭제는 해당
+- **수정/삭제**: 기분/커피/운동 줄 오른쪽에는 연필(수정) 아이콘 버튼만 있고(`DayDetailSheet.rowActions`),
+  삭제는 표준 iOS 스와이프 삭제 제스처(`.swipeActions(edge: .trailing)`)로만 한다 — 예전엔 휴지통
+  아이콘 버튼도 같이 있었는데, 스와이프와 같은 동작이 중복으로 보여서 뺐다. 삭제는 해당
   서비스의 `removeMood`/`removeCoffee`/`removeExercise`를 바로 호출한다. 수정은
   `MoodEntryForm`/`CoffeeEntryForm`/`ExerciseEntryForm`을 그 기록의 기존 값으로 미리 채운 채로
   열고(`editingEntry` 파라미터), 저장 시 생성이 아니라 해당 서비스의
@@ -69,8 +69,7 @@
   하나만 골라 옮기는 개념이 아니라서다. 수정/삭제 후에는 `DayDetailSheet`가 직접 상태를 들고
   있지 않고 부모(`CalendarViewModel`)를 다시 불러오는 방식이라, 시트가 열린 채로도 최신 값으로
   갱신된다. 이벤트 줄은 반대로 삭제만 되고 수정은 안 된다 — 아직 백엔드에 수정(PATCH) 엔드포인트가
-  없어서 휴지통 버튼/스와이프만
-  있고 연필 아이콘은 없다(`LifeEventService.removeEvent`). `ExerciseEntryForm`은 시작/종료
+  없어서 스와이프 삭제만 되고 연필 아이콘은 없다(`LifeEventService.removeEvent`). `ExerciseEntryForm`은 시작/종료
   시각·운동 시간(분) 세 값이
   서로 되먹임하는 구조라(위 "운동 기록 입력" 참고), 미리 채우는 동안만 그 되먹임을 꺼둔다
   (`isPrefilling`) — 안 그러면 운동 시간 입력칸의 300분(5시간) 상한 때문에, 5시간 넘는 기존 기록을
