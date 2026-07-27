@@ -85,6 +85,13 @@ enum Theme {
         blue: 0.6235
     ) // pink-9 #d6409f
 
+    // 캘린더의 작은 원 배지와 오늘의 패턴 시간별 원형 마커가 공유하는 파스텔 색.
+    // 작은 면적에서도 너무 튀지 않으면서 기록 종류를 같은 색 계열로 인식할 수 있게 한다.
+    static let calendarCoffeeBadge = Color(red: 0.80, green: 0.65, blue: 0.52)
+    static let calendarExerciseBadge = Color(red: 0.70, green: 0.85, blue: 0.75)
+    static let calendarMedicationBadge = Color(red: 0.98, green: 0.90, blue: 0.62)
+    static let calendarEventBadge = Color(red: 0.72, green: 0.82, blue: 0.95)
+
     // 월별 캔들스틱 박스(1Q~3Q) 전용 색.
     // rmssd와 같은 Iris 계열을 사용해 의미적 연결을 유지한다.
     // 넓은 면적을 채워도 무겁지 않도록 rmssd보다 옅은 6단계를 사용한다.

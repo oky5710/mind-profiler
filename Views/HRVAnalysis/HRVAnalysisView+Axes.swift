@@ -49,6 +49,7 @@ extension HRVAnalysisView {
         // 위아래로 쌓인 두 차트(라인+Gantt, 캔들스틱+CV) 중 어느 쪽인지에 따라 라벨이 플롯 안쪽
         // 위로 붙을지, 바깥쪽 아래로 붙을지 다르다 — 위 차트는 위로, 아래 차트는 아래로.
         xAxisLabelBelow: Bool = false,
+        showsXAxisLabels: Bool = true,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
@@ -62,7 +63,8 @@ extension HRVAnalysisView {
                 tickDates: xAxisTickDates,
                 label: xAxisLabel,
                 labelPositionDate: xAxisLabelPositionDate,
-                labelBelow: xAxisLabelBelow
+                labelBelow: xAxisLabelBelow,
+                showsLabels: showsXAxisLabels
             )
             yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
             dragToScrollOverlay(
@@ -472,7 +474,8 @@ extension HRVAnalysisView {
         tickDates: [Date],
         label: @escaping (Date) -> AnyView,
         labelPositionDate: @escaping (Date) -> Date = { $0 },
-        labelBelow: Bool = false
+        labelBelow: Bool = false,
+        showsLabels: Bool = true
     ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
@@ -510,7 +513,9 @@ extension HRVAnalysisView {
                             // 월별 캔들스틱처럼 마크가 unit(예: .month) 단위로 묶여서 눈금의 정확한
                             // 시각이 아니라 그 구간 중앙에 그려지는 경우, 라벨도 같은 중앙 좌표를
                             // 쓰도록 labelPositionDate로 별도 계산한다(그리드 선은 눈금 그대로).
-                            if visibleLabelDates.contains(date), let labelX = proxy.position(forX: labelPositionDate(date)) {
+                            if showsLabels,
+                               visibleLabelDates.contains(date),
+                               let labelX = proxy.position(forX: labelPositionDate(date)) {
                                 label(date)
                                     .padding(.horizontal, 3)
                                     .position(x: plotRect.minX + labelX, y: labelBelow ? plotRect.maxY + 10 : plotRect.maxY - 10)

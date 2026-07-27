@@ -80,7 +80,7 @@ extension HRVAnalysisView {
                         // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강. 응답하지 않은 낮음/높음 포인트는
                         // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
                         if let event = matchedRMSSDEvent(for: point.date), event.direction == RMSSDThresholdDirection.high.rawValue {
-                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 같은 색의 옅은(20%) 테두리를
+                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 같은 색의 옅은(10%) 테두리를
                             // 살짝 더 큰 원을 뒤에 겹쳐 그려서 흉내 낸다(PointMark는 실제 stroke를
                             // 지원하지 않는다).
                             PointMark(
@@ -88,7 +88,7 @@ extension HRVAnalysisView {
                                 y: .value("rMSSD", point.value)
                             )
                             .symbolSize(110)
-                            .foregroundStyle(Theme.rmssdHigh.opacity(0.2))
+                            .foregroundStyle(Theme.rmssdHigh.opacity(0.1))
 
                             PointMark(
                                 x: .value("시간", point.date),
@@ -200,8 +200,8 @@ extension HRVAnalysisView {
 
     func dailyMarkerColor(for kind: HRVAnalysisViewModel.DailyMarkerKind) -> Color {
         switch kind {
-        case .coffee: Theme.coffee
-        case .medication: Theme.medication
+        case .coffee: Theme.calendarCoffeeBadge
+        case .medication: Theme.calendarMedicationBadge
         case .event: calendarEventColor
         }
     }
@@ -413,7 +413,8 @@ extension HRVAnalysisView {
                 yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                xAxisLabelBelow: true
+                xAxisLabelBelow: true,
+                showsXAxisLabels: false
             )
         }
     }

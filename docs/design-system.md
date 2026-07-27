@@ -53,6 +53,10 @@ Primary는 **브랜드를 위한 색**이며, 개별 건강 지표의 의미를 
 | `Theme.sleep` | `indigo-9` | `#3e63dd` | 수면 Gantt 레인 |
 | `Theme.mood` | `amber-9` | `#ffc53d` | 기분 막대그래프 |
 | `Theme.coffee` | `orange-10` | `#f76808` | 커피 막대그래프 |
+| `Theme.calendarCoffeeBadge` | custom pastel | `#CCA685` | 캘린더·시간별 커피 원 마커 |
+| `Theme.calendarExerciseBadge` | custom pastel | `#B3D9BF` | 캘린더 운동 원 배지 |
+| `Theme.calendarMedicationBadge` | custom pastel | `#FAE69E` | 캘린더·시간별 약 복용 원 마커 |
+| `Theme.calendarEventBadge` | custom pastel | `#B8D1F2` | 캘린더 이벤트 원 배지 |
 | `Theme.holiday` | `ruby-9` | `#e54666` | 공휴일 |
 | `Theme.vacation` | `orange-9` | `#f76b15` | 휴가 |
 | `Theme.heart` | `ruby-9` | `#e54666` | 로딩 인디케이터 하트 |

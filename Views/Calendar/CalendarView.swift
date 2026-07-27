@@ -181,23 +181,16 @@ struct CalendarView: View {
     }
 
     private static let circleBadgeSize: CGFloat = 10
-    // 채도를 낮춘 파스텔 톤 — 원래 브랜드/차트 색(Theme.exercise 등)은 진해서 작은 원 배지로 쓰면
-    // 너무 튀어 보인다.
-    private static let coffeeBadgeColor = Color(red: 0.80, green: 0.65, blue: 0.52)
-    private static let exerciseBadgeColor = Color(red: 0.70, green: 0.85, blue: 0.75)
-    private static let medicationBadgeColor = Color(red: 0.98, green: 0.90, blue: 0.62)
-    private static let eventBadgeColor = Color(red: 0.72, green: 0.82, blue: 0.95)
-
     private func badges(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> [DayBadge] {
         // Array(repeating:count:)는 단 하나의 인스턴스를 복사하므로 id(UUID())가 전부 같아져
         // ForEach가 요구하는 고유성이 깨진다 — 매번 새로 만들어야 한다.
         func dots(_ count: Int, color: Color, label: String) -> [DayBadge] {
             (0..<count).map { _ in DayBadge(color: color, label: label) }
         }
-        return dots(coffeeCount, color: Self.coffeeBadgeColor, label: "커피")
-            + dots(exerciseCount, color: Self.exerciseBadgeColor, label: "운동")
-            + dots(medicationCount, color: Self.medicationBadgeColor, label: "약 복용")
-            + dots(eventCount, color: Self.eventBadgeColor, label: "이벤트")
+        return dots(coffeeCount, color: Theme.calendarCoffeeBadge, label: "커피")
+            + dots(exerciseCount, color: Theme.calendarExerciseBadge, label: "운동")
+            + dots(medicationCount, color: Theme.calendarMedicationBadge, label: "약 복용")
+            + dots(eventCount, color: Theme.calendarEventBadge, label: "이벤트")
     }
 
     // 배지 하나하나는 색만 있는 원이라 VoiceOver에 개별로 노출하면 "커피, 커피, 커피"처럼 겹쳐
