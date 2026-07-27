@@ -161,9 +161,9 @@ final class HRVAnalysisViewModel {
         }
     }
 
-    // 라인 차트 포인트 하나(point.date)에 매칭되는, 사용자가 실제로 응답해 기분까지 남긴 rMSSD
-    // 이벤트가 있는지 찾는다. 있으면 그 포인트는 (원 테두리 대신) 다이아몬드로 그려서 "알림에 응답한
-    // 순간"임을 표시한다.
+    // 시간별 라인 차트 포인트 하나(point.date == 실제 샘플 시각)에 매칭되는, 사용자가 실제로 응답해
+    // 기분까지 남긴 rMSSD 이벤트가 있는지 찾는다. 있으면 그 포인트는 (원 테두리 대신) 다이아몬드로
+    // 그려서 "알림에 응답한 순간"임을 표시한다.
     func rmssdEvent(near date: Date) -> RMSSDEventEntry? {
         rmssdEvents
             .compactMap { event -> (RMSSDEventEntry, TimeInterval)? in
@@ -173,6 +173,20 @@ final class HRVAnalysisViewModel {
                 return (event, distance)
             }
             .min { $0.1 < $1.1 }?.0
+    }
+
+    // 일별 모드는 그 날의 대표값(중앙값)이라 point.date가 실제 샘플 시각이 아니라 그날 자정이다 —
+    // 그래서 시간 차이가 아니라 "같은 날짜"인지로 매칭한다. 같은 날 이벤트가 여러 개면(드묾) 가장
+    // 나중에 기록한 것을 보여준다.
+    func rmssdEvent(onDay date: Date) -> RMSSDEventEntry? {
+        let calendar = Calendar.current
+        return rmssdEvents
+            .compactMap { event -> (RMSSDEventEntry, Date)? in
+                guard let occurredAt = DateKey.parseISODate(event.occurredAt),
+                      calendar.isDate(occurredAt, inSameDayAs: date) else { return nil }
+                return (event, occurredAt)
+            }
+            .max { $0.1 < $1.1 }?.0
     }
 
     // 지금 로딩 중일 때 새로 들어온 요청 — 버리지 않고 여기 남겨서, 지금 도는 로딩이 끝나면

@@ -142,6 +142,16 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // 일별 모드의 point.date는 실제 샘플 시각이 아니라 그날 자정(그날의 대표값)이라, 시간 오차로
+    // 매칭하면 자정 근처가 아닌 이상 항상 실패한다 — 모드별로 다른 매칭 기준을 쓴다.
+    func matchedRMSSDEvent(for date: Date) -> RMSSDEventEntry? {
+        switch chartMode {
+        case .hourly: viewModel.rmssdEvent(near: date)
+        case .daily: viewModel.rmssdEvent(onDay: date)
+        case .monthly: nil
+        }
+    }
+
     // chartMode의 기본 기간을 zoomScale로 나눈 실제 표시 기간 — 핀치 줌으로 연속적으로 변한다.
     var visibleDomain: TimeInterval {
         chartMode.visibleDomain / Double(zoomScale)
@@ -389,7 +399,7 @@ struct HRVAnalysisView: View {
                         Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
                     }
                 }
-                if let event = viewModel.rmssdEvent(near: point.date),
+                if let event = matchedRMSSDEvent(for: point.date),
                    let emotion = RMSSDEmotion(rawValue: event.emotion) {
                     GridRow {
                         Text("기분").font(.caption2)

@@ -67,7 +67,7 @@ extension HRVAnalysisView {
                         // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
                         // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강, 높음(150%+)이면 초록. 응답하지 않은
                         // 낮음 포인트는 기존 그대로 빨강 테두리 원만 준다.
-                        if let event = viewModel.rmssdEvent(near: point.date) {
+                        if let event = matchedRMSSDEvent(for: point.date) {
                             PointMark(
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
