@@ -57,6 +57,9 @@ final class ReportViewModel {
     struct HourOfDayPoint: Identifiable {
         let hour: Int
         let median: Double
+        // 직전 데이터와 한 시간 넘게 떨어졌다면 새 구간으로 본다. 차트가 측정값이 없는
+        // 시간대를 가로질러 연속적인 추세가 있었던 것처럼 선을 잇지 않게 하는 식별자다.
+        let segment: Int
         var id: Int { hour }
     }
 
@@ -311,9 +314,19 @@ final class ReportViewModel {
         for sample in samples {
             byHour[calendar.component(.hour, from: sample.date), default: []].append(sample.value)
         }
-        return byHour
-            .map { HourOfDayPoint(hour: $0.key, median: HRVStatistics.median($0.value)) }
+        let hourlyMedians = byHour
+            .map { (hour: $0.key, median: HRVStatistics.median($0.value)) }
             .sorted { $0.hour < $1.hour }
+
+        var segment = 0
+        var previousHour: Int?
+        return hourlyMedians.map { point in
+            if let previousHour, point.hour - previousHour > 1 {
+                segment += 1
+            }
+            previousHour = point.hour
+            return HourOfDayPoint(hour: point.hour, median: point.median, segment: segment)
+        }
     }
 
     // 날짜별로 그 날의 최저 1시간 버킷(0~23시, 그 시간대 원시 샘플 평균 기준)을 구한 뒤,

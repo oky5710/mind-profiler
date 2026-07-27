@@ -595,7 +595,8 @@ struct ReportView: View {
         Chart(points) { point in
             LineMark(
                 x: .value("시", point.hour),
-                y: .value("rMSSD", point.median)
+                y: .value("rMSSD", point.median),
+                series: .value("연속 구간", point.segment)
             )
             .foregroundStyle(Theme.rmssd)
 
