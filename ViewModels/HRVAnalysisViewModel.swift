@@ -371,10 +371,9 @@ final class HRVAnalysisViewModel {
 
             let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
-            wearableRMSSDPointsDaily = Self.segmentByGap(
-                Self.dailyMedian(rawRMSSDSamples),
-                gapThreshold: Self.hrvGapThresholdDaily
-            )
+            // 연속 날짜는 이어 그리되 두 측정일의 달력 날짜 차이가 2일 이상이면 선을 끊는다.
+            // 초 단위 간격으로 판단하면 DST나 시각 정규화 차이의 영향을 받을 수 있어 날짜로 비교한다.
+            wearableRMSSDPointsDaily = Self.segmentDailyByDateGap(Self.dailyMedian(rawRMSSDSamples))
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
@@ -457,6 +456,27 @@ final class HRVAnalysisViewModel {
         }
 
         return points
+    }
+
+    private static func segmentDailyByDateGap(_ samples: [(Date, Double)]) -> [HRVPoint] {
+        let calendar = Calendar.current
+        var segment = 0
+        var previousDate: Date?
+
+        return samples.map { date, value in
+            if let previousDate {
+                let dayGap = calendar.dateComponents(
+                    [.day],
+                    from: calendar.startOfDay(for: previousDate),
+                    to: calendar.startOfDay(for: date)
+                ).day ?? 0
+                if dayGap >= 2 {
+                    segment += 1
+                }
+            }
+            previousDate = date
+            return HRVPoint(date: date, value: value, segment: segment)
+        }
     }
 
     private static func dailyMedian(_ samples: [(Date, Double)]) -> [(Date, Double)] {

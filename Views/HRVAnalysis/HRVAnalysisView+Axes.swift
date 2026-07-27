@@ -13,18 +13,24 @@ extension HRVAnalysisView {
         Array(stride(from: 0.0, through: upperBound, by: 50))
     }
 
-    private func yAxisOverlay(proxy: ChartProxy, tickValues: [Double]) -> some View {
+    private func yAxisOverlay(
+        proxy: ChartProxy,
+        tickValues: [Double],
+        showsGridLines: Bool = true
+    ) -> some View {
         GeometryReader { geo in
             if let plotFrame = proxy.plotFrame {
                 let plotRect = geo[plotFrame]
                 ZStack(alignment: .topLeading) {
                     ForEach(tickValues, id: \.self) { value in
                         if let y = proxy.position(forY: value) {
-                            Path { path in
-                                path.move(to: CGPoint(x: plotRect.minX, y: plotRect.minY + y))
-                                path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.minY + y))
+                            if showsGridLines {
+                                Path { path in
+                                    path.move(to: CGPoint(x: plotRect.minX, y: plotRect.minY + y))
+                                    path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.minY + y))
+                                }
+                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
                             }
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
 
                             Text(String(format: "%.0f", value))
                                 .font(.system(size: 9))
@@ -51,6 +57,7 @@ extension HRVAnalysisView {
         xAxisLabelBelow: Bool = false,
         showsXAxisLabels: Bool = true,
         showsXAxisBaseline: Bool = true,
+        showsYAxisGridLines: Bool = true,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
@@ -68,7 +75,11 @@ extension HRVAnalysisView {
                 showsLabels: showsXAxisLabels,
                 showsBaseline: showsXAxisBaseline
             )
-            yAxisOverlay(proxy: proxy, tickValues: yAxisTickValues)
+            yAxisOverlay(
+                proxy: proxy,
+                tickValues: yAxisTickValues,
+                showsGridLines: showsYAxisGridLines
+            )
             dragToScrollOverlay(
                 proxy: proxy,
                 visibleDomain: visibleDomain,
@@ -160,7 +171,9 @@ extension HRVAnalysisView {
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
-        let estimatedTooltipHalfWidth: CGFloat = 45
+        // 일별 툴팁은 rMSSD뿐 아니라 안정시 심박수·수면시간까지 보여줘 기존 45pt 반너비보다
+        // 훨씬 넓다. 메모가 있는 시간별 툴팁도 최대 220pt까지 늘어나므로 공통으로 넉넉히 잡는다.
+        let estimatedTooltipHalfWidth: CGFloat = 120
         // 종일 일정 원은 탭 지점이 그 원에서 이만큼(포인트) 이내일 때만 반응한다 — 그 날 전체가 아니라
         // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함. 아이콘 레인의 커피/약복용/이벤트 마커도
         // 같은 방식으로 반응한다.
@@ -179,12 +192,16 @@ extension HRVAnalysisView {
                     }
                     .stroke(Color.primary.opacity(0.5), lineWidth: 1)
 
+                    let clampedHalfWidth = min(estimatedTooltipHalfWidth, plotRect.width / 2)
                     let clampedLocalX = min(
-                        max(x, estimatedTooltipHalfWidth),
-                        max(plotRect.width - estimatedTooltipHalfWidth, estimatedTooltipHalfWidth)
+                        max(x, clampedHalfWidth),
+                        max(plotRect.width - clampedHalfWidth, clampedHalfWidth)
                     )
+                    // position의 y는 툴팁 상단이 아니라 중심이다. 행이 늘어난 일별 툴팁을 예전처럼
+                    // 24pt에 두면 절반이 플롯 위로 잘리므로, 일별에서만 충분히 아래로 내린다.
+                    let tooltipCenterY: CGFloat = chartMode == .daily ? 68 : 40
                     tooltipLabel(for: point)
-                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + 24)
+                        .position(x: plotRect.minX + clampedLocalX, y: plotRect.minY + tooltipCenterY)
                 }
 
                 // 캘린더/수면 툴팁은 간트 차트 안에 그리지 않는다 — 어떤 일정/수면 구간이 선택됐는지만

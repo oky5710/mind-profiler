@@ -407,6 +407,13 @@ struct HRVAnalysisView: View {
         }?.value
     }
 
+    private func dailySleepDuration(on date: Date) -> TimeInterval? {
+        guard chartMode == .daily else { return nil }
+        return viewModel.nightlySleepPointsDaily.first {
+            Calendar.current.isDate($0.date, inSameDayAs: date)
+        }.map { $0.hours * 3_600 }
+    }
+
     func tooltipLabel(for point: HRVAnalysisViewModel.HRVPoint) -> some View {
         // 일별 모드는 하루 대표값(중앙값)이라 시각을 붙이면 의미 없는 00:00 같은 값이 나온다.
         let dateText = chartMode == .daily
@@ -435,6 +442,12 @@ struct HRVAnalysisView: View {
                     GridRow {
                         Text("안정시 심박수").font(.caption2)
                         Text("\(String(format: "%.0f", restingHeartRate))bpm").font(.callout.bold())
+                    }
+                }
+                if let sleepDuration = dailySleepDuration(on: point.date) {
+                    GridRow {
+                        Text("수면시간").font(.caption2)
+                        Text(SleepAnalysisService.formattedDuration(sleepDuration)).font(.callout.bold())
                     }
                 }
                 if let emotion = matchedEvent.flatMap({ RMSSDEmotion(rawValue: $0.emotion) }) {

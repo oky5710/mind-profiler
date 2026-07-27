@@ -422,7 +422,8 @@ extension HRVAnalysisView {
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                 xAxisLabelBelow: true,
                 showsXAxisLabels: false,
-                showsXAxisBaseline: false
+                showsXAxisBaseline: false,
+                showsYAxisGridLines: false
             )
         }
     }
@@ -468,7 +469,8 @@ extension HRVAnalysisView {
                 yAxisTickValues: [0, 4, 8, 12],
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                xAxisLabelBelow: true
+                xAxisLabelBelow: true,
+                showsYAxisGridLines: false
             )
         }
     }
