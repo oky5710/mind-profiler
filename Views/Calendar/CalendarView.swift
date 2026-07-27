@@ -171,7 +171,9 @@ struct CalendarView: View {
     // 배지로 통일한다 — 여러 건이면 원 안에 개수를 숫자로 보여준다.
     private enum DayBadgeKind {
         case emoji(String)
-        case circle(color: Color, count: Int)
+        // label은 화면에는 안 보이고 VoiceOver 접근성 문구에만 쓴다 — 원 배지 자체는 색으로만
+        // 구분돼서, 그것만으로는 "커피"인지 "운동"인지 시각 정보 없이는 알 수 없다.
+        case circle(color: Color, count: Int, label: String)
     }
 
     private struct DayBadge: Identifiable {
@@ -187,13 +189,13 @@ struct CalendarView: View {
             result.append(DayBadge(kind: .emoji(emoji)))
         }
         if coffeeCount > 0 {
-            result.append(DayBadge(kind: .circle(color: .brown, count: coffeeCount)))
+            result.append(DayBadge(kind: .circle(color: .brown, count: coffeeCount, label: "커피")))
         }
         if exerciseCount > 0 {
-            result.append(DayBadge(kind: .circle(color: Theme.exercise, count: exerciseCount)))
+            result.append(DayBadge(kind: .circle(color: Theme.exercise, count: exerciseCount, label: "운동")))
         }
         if medicationCount > 0 {
-            result.append(DayBadge(kind: .circle(color: .yellow, count: medicationCount)))
+            result.append(DayBadge(kind: .circle(color: .yellow, count: medicationCount, label: "약 복용")))
         }
         return result
     }
@@ -204,7 +206,7 @@ struct CalendarView: View {
         case .emoji(let text):
             Text(text)
                 .font(.caption2)
-        case .circle(let color, let count):
+        case .circle(let color, let count, let label):
             Circle()
                 .fill(color)
                 .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
@@ -217,6 +219,7 @@ struct CalendarView: View {
                             .foregroundStyle(color == .yellow ? .black : .white)
                     }
                 }
+                .accessibilityLabel("\(label)\(count > 1 ? " \(count)건" : "")")
         }
     }
 
