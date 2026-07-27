@@ -87,6 +87,7 @@ struct HRVAnalysisView: View {
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
     @State var tooltipSleepRange: SleepRange?
     @State var tooltipWorkoutRange: HRVAnalysisViewModel.WorkoutRange?
+    @State var tooltipDailyMarker: HRVAnalysisViewModel.DailyMarker?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -180,8 +181,19 @@ struct HRVAnalysisView: View {
         availableHeight * 0.4
     }
 
+    // 시간별 모드에서만 쓰는 전체 예약 높이 — 실제 막대(수면/운동/캘린더) 차트가 이 중 2/3를,
+    // 그 아래 새 아이콘 레인(커피/약복용/이벤트)이 나머지 1/3을 차지한다. 이 값 자체는 그대로 둬서
+    // (라인 차트 + 이 값)을 바닥 기준으로 삼는 selectedItemDetailPanel의 오프셋 계산이 안 바뀐다.
     var ganttChartHeight: CGFloat {
         lineChartHeight / 2 * 0.7
+    }
+
+    var ganttBarsHeight: CGFloat {
+        ganttChartHeight * 2 / 3
+    }
+
+    var iconLaneHeight: CGFloat {
+        ganttChartHeight - ganttBarsHeight
     }
 
     // 시간별/일별은 "지금"까지만 스크롤 가능하지만, 월별은 이번 달이 아직 안 끝났어도 이번 달 데이터가
@@ -219,6 +231,7 @@ struct HRVAnalysisView: View {
                         tooltipCalendarEvent = nil
                         tooltipSleepRange = nil
                         tooltipWorkoutRange = nil
+                        tooltipDailyMarker = nil
                     }
                 }
                 .onAppear { availableHeight = geo.size.height }
@@ -250,6 +263,9 @@ struct HRVAnalysisView: View {
         .task {
             await viewModel.loadRMSSDEventsIfNeeded()
         }
+        .task {
+            await viewModel.loadDailyMarkersIfNeeded()
+        }
         // 스크롤(드래그)이나 핀치 줌으로 보이는 구간이 바뀔 때마다 호출하지만, 이미 여유 있게
         // 로드된 범위 안이면 ensureHealthKitDataLoaded가 그냥 바로 반환하므로 실제 HealthKit
         // 조회는 가장자리에 가까워질 때만 드물게 일어난다.
@@ -273,6 +289,7 @@ struct HRVAnalysisView: View {
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
             tooltipWorkoutRange = nil
+            tooltipDailyMarker = nil
             recomputeRange()
         }
         .refreshable {
@@ -282,6 +299,7 @@ struct HRVAnalysisView: View {
             await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
             await viewModel.loadCalendarEventsIfNeeded()
             await viewModel.reloadRMSSDEvents()
+            await viewModel.reloadDailyMarkers()
             recomputeRange()
         }
         // 탭을 나갔다가 다시 들어올 때마다 pull-to-refresh와 같은 강제 새로고침을 한다 — 캘린더에서
@@ -296,6 +314,7 @@ struct HRVAnalysisView: View {
                 await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
                 await viewModel.loadCalendarEventsIfNeeded()
                 await viewModel.reloadRMSSDEvents()
+                await viewModel.reloadDailyMarkers()
                 recomputeRange()
             }
         }
@@ -506,7 +525,50 @@ struct HRVAnalysisView: View {
                 .overlay(alignment: .topTrailing) {
                     closeButton { tooltipWorkoutRange = nil }
                 }
+        } else if let marker = tooltipDailyMarker {
+            tooltipLabel(for: marker)
+                .overlay(alignment: .topTrailing) {
+                    closeButton { tooltipDailyMarker = nil }
+                }
         }
+    }
+
+    private static let dailyMarkerTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    private func dailyMarkerKindLabel(_ kind: HRVAnalysisViewModel.DailyMarkerKind) -> String {
+        switch kind {
+        case .coffee: "커피"
+        case .medication: "약 복용"
+        case .event: "이벤트"
+        }
+    }
+
+    func tooltipLabel(for marker: HRVAnalysisViewModel.DailyMarker) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(dailyMarkerKindLabel(marker.kind))
+                .font(.caption2.bold())
+                .foregroundStyle(dailyMarkerColor(for: marker.kind))
+            // 약복용은 제목이 종류 라벨("약 복용")과 똑같아서 — 약 이름 자체는 원래 안 보여주는
+            // 정책이라(DayDetailSheet와 동일) 중복으로 한 번 더 보여줄 필요가 없다.
+            if marker.kind != .medication {
+                Text(marker.title)
+                    .font(.subheadline.bold())
+            }
+            Text(Self.dailyMarkerTimeFormatter.string(from: marker.date))
+                .font(.caption2)
+        }
+        .foregroundStyle(.black)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
+        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
     }
 
     private func closeButton(action: @escaping () -> Void) -> some View {

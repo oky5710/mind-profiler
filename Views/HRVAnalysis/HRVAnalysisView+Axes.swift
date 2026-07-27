@@ -53,7 +53,8 @@ extension HRVAnalysisView {
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
-        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = [],
+        tooltipDailyMarkers: [HRVAnalysisViewModel.DailyMarker] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(
@@ -71,7 +72,8 @@ extension HRVAnalysisView {
                 tooltipRanges: tooltipRanges,
                 tooltipSleepRanges: tooltipSleepRanges,
                 tooltipWorkoutRanges: tooltipWorkoutRanges,
-                tooltipAllDayMarkers: tooltipAllDayMarkers
+                tooltipAllDayMarkers: tooltipAllDayMarkers,
+                tooltipDailyMarkers: tooltipDailyMarkers
             )
         }
     }
@@ -149,13 +151,15 @@ extension HRVAnalysisView {
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
-        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = [],
+        tooltipDailyMarkers: [HRVAnalysisViewModel.DailyMarker] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
         let estimatedTooltipHalfWidth: CGFloat = 45
         // 종일 일정 원은 탭 지점이 그 원에서 이만큼(포인트) 이내일 때만 반응한다 — 그 날 전체가 아니라
-        // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함.
+        // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함. 아이콘 레인의 커피/약복용/이벤트 마커도
+        // 같은 방식으로 반응한다.
         let allDayMarkerHitRadius: CGFloat = 16
 
         return GeometryReader { geo in
@@ -229,6 +233,7 @@ extension HRVAnalysisView {
                                     tooltipCalendarEvent = nil
                                     tooltipSleepRange = nil
                                     tooltipWorkoutRange = nil
+                                    tooltipDailyMarker = nil
                                     return
                                 }
 
@@ -293,6 +298,20 @@ extension HRVAnalysisView {
                                 } else {
                                     tooltipWorkoutRange = nil
                                 }
+
+                                // 아이콘 레인의 커피/약복용/이벤트 마커 — 종일 일정 원과 같은 방식으로
+                                // 가장 가까운 마커가 실제 반경 안에 들어왔을 때만 인정한다.
+                                if tooltipDailyMarkers.isEmpty {
+                                    tooltipDailyMarker = nil
+                                } else {
+                                    let localX = value.location.x - plotRect.minX
+                                    let nearest = tooltipDailyMarkers.min(by: { a, b in
+                                        abs((proxy.position(forX: a.date) ?? .infinity) - localX)
+                                            < abs((proxy.position(forX: b.date) ?? .infinity) - localX)
+                                    })
+                                    let nearestX = nearest.flatMap { proxy.position(forX: $0.date) } ?? .infinity
+                                    tooltipDailyMarker = abs(nearestX - localX) <= allDayMarkerHitRadius ? nearest : nil
+                                }
                             }
                             .onEnded { _ in
                                 dragAnchorPosition = nil
@@ -323,6 +342,7 @@ extension HRVAnalysisView {
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
                     tooltipWorkoutRange = nil
+                    tooltipDailyMarker = nil
                 }
                 guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
                 let proposedScale = anchorScale * value

@@ -47,6 +47,19 @@ final class HRVAnalysisViewModel {
         let category: CalendarEventCategory
     }
 
+    // 시간별 모드 간트 차트 아래 아이콘 레인에 찍는 커피/약복용/이벤트 마커. 셋 다 "그 순간에 일어난
+    // 일"이라 구간이 아니라 점 하나로 표현한다.
+    enum DailyMarkerKind {
+        case coffee, medication, event
+    }
+
+    struct DailyMarker: Identifiable {
+        let id = UUID()
+        let date: Date
+        let kind: DailyMarkerKind
+        let title: String
+    }
+
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
     private static let hrvGapThresholdHourly: TimeInterval = 3 * 60 * 60
     private static let hrvGapThresholdDaily: TimeInterval = 1.5 * 24 * 60 * 60
@@ -79,6 +92,70 @@ final class HRVAnalysisViewModel {
     private static let rmssdEventMatchTolerance: TimeInterval = 5 * 60
     private(set) var rmssdEvents: [RMSSDEventEntry] = []
     private var hasCheckedRMSSDEvents = false
+
+    // 일별 모드는 간트 차트 대신 안정시 심박수 막대 차트를 보여준다 — 그날그날 뚝뚝 튀지 않는
+    // 안정적인 지표라 하루 대표값(중앙값) 하나로 충분하다(rMSSD 일별 집계와 같은 방식).
+    private(set) var wearableRestingHeartRatePointsDaily: [HRVPoint] = []
+
+    // 시간별 모드 아이콘 레인 전용 데이터 — HealthKit 윈도우 로딩과 무관하게(양이 많지 않아) 캘린더
+    // 일정처럼 한 번에 전체 이력을 불러온다.
+    private(set) var coffeeLogs: [CoffeeLogEntry] = []
+    private(set) var lifeEvents: [LifeEventEntry] = []
+    private var hasCheckedDailyMarkers = false
+
+    func loadDailyMarkersIfNeeded() async {
+        guard !hasCheckedDailyMarkers else { return }
+        hasCheckedDailyMarkers = true
+        await reloadDailyMarkers()
+    }
+
+    // pull-to-refresh처럼 강제로 다시 불러와야 할 때 씀.
+    func reloadDailyMarkers() async {
+        do {
+            async let coffees = CoffeeService.allCoffees()
+            async let medicationLogsResult = MedicationService.allLogs()
+            async let events = LifeEventService.allEvents()
+            let (coffeeList, medicationLogList, eventList) = try await (coffees, medicationLogsResult, events)
+            coffeeLogs = coffeeList
+            // 캘린더 배지와 같은 기준 — 아침약 10개를 챙겼어도 그건 "아침" 한 번이니, 시간대(날짜+
+            // timing) 하나당 실제로 챙긴(taken) 시각(가장 이른 takenAt) 하나만 마커로 남긴다.
+            // takenAt이 없는 로그는 이 시간축 위에 찍을 실제 시각이 없어 건너뛴다.
+            let calendar = Calendar.current
+            struct TimingKey: Hashable { let day: DateComponents; let timing: String? }
+            var earliestByTiming: [TimingKey: Date] = [:]
+            for log in medicationLogList where log.taken {
+                guard let takenAt = log.takenAt.flatMap(DateKey.parseISODate) else { continue }
+                let key = TimingKey(day: calendar.dateComponents([.year, .month, .day], from: takenAt), timing: log.timing)
+                if let existing = earliestByTiming[key] {
+                    earliestByTiming[key] = min(existing, takenAt)
+                } else {
+                    earliestByTiming[key] = takenAt
+                }
+            }
+            medicationMarkerDates = Array(earliestByTiming.values)
+            lifeEvents = eventList
+        } catch {
+            hasCheckedDailyMarkers = false
+        }
+    }
+
+    private var medicationMarkerDates: [Date] = []
+
+    // 시간별 모드 아이콘 레인에 그릴 마커 전체 — 커피/약복용(시간대당 하나)/이벤트를 한 배열로 합친다.
+    var dailyMarkers: [DailyMarker] {
+        let coffeeMarkers = coffeeLogs.compactMap { entry -> DailyMarker? in
+            guard let date = DateKey.parseISODate(entry.date) else { return nil }
+            return DailyMarker(date: date, kind: .coffee, title: entry.type ?? "커피")
+        }
+        let medicationMarkers = medicationMarkerDates.map { date in
+            DailyMarker(date: date, kind: .medication, title: "약 복용")
+        }
+        let eventMarkers = lifeEvents.compactMap { entry -> DailyMarker? in
+            guard let date = DateKey.parseISODate(entry.date) else { return nil }
+            return DailyMarker(date: date, kind: .event, title: entry.title)
+        }
+        return coffeeMarkers + medicationMarkers + eventMarkers
+    }
 
     // HealthKit(rMSSD 등)을 "전체 이력"이 아니라 화면에 보이는 구간의 loadWindowMultiplier배만
     // 불러온다 — rMSSD 계산이 원시 박동 시리즈를 전부 순회하는 무거운 연산이라, 데이터가 몇 년치
@@ -265,7 +342,8 @@ final class HRVAnalysisViewModel {
             async let sleep = HealthKitService.fetchSleepStageSamples(start: windowStart, end: windowEnd)
             async let rmssd = HealthKitService.fetchRMSSDSamples(start: windowStart, end: windowEnd)
             async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
-            let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples) = try await (workouts, sleep, rmssd, sdnn)
+            async let restingHR = HealthKitService.fetchRestingHeartRateSamples(start: windowStart, end: windowEnd)
+            let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples, restingHRSamples) = try await (workouts, sleep, rmssd, sdnn, restingHR)
 
             // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
             // 표시는 막지 않도록 별도로 무시 가능한 에러 처리.
@@ -280,6 +358,13 @@ final class HRVAnalysisViewModel {
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
+            // 안정시 심박수는 하루에 하나(애플이 자체 계산)라 이미 대체로 하루 대표값이지만, 혹시
+            // 같은 날 여러 개가 있어도 중앙값으로 합쳐 항상 막대 하나만 나오게 한다.
+            let rawRestingHRSamples = restingHRSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
+            wearableRestingHeartRatePointsDaily = Self.segmentByGap(
+                Self.dailyMedian(rawRestingHRSamples),
+                gapThreshold: Self.hrvGapThresholdDaily
+            )
             let healthKitWorkouts = workoutRanges.map {
                 WorkoutRange(
                     start: $0.start,
