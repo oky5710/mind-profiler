@@ -54,7 +54,10 @@ final class HRVAnalysisViewModel {
     }
 
     struct DailyMarker: Identifiable {
-        let id = UUID()
+        // 매번 새 UUID를 만들면(계산 프로퍼티 dailyMarkers가 접근할 때마다 재평가되므로) 스크롤 같은
+        // 평범한 리렌더에도 SwiftUI가 모든 마크를 "지웠다가 새로 추가됨"으로 취급해 차트를 불필요하게
+        // 다시 그린다 — 원본 로그의 안정적인 id(약복용은 날짜+시간대 키)로 고정해야 한다.
+        let id: String
         let date: Date
         let kind: DailyMarkerKind
         let title: String
@@ -109,52 +112,60 @@ final class HRVAnalysisViewModel {
         await reloadDailyMarkers()
     }
 
-    // pull-to-refresh처럼 강제로 다시 불러와야 할 때 씀.
+    // pull-to-refresh처럼 강제로 다시 불러와야 할 때 씀. 세 데이터를 하나의 튜플로 await하면 그중
+    // 하나만 실패해도 나머지 둘의 결과까지 통째로 버려지므로(예: 이벤트 서버가 잠깐 502를 내면
+    // 이미 잘 불러온 커피/약복용까지 사라짐), 각각 독립적으로 실패를 흡수한다.
     func reloadDailyMarkers() async {
-        do {
-            async let coffees = CoffeeService.allCoffees()
-            async let medicationLogsResult = MedicationService.allLogs()
-            async let events = LifeEventService.allEvents()
-            let (coffeeList, medicationLogList, eventList) = try await (coffees, medicationLogsResult, events)
+        async let coffees = try? CoffeeService.allCoffees()
+        async let medicationLogsResult = try? MedicationService.allLogs()
+        async let events = try? LifeEventService.allEvents()
+        let (coffeeList, medicationLogList, eventList) = await (coffees, medicationLogsResult, events)
+
+        if let coffeeList {
             coffeeLogs = coffeeList
+        }
+        if let medicationLogList {
             // 캘린더 배지와 같은 기준 — 아침약 10개를 챙겼어도 그건 "아침" 한 번이니, 시간대(날짜+
             // timing) 하나당 실제로 챙긴(taken) 시각(가장 이른 takenAt) 하나만 마커로 남긴다.
             // takenAt이 없는 로그는 이 시간축 위에 찍을 실제 시각이 없어 건너뛴다.
             let calendar = Calendar.current
             struct TimingKey: Hashable { let day: DateComponents; let timing: String? }
-            var earliestByTiming: [TimingKey: Date] = [:]
+            var earliestByTiming: [TimingKey: (id: String, date: Date)] = [:]
             for log in medicationLogList where log.taken {
                 guard let takenAt = log.takenAt.flatMap(DateKey.parseISODate) else { continue }
-                let key = TimingKey(day: calendar.dateComponents([.year, .month, .day], from: takenAt), timing: log.timing)
-                if let existing = earliestByTiming[key] {
-                    earliestByTiming[key] = min(existing, takenAt)
-                } else {
-                    earliestByTiming[key] = takenAt
+                let dayComponents = calendar.dateComponents([.year, .month, .day], from: takenAt)
+                let key = TimingKey(day: dayComponents, timing: log.timing)
+                let id = "medication-\(dayComponents.year ?? 0)-\(dayComponents.month ?? 0)-\(dayComponents.day ?? 0)-\(log.timing ?? "unknown")"
+                if let existing = earliestByTiming[key], existing.date <= takenAt {
+                    continue
                 }
+                earliestByTiming[key] = (id, takenAt)
             }
-            medicationMarkerDates = Array(earliestByTiming.values)
+            medicationMarkers = earliestByTiming.values.map { $0 }
+        }
+        if let eventList {
             lifeEvents = eventList
-        } catch {
-            hasCheckedDailyMarkers = false
         }
     }
 
-    private var medicationMarkerDates: [Date] = []
+    private var medicationMarkers: [(id: String, date: Date)] = []
 
     // 시간별 모드 아이콘 레인에 그릴 마커 전체 — 커피/약복용(시간대당 하나)/이벤트를 한 배열로 합친다.
+    // id는 매번 새로 만들지 않고 원본 로그의 안정적인 값에서 뽑아서, 이 계산 프로퍼티가 스크롤 등으로
+    // 자주 재평가돼도 SwiftUI가 마크를 불필요하게 다시 그리지 않게 한다.
     var dailyMarkers: [DailyMarker] {
         let coffeeMarkers = coffeeLogs.compactMap { entry -> DailyMarker? in
             guard let date = DateKey.parseISODate(entry.date) else { return nil }
-            return DailyMarker(date: date, kind: .coffee, title: entry.type ?? "커피")
+            return DailyMarker(id: "coffee-\(entry.id)", date: date, kind: .coffee, title: entry.type ?? "커피")
         }
-        let medicationMarkers = medicationMarkerDates.map { date in
-            DailyMarker(date: date, kind: .medication, title: "약 복용")
+        let medicationDailyMarkers = medicationMarkers.map { marker in
+            DailyMarker(id: marker.id, date: marker.date, kind: .medication, title: "약 복용")
         }
         let eventMarkers = lifeEvents.compactMap { entry -> DailyMarker? in
             guard let date = DateKey.parseISODate(entry.date) else { return nil }
-            return DailyMarker(date: date, kind: .event, title: entry.title)
+            return DailyMarker(id: "event-\(entry.id)", date: date, kind: .event, title: entry.title)
         }
-        return coffeeMarkers + medicationMarkers + eventMarkers
+        return coffeeMarkers + medicationDailyMarkers + eventMarkers
     }
 
     // HealthKit(rMSSD 등)을 "전체 이력"이 아니라 화면에 보이는 구간의 loadWindowMultiplier배만
