@@ -409,9 +409,15 @@ struct HRVAnalysisView: View {
                 }
             }
             if let note = matchedEvent?.note, !note.isEmpty {
+                // 메모는 입력 폼에서 글자 수 제한이 없어서, 다른 줄처럼 fixedSize에 맡기면(한 줄
+                // 통짜 너비를 그대로 요구) 툴팁이 화면 밖으로 넘어갈 만큼 넓어질 수 있다 — 너비를
+                // 직접 제한하고 세로로만 줄바꿈되게 한다.
                 Text(note)
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: 220, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .foregroundStyle(.white)

@@ -180,7 +180,7 @@ struct CalendarView: View {
         let label: String
     }
 
-    private static let circleBadgeSize: CGFloat = 12
+    private static let circleBadgeSize: CGFloat = 10
     // 채도를 낮춘 파스텔 톤 — 원래 브랜드/차트 색(Theme.exercise 등)은 진해서 작은 원 배지로 쓰면
     // 너무 튀어 보인다.
     private static let coffeeBadgeColor = Color(red: 0.80, green: 0.65, blue: 0.52)
@@ -243,16 +243,21 @@ struct CalendarView: View {
                     .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
                     .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
 
-                // 기분 이모지도 이 줄에 합쳐서 배지들과 함께 줄바꿈한다(BadgeFlowLayout) — 날짜 바로
-                // 아래 첫 항목으로 두면 항상 그 날짜 소속임이 명확하다. 가로로 나란히 놓다가 칸
-                // 너비를 넘기면 다음 줄로 줄바꿈하고, 정확히 몇 줄까지 들어가는지는 미리 계산하지
-                // 않고 칸 높이를 넘는 나머지 줄은 아래 .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면
-                // 요약 시트에서 어차피 전부 보인다.
+                // 기분 이모지는 날짜 바로 아래 자기 줄에 단독으로 둔다 — 배지와 같은 줄에 흘려 넣으면
+                // 배지가 이모지 옆에 붙어버려 어디까지가 이모지 줄인지 헷갈린다. 배지 줄은 그 아래
+                // 따로 시작해서 이모지와 겹치지 않고 자기 줄부터 줄바꿈한다.
+                if let moodEmoji {
+                    Text(moodEmoji)
+                        .font(.caption2)
+                        // "기분 N점"으로 아래 배지 접근성 요약에 이미 포함되므로 중복으로 읽히지
+                        // 않게 감춘다.
+                        .accessibilityHidden(true)
+                }
+
+                // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
+                // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은 아래
+                // .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면 요약 시트에서 어차피 전부 보인다.
                 BadgeFlowLayout(spacing: 3) {
-                    if let moodEmoji {
-                        Text(moodEmoji)
-                            .font(.caption2)
-                    }
                     ForEach(allBadges) { badge in
                         badgeView(badge)
                     }
