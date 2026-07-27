@@ -71,7 +71,8 @@ struct CalendarView: View {
                 mood: viewModel.mood(on: day.date),
                 coffees: viewModel.coffees(on: day.date),
                 exercises: viewModel.exercises(on: day.date),
-                medicationLogs: viewModel.medicationLogs(on: day.date)
+                medicationLogs: viewModel.medicationLogs(on: day.date),
+                events: viewModel.events(on: day.date)
             ) {
                 pendingEntryDay = day
             } onRefresh: {
@@ -167,81 +168,89 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    // 기분만 이모지 그대로 두고(어떤 기분이었는지가 색보다 중요), 나머지는 유형별 색이 있는 원
-    // 배지로 통일한다 — 여러 건이면 원 안에 개수를 숫자로 보여준다.
-    private enum DayBadgeKind {
-        case emoji(String)
-        // label은 화면에는 안 보이고 VoiceOver 접근성 문구에만 쓴다 — 원 배지 자체는 색으로만
-        // 구분돼서, 그것만으로는 "커피"인지 "운동"인지 시각 정보 없이는 알 수 없다.
-        case circle(color: Color, count: Int, label: String)
-    }
-
+    // 기분은 날짜 숫자와 같은 줄에 이모지로 따로 보여주고(어떤 기분이었는지가 중요해서 색으로
+    // 뭉뚱그리지 않음), 나머지(커피/운동/약복용/이벤트)만 유형별 색이 있는 원 배지로 통일한다 —
+    // 여러 건이면 원 안에 개수를 숫자로 보여준다.
     private struct DayBadge: Identifiable {
         let id = UUID()
-        let kind: DayBadgeKind
+        let color: Color
+        let count: Int
+        // 화면에는 안 보이고 VoiceOver 접근성 문구에만 쓴다 — 원 배지 자체는 색으로만 구분돼서,
+        // 그것만으로는 "커피"인지 "운동"인지 시각 정보 없이는 알 수 없다.
+        let label: String
     }
 
-    private static let circleBadgeSize: CGFloat = 14
+    private static let circleBadgeSize: CGFloat = 13
+    // 채도를 낮춘 파스텔 톤 — 원래 브랜드/차트 색(Theme.exercise 등)은 진해서 작은 원 배지로 쓰면
+    // 너무 튀어 보인다.
+    private static let coffeeBadgeColor = Color(red: 0.80, green: 0.65, blue: 0.52)
+    private static let exerciseBadgeColor = Color(red: 0.70, green: 0.85, blue: 0.75)
+    private static let medicationBadgeColor = Color(red: 0.98, green: 0.90, blue: 0.62)
+    private static let eventBadgeColor = Color(red: 0.72, green: 0.82, blue: 0.95)
 
-    private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int, medicationCount: Int) -> [DayBadge] {
+    private func badges(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> [DayBadge] {
         var result: [DayBadge] = []
-        if let mood, let emoji = MoodService.options.first(where: { $0.score == mood.score })?.emoji {
-            result.append(DayBadge(kind: .emoji(emoji)))
-        }
         if coffeeCount > 0 {
-            result.append(DayBadge(kind: .circle(color: .brown, count: coffeeCount, label: "커피")))
+            result.append(DayBadge(color: Self.coffeeBadgeColor, count: coffeeCount, label: "커피"))
         }
         if exerciseCount > 0 {
-            result.append(DayBadge(kind: .circle(color: Theme.exercise, count: exerciseCount, label: "운동")))
+            result.append(DayBadge(color: Self.exerciseBadgeColor, count: exerciseCount, label: "운동"))
         }
         if medicationCount > 0 {
-            result.append(DayBadge(kind: .circle(color: .yellow, count: medicationCount, label: "약 복용")))
+            result.append(DayBadge(color: Self.medicationBadgeColor, count: medicationCount, label: "약 복용"))
+        }
+        if eventCount > 0 {
+            result.append(DayBadge(color: Self.eventBadgeColor, count: eventCount, label: "이벤트"))
         }
         return result
     }
 
-    @ViewBuilder
     private func badgeView(_ badge: DayBadge) -> some View {
-        switch badge.kind {
-        case .emoji(let text):
-            Text(text)
-                .font(.caption2)
-        case .circle(let color, let count, let label):
-            Circle()
-                .fill(color)
-                .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
-                .overlay {
-                    if count > 1 {
-                        // 노랑처럼 밝은 배경엔 흰 숫자가 잘 안 보여서, 배경 밝기에 따라 글자
-                        // 색을 검정/흰색으로 바꾼다.
-                        Text("\(count)")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(color == .yellow ? .black : .white)
-                    }
+        Circle()
+            .fill(badge.color)
+            .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
+            .overlay {
+                if badge.count > 1 {
+                    // 파스텔 톤은 전부 밝은 배경이라 검정 글자로 통일해도 대비가 충분하다.
+                    Text("\(badge.count)")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.black)
                 }
-                .accessibilityLabel("\(label)\(count > 1 ? " \(count)건" : "")")
-        }
+            }
+            .accessibilityLabel("\(badge.label)\(badge.count > 1 ? " \(badge.count)건" : "")")
     }
 
     private func dayCell(date: Date, columnIndex: Int, cellHeight: CGFloat) -> some View {
         let day = Calendar.current.component(.day, from: date)
         let mood = viewModel.mood(on: date)
+        let moodEmoji = mood.flatMap { entry in MoodService.options.first { $0.score == entry.score }?.emoji }
         let coffeeCount = viewModel.coffees(on: date).count
         let exerciseCount = viewModel.exercises(on: date).count
         let medicationCount = viewModel.medicationLogs(on: date).count
+        let eventCount = viewModel.events(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
-        let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount)
+        let allBadges = badges(coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount, eventCount: eventCount)
 
         return Button {
             selectedDetailDay = SelectedDay(date: date)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(day)")
-                    .font(.footnote.bold())
-                    .foregroundStyle(color(forColumn: columnIndex))
-                    .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
-                    .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
+                // 날짜 숫자와 기분 이모지를 한 줄에 양 끝으로 배치한다 — 기분은 그 자체가 중요한
+                // 정보라 아래 배지 줄로 내려서 다른 유형과 뒤섞이지 않고 항상 날짜 바로 옆에 보인다.
+                HStack {
+                    Text("\(day)")
+                        .font(.footnote.bold())
+                        .foregroundStyle(color(forColumn: columnIndex))
+                        .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
+                        .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
+                    Spacer(minLength: 0)
+                    if let moodEmoji {
+                        Text(moodEmoji)
+                            .font(.caption2)
+                    }
+                }
+                .frame(maxWidth: .infinity)
 
                 // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
                 // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은
