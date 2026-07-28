@@ -6,6 +6,20 @@ import UserNotifications
 // "방금 이 시간대가 체크됐으니 오늘 자 알림만 바로 취소" 같은 즉시 반응이 가능하다.
 @MainActor
 final class ReminderNotificationService: NSObject, UNUserNotificationCenterDelegate {
+    enum NotificationError: LocalizedError {
+        case authorizationDenied
+        case authorizationUnavailable
+
+        var errorDescription: String? {
+            switch self {
+            case .authorizationDenied:
+                "알림 권한이 꺼져 있어요. iPhone 설정에서 MindProfiler 알림을 허용해주세요."
+            case .authorizationUnavailable:
+                "알림 권한 상태를 확인할 수 없어요."
+            }
+        }
+    }
+
     static let shared = ReminderNotificationService()
 
     // 순수 문자열 상수라 액터 격리가 필요 없다 — UNUserNotificationCenterDelegate의 nonisolated
@@ -17,6 +31,9 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     // 매번 전체를 새로 예약하기엔 너무 머니, 앞으로 이만큼만 미리 채워둔다 — resync가 앱 실행/화면
     // 진입/입력 변경마다 불리므로 이 창이 계속 앞으로 밀리면서 갱신된다.
     private static let scheduleWindowDays = 14
+    // iOS는 앱 하나당 대기 중인 로컬 알림을 최대 64개까지만 유지한다. rMSSD 등 다른 알림이
+    // 들어올 자리도 남기고, 약 알림은 가까운 발생분부터 채운다.
+    private static let maximumPendingNotificationCount = 64
 
     private var cachedReminders: [MedicationReminderEntry] = []
 
@@ -50,34 +67,58 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     }
 
     func requestAuthorization() async throws {
-        _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return
+        case .denied:
+            throw NotificationError.authorizationDenied
+        case .notDetermined:
+            guard try await center.requestAuthorization(options: [.alert, .sound, .badge]) else {
+                throw NotificationError.authorizationDenied
+            }
+        @unknown default:
+            throw NotificationError.authorizationUnavailable
+        }
     }
 
     // 서버의 알림 설정 목록 + 오늘 복용 기록을 다시 읽어와, 우리가 예약해 둔 로컬 알림을 전부
     // 지우고 새로 그린다 — 부분적으로 고쳐 쓰는 것보다 "지우고 다시 그리기"가 드리프트(서버 상태와
     // 로컬 예약이 어긋나는 것) 버그가 없다. HealthKit/EventKit과 같은 원칙으로 실패해도 조용히
     // 넘어간다(알림 기능 하나 때문에 다른 화면까지 에러로 막지 않는다).
-    func resync() async {
-        do {
-            let reminders = try await MedicationReminderService.allReminders()
-            cachedReminders = reminders
+    @discardableResult
+    func resync() async throws -> Int {
+        try await requestAuthorization()
 
-            let todaysLogs = try await MedicationService.logs(on: Date())
-            let takenTodayTimings = Set(todaysLogs.filter(\.taken).compactMap(\.timing))
+        let reminders = try await MedicationReminderService.allReminders()
+        cachedReminders = reminders
 
-            let center = UNUserNotificationCenter.current()
-            let pending = await center.pendingNotificationRequests()
-            let ourIdentifiers = pending.map(\.identifier).filter { $0.hasPrefix(Self.identifierPrefix) }
-            center.removePendingNotificationRequests(withIdentifiers: ourIdentifiers)
+        let todaysLogs = try await MedicationService.logs(on: Date())
+        let takenTodayTimings = Set(todaysLogs.filter(\.taken).compactMap(\.timing))
 
-            for reminder in reminders {
-                for request in occurrenceRequests(for: reminder, alreadyTakenTodayTimings: takenTodayTimings) {
-                    try? await center.add(request)
-                }
-            }
-        } catch {
-            // best-effort
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        let ourIdentifiers = pending.map(\.identifier).filter { $0.hasPrefix(Self.identifierPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: ourIdentifiers)
+
+        let otherPendingCount = pending.count - ourIdentifiers.count
+        let availableCount = max(Self.maximumPendingNotificationCount - otherPendingCount, 0)
+        let requests = reminders
+            .flatMap { occurrenceRequests(for: $0, alreadyTakenTodayTimings: takenTodayTimings) }
+            .sorted { requestFireDate($0) < requestFireDate($1) }
+            .prefix(availableCount)
+
+        for request in requests {
+            try await center.add(request)
         }
+        return requests.count
+    }
+
+    private func requestFireDate(_ request: UNNotificationRequest) -> Date {
+        guard let trigger = request.trigger as? UNCalendarNotificationTrigger,
+              let nextDate = trigger.nextTriggerDate() else { return .distantFuture }
+        return nextDate
     }
 
     // 특정 시간대가 방금 복용 처리됐을 때, 다음 정기 resync를 기다리지 않고 오늘 자로 남아있는 그

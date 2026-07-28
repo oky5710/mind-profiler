@@ -5,6 +5,7 @@ import Foundation
 final class ReminderListViewModel {
     private(set) var reminders: [MedicationReminderEntry] = []
     private(set) var isLoading = true
+    private(set) var scheduledNotificationCount = 0
     var errorMessage: String?
 
     // "내용" 선택지 — 실제로 등록해 둔 약들의 복용 시간대 합집합에서 고른다(등록된 약이 아침
@@ -26,7 +27,7 @@ final class ReminderListViewModel {
             let registeredTimings = Set(medications.flatMap(\.timings))
             availableTimings = MedicationTiming.allCases.filter { registeredTimings.contains($0.rawValue) }
 
-            await ReminderNotificationService.shared.resync()
+            scheduledNotificationCount = try await ReminderNotificationService.shared.resync()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -130,6 +131,10 @@ final class ReminderListViewModel {
             guard latestToggleGeneration[previous.id] == generation else { return }
             errorMessage = resultError ?? error.localizedDescription
         }
-        await ReminderNotificationService.shared.resync()
+        do {
+            scheduledNotificationCount = try await ReminderNotificationService.shared.resync()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

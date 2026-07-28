@@ -52,22 +52,32 @@ final class RMSSDThresholdMonitorService {
     private func handleUpdate() async {
         do {
             let now = Date()
-            // 최근 6시간 — "오늘의 패턴" 시간별 모드의 gap 기준(3시간)보다 넉넉하게 잡아서, 알림을
-            // 놓치지 않고 최신 샘플을 확실히 잡는다.
-            let recent = try await HealthKitService.fetchRMSSDSamples(start: now.addingTimeInterval(-6 * 60 * 60), end: now)
-            guard let latest = recent.max(by: { $0.date < $1.date }) else { return }
+            let startOfToday = Calendar.current.startOfDay(for: now)
+            // HealthKit 백그라운드 전달은 여러 SDNN 업데이트를 하나의 콜백으로 합쳐서 늦게 깨울 수
+            // 있다. 가장 최신 샘플 하나만 보면 먼저 임계값을 넘은 측정을 건너뛰고 두 번째 측정
+            // 시각으로 알림이 만들어지므로, 오늘 샘플을 시간순으로 전부 확인한다.
+            let todaysSamples = try await HealthKitService.fetchRMSSDSamples(start: startOfToday, end: now)
+                .sorted { $0.date < $1.date }
+            guard !todaysSamples.isEmpty else { return }
             guard let median = try await RMSSDThreshold.fetchRecentThirtyDayMedian(asOf: now) else { return }
-            guard let direction = RMSSDThreshold.direction(value: latest.value, median: median) else { return }
 
-            // 같은 방향으로 하루에 한 번만 알린다 — 낮은/높은 상태가 몇 시간 이어지는 동안 측정마다
-            // 매번 울리면 스팸이 된다.
-            let dedupKey = "rmssdThresholdNotified.\(direction.rawValue).\(DateKey.string(from: now))"
-            guard UserDefaults.standard.string(forKey: dedupKey) == nil else { return }
+            let occurrenceStoreKey = "rmssdThresholdNotifiedOccurrences.\(DateKey.string(from: now))"
+            var notifiedOccurrences = Set(UserDefaults.standard.stringArray(forKey: occurrenceStoreKey) ?? [])
 
-            // 알림 예약이 실제로 성공했을 때만 "오늘 이 방향은 이미 알렸다"고 기록한다 — 실패했는데도
-            // 기록해 버리면(권한 없음, 일시적 오류 등) 그날 남은 시간 동안 다시는 재시도하지 않는다.
-            guard await postNotification(direction: direction, value: latest.value, occurredAt: latest.date) else { return }
-            UserDefaults.standard.set(DateKey.isoString(from: now), forKey: dedupKey)
+            for sample in todaysSamples {
+                guard let direction = RMSSDThreshold.direction(value: sample.value, median: median) else { continue }
+
+                // observer 콜백은 오늘의 기존 샘플을 다시 포함할 수 있다. 하루 전체를 방향별로 한 번만
+                // 막지 않고, 실제 측정 시각+방향이 같은 동일 발생분만 중복 제거한다.
+                let occurrenceKey = "\(direction.rawValue).\(DateKey.isoString(from: sample.date))"
+                guard !notifiedOccurrences.contains(occurrenceKey) else { continue }
+
+                guard await postNotification(direction: direction, value: sample.value, occurredAt: sample.date) else {
+                    continue
+                }
+                notifiedOccurrences.insert(occurrenceKey)
+                UserDefaults.standard.set(Array(notifiedOccurrences), forKey: occurrenceStoreKey)
+            }
         } catch {
             // best-effort — 다음 업데이트나 앱 재실행 때 다시 시도된다.
         }
@@ -94,7 +104,7 @@ final class RMSSDThresholdMonitorService {
             Self.userInfoOccurredAtKey: DateKey.isoString(from: occurredAt),
         ]
         let request = UNNotificationRequest(
-            identifier: "rmssdthreshold.\(direction.rawValue).\(DateKey.string(from: occurredAt))",
+            identifier: "rmssdthreshold.\(direction.rawValue).\(Int(occurredAt.timeIntervalSince1970 * 1_000))",
             content: content,
             trigger: nil
         )

@@ -45,28 +45,50 @@ struct ReminderListView: View {
                         Task { await viewModel.remove(at: offsets) }
                     }
                 }
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage).font(.footnote).foregroundStyle(.red)
+            }
+
+            Section("알림 예약 상태") {
+                if viewModel.isLoading {
+                    ProgressView()
+                } else {
+                    Text("앞으로 예약된 알림 \(viewModel.scheduledNotificationCount)개")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
 
-            Section {
-                if viewModel.availableTimings.isEmpty && !viewModel.isLoading {
+            if viewModel.availableTimings.isEmpty && !viewModel.isLoading {
+                Section {
                     Text("먼저 설정의 \"약 등록\"에서 약을 등록해야 알림을 만들 수 있어요.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                } else {
-                    Button {
-                        isPresentingAddForm = true
-                    } label: {
-                        Label("알림 추가", systemImage: "bell.badge")
-                    }
-                    .disabled(viewModel.availableTimings.isEmpty)
                 }
             }
         }
         .navigationTitle("알림 설정")
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                isPresentingAddForm = true
+            } label: {
+                Label("알림 추가", systemImage: "bell.badge")
+                    .font(Typography.button)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 50, alignment: .center)
+                    .background(Theme.primary, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isLoading || viewModel.availableTimings.isEmpty)
+            .opacity(viewModel.isLoading || viewModel.availableTimings.isEmpty ? 0.5 : 1)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(.bar)
+        }
         .task { await viewModel.load() }
         .sheet(isPresented: $isPresentingAddForm) {
             ReminderEntryForm(availableTimings: viewModel.availableTimings) {
