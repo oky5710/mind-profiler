@@ -901,40 +901,17 @@ private struct PeriodRangeRow: View {
     var isDisabled: Bool = false
     var onAnalyze: () -> Void
 
-    @State private var isPresented = false
-    // 시트 안 피커는 이 draft 값만 편집한다 — "분석"을 눌러야만 실제 startDate/endDate에 반영되고
-    // onAnalyze()가 불린다. 그렇지 않으면 분석 안 하고 스와이프로 시트만 닫아도 상단에 보이는 기간
-    // 텍스트가 (실제 바인딩을 직접 고쳤으니) 새 날짜로 바뀌어 버리는데, 정작 분석 결과는 이전
-    // 기간 것 그대로라 화면이 서로 다른 기간을 보여주는 것처럼 어긋난다.
-    @State private var draftStartDate = Date()
-    @State private var draftEndDate = Date()
-
-    // DatePicker는 날짜(day)만 고르게 하면서(`displayedComponents: .date`) 그 범위(`in:`)는 시각까지
-    // 포함한 정확한 Date로 비교한다 — "오늘"을 오늘 자정 이후 어떤 시각으로 반환하든, `maximumDate`가
-    // "지금 이 순간"(초 단위)이면 방금 고른 "오늘"이 그 순간보다 늦어 범위를 벗어나 버릴 수 있다.
-    // 그래서 비교는 항상 자정(day) 단위로 정규화해서, "오늘"을 고르면 항상 유효하게 만든다.
-    private var maximumSelectableDate: Date {
-        guard let maximumDate else { return .distantFuture }
-        return Calendar.current.startOfDay(for: maximumDate)
+    private struct SheetSelection: Identifiable {
+        let id = UUID()
+        let startDate: Date
+        let endDate: Date
     }
 
-    // 종료일은 그날 자정(0시)이 아니라 그날 23:59:59으로 둔다 — 자정으로 두면 그 종료 날짜 자체가
-    // "포함"되는 느낌이 안 나고, 실수로 어딘가에서 자정 인스턴트를 그대로 상한/하한으로 쓰면 그날
-    // 데이터가 빠질 수 있다. 하루 전체를 확실히 포함하는 시각으로 저장해 둔다.
-    nonisolated private static func endOfDay(_ date: Date) -> Date {
-        let calendar = Calendar.current
-        return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: calendar.startOfDay(for: date)) ?? date
-    }
-
-    private var hasValidDraftRange: Bool {
-        Calendar.current.startOfDay(for: draftStartDate) <= Calendar.current.startOfDay(for: draftEndDate)
-    }
+    @State private var sheetSelection: SheetSelection?
 
     var body: some View {
         Button {
-            draftStartDate = Calendar.current.startOfDay(for: startDate)
-            draftEndDate = Self.endOfDay(endDate)
-            isPresented = true
+            sheetSelection = SheetSelection(startDate: startDate, endDate: endDate)
         } label: {
             HStack {
                 Text("\(ReportView.dateFormatter.string(from: startDate)) ~ \(ReportView.dateFormatter.string(from: endDate))")
@@ -954,60 +931,54 @@ private struct PeriodRangeRow: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
-        .sheet(isPresented: $isPresented) {
-            NavigationStack {
-                VStack {
-                    // 두 피커의 range가 서로를 직접 참조하면 한쪽 선택 순간 SwiftUI가 다른 쪽 값을
-                    // 새 범위 안으로 자동 보정하면서 두 날짜가 같은 날로 붙는다. 둘은 오늘까지만
-                    // 허용하는 독립 범위를 쓰고, 순서가 뒤집힌 동안은 아래 분석 버튼만 비활성화한다.
-                    HStack(spacing: 8) {
-                        datePicker(
-                            for: $draftStartDate,
-                            title: "시작일",
-                            range: Date.distantPast...maximumSelectableDate
-                        )
-                        Text("~").foregroundStyle(.secondary)
-                        datePicker(
-                            for: $draftEndDate,
-                            title: "종료일",
-                            range: Date.distantPast...Self.endOfDay(maximumSelectableDate),
-                            normalize: Self.endOfDay
-                        )
-                    }
-                    .padding()
-
-                    if !hasValidDraftRange {
-                        Text("종료일은 시작일과 같거나 이후여야 해요.")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                }
-                .safeAreaInset(edge: .bottom) {
-                    // ui-style.md 버튼 크기 규칙의 Default(50pt).
-                    Button {
-                        startDate = draftStartDate
-                        endDate = draftEndDate
-                        isPresented = false
-                        onAnalyze()
-                    } label: {
-                        Label("분석", systemImage: "waveform.path.ecg")
-                            .font(Typography.cardTitle)
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isDisabled || !hasValidDraftRange)
-                    .padding()
-                    .background(.bar)
-                }
-                .navigationTitle("분석 기간")
-                .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $sheetSelection) { selection in
+            PeriodRangeSheet(
+                initialStartDate: selection.startDate,
+                initialEndDate: selection.endDate,
+                maximumDate: maximumDate,
+                isDisabled: isDisabled
+            ) { selectedStartDate, selectedEndDate in
+                startDate = selectedStartDate
+                endDate = selectedEndDate
+                sheetSelection = nil
+                onAnalyze()
             }
-            .environment(\.locale, Locale(identifier: "ko_KR"))
-            // 날짜 입력 한 줄 + 분석 버튼뿐이라 내용에 딱 맞는 높이로 줄인다. compact 피커의 달력
-            // 팝업은 시스템이 화면 안에 들어오게 알아서 위/아래로 뒤집어 띄우므로 시트가 낮아도 잘리지
-            // 않는다.
-            .presentationDetents([.height(250)])
         }
+    }
+}
+
+private struct PeriodRangeSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var draftStartDate: Date
+    @State private var draftEndDate: Date
+
+    let maximumDate: Date?
+    let isDisabled: Bool
+    let onAnalyze: (Date, Date) -> Void
+
+    init(
+        initialStartDate: Date,
+        initialEndDate: Date,
+        maximumDate: Date?,
+        isDisabled: Bool,
+        onAnalyze: @escaping (Date, Date) -> Void
+    ) {
+        _draftStartDate = State(initialValue: Calendar.current.startOfDay(for: initialStartDate))
+        _draftEndDate = State(initialValue: Self.endOfDay(initialEndDate))
+        self.maximumDate = maximumDate
+        self.isDisabled = isDisabled
+        self.onAnalyze = onAnalyze
+    }
+
+    private var maximumSelectableDate: Date {
+        guard let maximumDate else { return .distantFuture }
+        return Calendar.current.startOfDay(for: maximumDate)
+    }
+
+    nonisolated private static func endOfDay(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: calendar.startOfDay(for: date)) ?? date
     }
 
     private func datePicker(
@@ -1030,6 +1001,56 @@ private struct PeriodRangeRow: View {
             // 상대 피커가 좌우로 밀리는 걸 막는다 — 폭을 고정해서 어떤 날짜든 같은 자리에 보이게 한다.
             .frame(width: 130)
             .labelsHidden()
+    }
+
+    private var hasValidDraftRange: Bool {
+        Calendar.current.startOfDay(for: draftStartDate) <= Calendar.current.startOfDay(for: draftEndDate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                HStack(spacing: 8) {
+                    datePicker(
+                        for: $draftStartDate,
+                        title: "시작일",
+                        range: Date.distantPast...maximumSelectableDate
+                    )
+                    Text("~").foregroundStyle(.secondary)
+                    datePicker(
+                        for: $draftEndDate,
+                        title: "종료일",
+                        range: Date.distantPast...Self.endOfDay(maximumSelectableDate),
+                        normalize: Self.endOfDay
+                    )
+                }
+                .padding()
+
+                if !hasValidDraftRange {
+                    Text("종료일은 시작일과 같거나 이후여야 해요.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    dismiss()
+                    onAnalyze(draftStartDate, draftEndDate)
+                } label: {
+                    Label("분석", systemImage: "waveform.path.ecg")
+                        .font(Typography.cardTitle)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isDisabled || !hasValidDraftRange)
+                .padding()
+                .background(.bar)
+            }
+            .navigationTitle("분석 기간")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .environment(\.locale, Locale(identifier: "ko_KR"))
+        .presentationDetents([.height(250)])
     }
 }
 
