@@ -92,10 +92,10 @@ enum Theme {
     static let calendarMedicationBadge = Color(red: 0.98, green: 0.90, blue: 0.62)
     static let calendarEventBadge = Color(red: 0.72, green: 0.82, blue: 0.95)
 
-    // 오늘의 패턴 시간별 마커는 캘린더 배지와 같은 계열을 유지하되 차트 위에서 잘 보이도록
-    // 한 단계 진하게 쓴다.
+    // 오늘의 패턴 시간별 마커는 캘린더 배지와 같은 계열을 유지하면서 차트 아래 아이콘 레인에서
+    // 어둡게 뭉치지 않도록 밝은 노란색을 쓴다.
     static let hourlyCoffeeMarker = Color(red: 0.68, green: 0.52, blue: 0.39)
-    static let hourlyMedicationMarker = Color(red: 0.85, green: 0.72, blue: 0.35)
+    static let hourlyMedicationMarker = Color(red: 0.9725, green: 0.7804, blue: 0.3333) // #F8C755
 
     // 월별 캔들스틱 박스(1Q~3Q) 전용 색.
     // rmssd와 같은 Iris 계열을 사용해 의미적 연결을 유지한다.

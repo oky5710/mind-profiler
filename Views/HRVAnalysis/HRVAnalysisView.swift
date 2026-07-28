@@ -27,7 +27,8 @@ enum HRVChartMode: String, CaseIterable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, restingHeartRate, sleep, exercise, median, sdnn, calendarEvent, cv
+    case rmssd, examRmssd, restingHeartRate, sleep, exercise, coffee, medication, lifeEvent
+    case median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
     var label: String {
@@ -37,6 +38,9 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .restingHeartRate: "안정시 심박수"
         case .sleep: "수면"
         case .exercise: "운동"
+        case .coffee: "커피"
+        case .medication: "약 복용"
+        case .lifeEvent: "이벤트"
         case .median: "최근 30일 중앙값"
         case .sdnn: "SDNN"
         case .calendarEvent: "캘린더"
@@ -49,8 +53,9 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .rmssd: "circle.fill"
         case .examRmssd: "triangle.fill"
         case .restingHeartRate: "chart.bar.fill"
-        case .sleep: "square.fill"
-        case .exercise: "square.fill"
+        case .sleep, .exercise: "square.fill"
+        case .coffee, .medication: "circle.fill"
+        case .lifeEvent: "star.fill"
         case .median: "minus"
         case .sdnn: "minus"
         case .calendarEvent: "square.fill"
@@ -66,7 +71,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sdnn: mode == .hourly
         case .restingHeartRate: mode == .daily
         case .sleep: mode != .monthly
-        case .exercise, .calendarEvent: mode == .hourly
+        case .exercise, .coffee, .medication, .lifeEvent, .calendarEvent: mode == .hourly
         case .cv: mode == .monthly
         }
     }
@@ -794,6 +799,9 @@ struct HRVAnalysisView: View {
         case .restingHeartRate: Theme.systemMint
         case .sleep: sleepColor
         case .exercise: exerciseColor
+        case .coffee: Theme.hourlyCoffeeMarker
+        case .medication: Theme.hourlyMedicationMarker
+        case .lifeEvent: calendarEventColor
         case .median: .gray
         case .sdnn: Theme.systemGray4
         case .calendarEvent: calendarEventColor

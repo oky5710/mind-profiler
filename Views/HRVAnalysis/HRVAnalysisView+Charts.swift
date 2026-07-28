@@ -331,7 +331,13 @@ extension HRVAnalysisView {
     var hourlyMarkerLane: some View {
         let visibleStart = hrvScrollPosition
         let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
-        let visibleMarkers = viewModel.dailyMarkers.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
+        let visibleMarkers = viewModel.dailyMarkers.filter {
+            $0.date >= visibleStart
+                && $0.date <= visibleEnd
+                && ($0.kind != .coffee || !hiddenSeries.contains(.coffee))
+                && ($0.kind != .medication || !hiddenSeries.contains(.medication))
+                && ($0.kind != .event || !hiddenSeries.contains(.lifeEvent))
+        }
 
         return Chart {
             // Chart의 결과 빌더는 ForEach 안에서 케이스마다 다른 조합의 마크/수식어를 쓰는 switch를
