@@ -14,7 +14,7 @@ enum Typography {
     // 17pt Regular — 본문.
     static let body = Font.system(size: 17, weight: .regular)
     // 17pt Semibold — 버튼(Primary). Secondary Button은 같은 크기에 .fontWeight(.medium)을 덧씌운다.
-    static let button = Font.system(size: 17, weight: .semibold)
+    static let button = Font.system(size: 18, weight: .semibold)
     // 15pt Regular — 보조 설명.
     static let secondary = Font.system(size: 15, weight: .regular)
     // 13pt Regular — 캡션. 이보다 더 작은 크기는 쓰지 않는다.

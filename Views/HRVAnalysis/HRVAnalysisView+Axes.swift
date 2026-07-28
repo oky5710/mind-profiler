@@ -58,6 +58,7 @@ extension HRVAnalysisView {
         showsXAxisLabels: Bool = true,
         showsXAxisBaseline: Bool = true,
         showsYAxisGridLines: Bool = true,
+        showsPointTooltip: Bool = true,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
@@ -83,6 +84,7 @@ extension HRVAnalysisView {
             dragToScrollOverlay(
                 proxy: proxy,
                 visibleDomain: visibleDomain,
+                showsPointTooltip: showsPointTooltip,
                 tooltipPoints: tooltipPoints,
                 tooltipRanges: tooltipRanges,
                 tooltipSleepRanges: tooltipSleepRanges,
@@ -162,6 +164,7 @@ extension HRVAnalysisView {
     private func dragToScrollOverlay(
         proxy: ChartProxy,
         visibleDomain: TimeInterval,
+        showsPointTooltip: Bool = true,
         tooltipPoints: [HRVAnalysisViewModel.HRVPoint] = [],
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
@@ -181,7 +184,8 @@ extension HRVAnalysisView {
 
         return GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                if !tooltipPoints.isEmpty,
+                if showsPointTooltip,
+                   !tooltipPoints.isEmpty,
                    let point = tooltipPoint,
                    let plotFrame = proxy.plotFrame,
                    let x = proxy.position(forX: point.date) {

@@ -423,7 +423,9 @@ extension HRVAnalysisView {
                 xAxisLabelBelow: true,
                 showsXAxisLabels: false,
                 showsXAxisBaseline: false,
-                showsYAxisGridLines: false
+                showsYAxisGridLines: false,
+                showsPointTooltip: false,
+                tooltipPoints: currentRMSSDPoints
             )
         }
     }
@@ -470,7 +472,9 @@ extension HRVAnalysisView {
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                 xAxisLabelBelow: true,
-                showsYAxisGridLines: false
+                showsYAxisGridLines: false,
+                showsPointTooltip: false,
+                tooltipPoints: currentRMSSDPoints
             )
         }
     }
