@@ -234,20 +234,13 @@ enum HealthKitService {
     // 30~200bpm(300~2000ms) 밖의 간격은 센서 오검출(놓친 박동/중복 검출)로 보고 버린다.
     // rMSSD는 간격 차이를 제곱해서 평균 내기 때문에, 이런 이상치 하나만 껴 있어도 값이 크게 튄다.
     private static let plausibleIntervalRangeMs: ClosedRange<Double> = 300...2000
-    // 절대 범위 안에 있어도 직전 간격보다 25% 넘게 튀면(HRV 아티팩트 교정에서 흔히 쓰는 기준) 그 변화는
-    // 진짜 HRV가 아니라 오검출일 가능성이 커서 제외한다. 다만 뒤 박동들은 새 기준(interval)으로 계속 비교한다.
-    // (20%는 운동 직후·호흡 조절처럼 진짜로 변동이 큰 구간까지 과하게 걸러낼 수 있어 25%로 완화함)
-    private static let maxRelativeIntervalChange = 0.25
 
     // rMSSD는 "연속된 박동 간격(RR interval)들의 차이"를 제곱해서 평균 낸 값의 제곱근이다 —
     // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다.
     //
-    // precededByGap은 "여기서 시퀀스를 끊어라"가 아니라 "이 간격 하나만 못 믿는다"는 뜻으로 다룬다 —
-    // 그 박동의 간격(gap을 관통하는 값)만 계산에서 버리고, previousInterval은 리셋하지 않는다.
-    // 그래서 gap 다음 첫 정상 박동은 gap 이전 마지막 정상 간격과 바로 비교된다(예: 850ms 다음
-    // gap이 낀 1685ms짜리 간격은 버리고, 그다음 830ms 간격을 850ms와 곧장 비교). 다른 상용 앱의
-    // rMSSD와 실측 비교했을 때 이 해석이 값을 거의 정확히 재현했다 — reset하는 이전 방식은 gap
-    // 전후를 별개 구간으로 나눠버려서 값이 달라졌다.
+    // 외부 앱과 원시 계산값을 직접 비교할 수 있도록 범위 안 RR에는 상대변화율 필터를 적용하지 않는다.
+    // gap이나 범위 밖 간격에서는 연속 시퀀스를 끊어 그 앞뒤 RR을 서로 이웃한 값으로 비교하지 않는다.
+    // 데이터 품질은 계산값에서 임의로 제거하지 않고 추후 별도 신뢰도 지표로 표현한다.
     private static func rMSSD(for series: HKHeartbeatSeriesSample) async throws -> Double? {
         let descriptor = HKHeartbeatSeriesQueryDescriptor(series)
         var previousBeatTime: TimeInterval?
@@ -256,20 +249,31 @@ enum HealthKitService {
         var diffCount = 0
 
         for try await beat in descriptor.results(for: store) {
-            defer { previousBeatTime = beat.timeIntervalSinceStart }
+            let currentBeatTime = beat.timeIntervalSinceStart
 
-            guard let previousBeatTime else { continue }
-            guard !beat.precededByGap else { continue }
+            guard let previousTime = previousBeatTime else {
+                previousBeatTime = currentBeatTime
+                continue
+            }
 
-            let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
-            guard plausibleIntervalRangeMs.contains(interval) else { continue }
+            if beat.precededByGap {
+                previousBeatTime = currentBeatTime
+                previousInterval = nil
+                continue
+            }
+
+            let interval = (currentBeatTime - previousTime) * 1000
+            previousBeatTime = currentBeatTime
+
+            guard plausibleIntervalRangeMs.contains(interval) else {
+                previousInterval = nil
+                continue
+            }
 
             if let previousInterval {
                 let diff = interval - previousInterval
-                if abs(diff) / previousInterval <= maxRelativeIntervalChange {
-                    sumOfSquaredDiffs += diff * diff
-                    diffCount += 1
-                }
+                sumOfSquaredDiffs += diff * diff
+                diffCount += 1
             }
             previousInterval = interval
         }
