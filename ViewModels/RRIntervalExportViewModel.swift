@@ -1,10 +1,46 @@
 import Foundation
 
-// 최근 한 달치 원시 RR(박동 간격) 데이터를 필터링 없이 CSV로 내보낸다 — 다른 앱과 rMSSD 값을
+enum RRIntervalExportPeriod: String, CaseIterable, Identifiable {
+    case lastThirtyDays
+    case all
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .lastThirtyDays: "최근 30일"
+        case .all: "전체 기간"
+        }
+    }
+
+    var loadButtonTitle: String {
+        switch self {
+        case .lastThirtyDays: "최근 한 달 RR 데이터 불러오기"
+        case .all: "전체 기간 RR 데이터 불러오기"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .lastThirtyDays: "최근 한 달 동안 원시 박동 데이터가 없어요."
+        case .all: "저장된 원시 박동 데이터가 없어요."
+        }
+    }
+
+    var fileNameSuffix: String {
+        switch self {
+        case .lastThirtyDays: "last30days"
+        case .all: "all"
+        }
+    }
+}
+
+// 선택한 기간의 원시 RR(박동 간격) 데이터를 필터링 없이 CSV로 내보낸다 — 다른 앱과 rMSSD 값을
 // 직접 비교/검증하고 싶을 때 원본 데이터 자체를 볼 수 있게 한다.
 @MainActor
 @Observable
 final class RRIntervalExportViewModel {
+    var selectedPeriod: RRIntervalExportPeriod = .lastThirtyDays
     private(set) var beats: [HealthKitService.RawBeat] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
@@ -17,10 +53,15 @@ final class RRIntervalExportViewModel {
         do {
             try await HealthKitService.requestAuthorization()
             let end = Date()
-            let start = Calendar.current.date(byAdding: .day, value: -30, to: end) ?? end
+            let start: Date = switch selectedPeriod {
+            case .lastThirtyDays:
+                Calendar.current.date(byAdding: .day, value: -30, to: end) ?? end
+            case .all:
+                .distantPast
+            }
             beats = try await HealthKitService.fetchRawRRIntervals(start: start, end: end)
             if beats.isEmpty {
-                errorMessage = "최근 한 달 동안 원시 박동 데이터가 없어요."
+                errorMessage = selectedPeriod.emptyMessage
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -48,8 +89,14 @@ final class RRIntervalExportViewModel {
     }
 
     func writeCSVToTemporaryFile() throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("mindprofiler_rr_intervals_last30days.csv")
+        let fileName = "mindprofiler_rr_intervals_\(selectedPeriod.fileNameSuffix).csv"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         try csvString.write(to: url, atomically: true, encoding: .utf8)
         return url
+    }
+
+    func resetResults() {
+        beats = []
+        errorMessage = nil
     }
 }

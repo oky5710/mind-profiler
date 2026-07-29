@@ -9,6 +9,8 @@ enum Typography {
     static let screenTitle = Font.system(size: 24, weight: .bold)
     // 22pt Bold — 섹션 제목.
     static let sectionTitle = Font.system(size: 20, weight: .bold)
+    // 19pt Bold — 한 화면에 여러 패널 제목이 반복되는 보고서용 섹션 제목.
+    static let reportSectionTitle = Font.system(size: 19, weight: .bold)
     // 20pt Semibold — 카드 제목.
     static let cardTitle = Font.system(size: 16, weight: .semibold)
     // 17pt Regular — 본문.

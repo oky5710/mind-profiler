@@ -6,7 +6,19 @@ struct RRIntervalExportView: View {
     @State private var exportURL: URL?
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         List {
+            Section("기간") {
+                Picker("기간", selection: $viewModel.selectedPeriod) {
+                    ForEach(RRIntervalExportPeriod.allCases) { period in
+                        Text(period.label).tag(period)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .disabled(viewModel.isLoading)
+            }
+
             Section {
                 if viewModel.isLoading {
                     HStack {
@@ -31,7 +43,7 @@ struct RRIntervalExportView: View {
                         Task { await viewModel.export() }
                     }
                 } else {
-                    Button("최근 한 달 RR 데이터 불러오기") {
+                    Button(viewModel.selectedPeriod.loadButtonTitle) {
                         Task { await viewModel.export() }
                     }
                 }
@@ -44,10 +56,15 @@ struct RRIntervalExportView: View {
             } header: {
                 Text("RR 데이터 내보내기")
             } footer: {
-                Text("최근 30일 동안의 원시 박동 간격(RR interval)을 필터링 없이 그대로 CSV로 내보내요. " +
+                Text("최근 30일 또는 HealthKit에 저장된 전체 기간의 원시 박동 간격(RR interval)을 " +
+                    "필터링 없이 그대로 CSV로 내보내요. " +
                     "시리즈 시작 시각·박동 시각·간격(ms)·gap 여부가 각 줄에 담기고, 시각은 기기 로컬 " +
                     "시간대 기준이에요(UTC 아님).")
             }
+        }
+        .onChange(of: viewModel.selectedPeriod) { _, _ in
+            exportURL = nil
+            viewModel.resetResults()
         }
         .navigationTitle("RR 데이터 내보내기")
         .navigationBarTitleDisplayMode(.inline)

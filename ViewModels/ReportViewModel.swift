@@ -52,14 +52,13 @@ final class ReportViewModel {
         var id: Date { date }
     }
 
-    // "하루 패턴" — 선택 기간 전체에 걸쳐 시(0~23)별로 원시 rMSSD 샘플을 모아 중앙값을 낸 것.
-    // 날짜는 다 다르지만 "그 시각대엔 보통 rMSSD가 어땠는지"를 하루 24시간 축 하나에 겹쳐서 본다.
+    // "하루 패턴" — 선택 기간 전체의 원시 rMSSD를 한 시간 단위로 묶은 분포 통계.
     struct HourOfDayPoint: Identifiable {
         let hour: Int
-        let median: Double
-        // 직전 데이터와 한 시간 넘게 떨어졌다면 새 구간으로 본다. 차트가 측정값이 없는
-        // 시간대를 가로질러 연속적인 추세가 있었던 것처럼 선을 잇지 않게 하는 식별자다.
-        let segment: Int
+        let mean: Double
+        let standardDeviation: Double
+        var lowerBand: Double { mean - standardDeviation }
+        var upperBand: Double { mean + standardDeviation }
         var id: Int { hour }
     }
 
@@ -305,28 +304,23 @@ final class ReportViewModel {
         )
     }
 
-    // 선택 기간 전체의 원시 rMSSD 샘플을 시(0~23)별로 모아 중앙값을 낸다 — 날짜는 무시하고 시각만
-    // 본다. 샘플이 하나도 없는 시간대는 배열에서 아예 뺀다(0으로 채우면 "실제로 0이었다"처럼
-    // 보이는 데다, 라인 차트에서 그 구간만 뚝 떨어져 보인다).
+    // 선택 기간 전체의 원시 rMSSD 샘플을 시(0~23)별로 모아 평균·표준편차를 계산한다.
+    // 샘플이 하나도 없는 시간대는 배열에서 아예 빼서 "실제로 0이었다"는 오해를 막는다.
     private static func computeHourOfDayPattern(_ samples: [(date: Date, value: Double)]) -> [HourOfDayPoint] {
         let calendar = Calendar.current
         var byHour: [Int: [Double]] = [:]
         for sample in samples {
             byHour[calendar.component(.hour, from: sample.date), default: []].append(sample.value)
         }
-        let hourlyMedians = byHour
-            .map { (hour: $0.key, median: HRVStatistics.median($0.value)) }
-            .sorted { $0.hour < $1.hour }
-
-        var segment = 0
-        var previousHour: Int?
-        return hourlyMedians.map { point in
-            if let previousHour, point.hour - previousHour > 1 {
-                segment += 1
-            }
-            previousHour = point.hour
-            return HourOfDayPoint(hour: point.hour, median: point.median, segment: segment)
+        return byHour.compactMap { hour, values in
+            guard !values.isEmpty else { return nil }
+            return HourOfDayPoint(
+                hour: hour,
+                mean: HRVStatistics.mean(values),
+                standardDeviation: HRVStatistics.standardDeviation(values)
+            )
         }
+        .sorted { $0.hour < $1.hour }
     }
 
     // 날짜별로 그 날의 최저 1시간 버킷(0~23시, 그 시간대 원시 샘플 평균 기준)을 구한 뒤,

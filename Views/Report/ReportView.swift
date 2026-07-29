@@ -4,6 +4,7 @@ import SwiftUI
 struct ReportView: View {
     @State private var viewModel = ReportViewModel()
     @State private var selectedSleepRange: SleepRange?
+    @State private var selectedHourPatternPoint: ReportViewModel.HourOfDayPoint?
     // 오늘의 패턴 Gantt 차트와 같은 방식(고정 픽셀 너비)으로 선택 그림자를 그리려고 실측한다.
     @State private var sleepBarWidth: CGFloat = 20
 
@@ -37,6 +38,7 @@ struct ReportView: View {
                 Text(HRVAnalysisView.monthDayFormatter.string(from: date))
                     .font(.system(size: 9))
                     .tracking(1)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -131,6 +133,7 @@ struct ReportView: View {
             isDisabled: viewModel.isAnalyzing
         ) {
             selectedSleepRange = nil
+            selectedHourPatternPoint = nil
             Task { await viewModel.analyze() }
         }
     }
@@ -221,7 +224,7 @@ struct ReportView: View {
 
     private var sleepSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("수면").font(Typography.sectionTitle)
+            Text("수면").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
@@ -400,7 +403,7 @@ struct ReportView: View {
 
     private func updateSleepBarWidth(plotWidth: CGFloat) {
         let bandwidth = plotWidth / CGFloat(sleepChartDayCount)
-        sleepBarWidth = (bandwidth * 0.6).clamped(to: 10...30)
+        sleepBarWidth = (bandwidth * 0.6).clamped(to: 3...30)
     }
 
     // 네이티브 AxisMarks는 눈금마다 찍는 세로 그리드/틱만 그리고, 플롯 하단을 가로지르는 축
@@ -468,11 +471,14 @@ struct ReportView: View {
                         path.move(to: CGPoint(x: plotRect.minX, y: plotRect.minY + y))
                         path.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.minY + y))
                     }
-                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                    // 보고서는 여러 차트를 한 화면에 쌓아 보여주므로 가로선이 겹쳐 진해 보이지
+                    // 않도록, 세로 그리드(0.25)보다 더 옅게 둔다.
+                    .stroke(Color.gray.opacity(0.12), lineWidth: 1)
 
                     Text(label(value))
                         .font(.system(size: 9))
                         .tracking(1)
+                        .foregroundStyle(.secondary)
                         .padding(.horizontal, 3)
                         .background(Color(.systemBackground).opacity(0.85))
                         .position(x: plotRect.minX + 16, y: plotRect.minY + y)
@@ -486,7 +492,7 @@ struct ReportView: View {
     private var cvSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("변동계수 (CV)").font(Typography.sectionTitle)
+                Text("변동계수 (CV)").font(Typography.reportSectionTitle)
                 if let findings = viewModel.cvFindings {
                     averageCVChip(findings.overallCV)
                 }
@@ -573,11 +579,27 @@ struct ReportView: View {
 
     // MARK: - 하루 패턴
 
-    // 선택 기간 전체를 시(0~23)별로 뭉쳐 중앙값을 낸 라인 차트 — 날짜를 다 무시하고 "그 시각대엔
-    // 보통 rMSSD가 어땠는지"만 하루 24시간 축 하나에 겹쳐 보여준다. 변동계수 섹션 바로 아래에 둔다.
+    // 선택 기간 전체를 시(0~23)별로 뭉친 분포 차트 — 평균±표준편차 박스와 평균 가로선을
+    // 월별 캔들 차트와 유사한 형태로 겹쳐 그린다.
     private var hourlyPatternSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("하루 패턴").font(Typography.sectionTitle)
+            HStack {
+                Text("시간대별 rMSSD 분포")
+                    .font(Typography.reportSectionTitle)
+                Spacer(minLength: 8)
+                HStack(spacing: 10) {
+                    hourlyPatternLegendItem(label: "평균") {
+                        Rectangle()
+                            .fill(Theme.rmssd)
+                            .frame(width: 12, height: 2)
+                    }
+                    hourlyPatternLegendItem(label: "±표준편차") {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.rmssdRange)
+                            .frame(width: 6, height: 10)
+                    }
+                }
+            }
                 .padding(.bottom, 8)
 
             if viewModel.hourOfDayPattern.isEmpty {
@@ -585,27 +607,50 @@ struct ReportView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
+                if let displayedPoint = hourlyPatternDisplayedPoint(in: viewModel.hourOfDayPattern) {
+                    hourlyPatternSelectionSummary(displayedPoint)
+                }
                 hourlyPatternChart(viewModel.hourOfDayPattern).chartLoadingOverlay(viewModel.isAnalyzing)
             }
         }
         .panelCard()
     }
 
-    private func hourlyPatternChart(_ points: [ReportViewModel.HourOfDayPoint]) -> some View {
-        Chart(points) { point in
-            LineMark(
-                x: .value("시", point.hour),
-                y: .value("rMSSD", point.median),
-                series: .value("연속 구간", point.segment)
-            )
-            .foregroundStyle(Theme.rmssd)
+    private func hourlyPatternLegendItem<Swatch: View>(
+        label: String,
+        @ViewBuilder swatch: () -> Swatch
+    ) -> some View {
+        HStack(spacing: 4) {
+            swatch()
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
 
-            PointMark(
-                x: .value("시", point.hour),
-                y: .value("rMSSD", point.median)
-            )
-            .symbolSize(20)
-            .foregroundStyle(Theme.rmssd)
+    private func hourlyPatternChart(_ points: [ReportViewModel.HourOfDayPoint]) -> some View {
+        Chart {
+            ForEach(points) { point in
+                let isSelected = hourlyPatternDisplayedPoint(in: points)?.id == point.id
+                RectangleMark(
+                    x: .value("시", point.hour),
+                    yStart: .value("평균-표준편차", point.lowerBand),
+                    yEnd: .value("평균+표준편차", point.upperBand),
+                    width: .fixed(6)
+                )
+                .foregroundStyle(isSelected ? Theme.rmssd.opacity(0.45) : Theme.rmssdRange)
+                .cornerRadius(4)
+
+                RectangleMark(
+                    x: .value("시", point.hour),
+                    y: .value("평균", point.mean),
+                    width: .fixed(6),
+                    height: .fixed(2)
+                )
+                .foregroundStyle(Theme.rmssd)
+            }
+
         }
         .frame(height: 180)
         .chartXScale(domain: 0...23)
@@ -620,6 +665,7 @@ struct ReportView: View {
                         Text("\(hour)시")
                             .font(.system(size: 9))
                             .tracking(1)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -634,13 +680,54 @@ struct ReportView: View {
                         tickValues: hourlyPatternYAxisTicks(points),
                         label: { String(format: "%.0f", $0) }
                     )
+
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture { location in
+                            guard let plotFrame = proxy.plotFrame else { return }
+                            let plotRect = geo[plotFrame]
+                            let localX = location.x - plotRect.minX
+                            guard localX >= 0, localX <= plotRect.width,
+                                  let tappedHour: Double = proxy.value(atX: localX) else { return }
+                            selectedHourPatternPoint = points.min {
+                                abs(Double($0.hour) - tappedHour) < abs(Double($1.hour) - tappedHour)
+                            }
+                        }
+
                 }
             }
         }
     }
 
+    private func hourlyPatternSelectionSummary(_ point: ReportViewModel.HourOfDayPoint) -> some View {
+        HStack(spacing: 8) {
+            Text("\(point.hour)시 ~ \((point.hour + 1) % 24)시")
+            Spacer(minLength: 4)
+            Text("평균")
+                .foregroundStyle(.secondary)
+            Text("\(Int(point.mean.rounded()))ms")
+                .bold()
+            Text("표준편차")
+                .foregroundStyle(.secondary)
+            Text("\(Int(point.standardDeviation.rounded()))")
+                .bold()
+        }
+        .font(.caption2)
+        .lineLimit(1)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // 아직 탭한 시간대가 없으면 선택 기간에서 평균 rMSSD가 가장 낮은 시간대를 기본 선택으로 쓴다.
+    private func hourlyPatternDisplayedPoint(
+        in points: [ReportViewModel.HourOfDayPoint]
+    ) -> ReportViewModel.HourOfDayPoint? {
+        selectedHourPatternPoint ?? points.min { $0.mean < $1.mean }
+    }
+
     private func hourlyPatternYAxisTicks(_ points: [ReportViewModel.HourOfDayPoint]) -> [Double] {
-        let maxValue = points.map(\.median).max() ?? 0
+        let maxValue = points.map(\.upperBand).max() ?? 0
         guard maxValue > 0 else { return [0] }
         let step = max((maxValue / 4).rounded(.up), 10)
         return Array(stride(from: 0, through: step * 4, by: step))
@@ -671,7 +758,7 @@ struct ReportView: View {
 
     private var rmssdLowestDaysTableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(Typography.sectionTitle)
+            Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
             if viewModel.rmssdLowestDayRows.isEmpty {
@@ -762,7 +849,7 @@ struct ReportView: View {
 
     private var sdnnRmssdSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SDNN vs rMSSD 차이 Top 3").font(Typography.sectionTitle)
+            Text("SDNN vs rMSSD 차이 Top 3").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
             if viewModel.topSDNNRMSSDDifferences.isEmpty {
@@ -843,7 +930,7 @@ struct ReportView: View {
 
     private var correlationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("상관계수").font(Typography.sectionTitle)
+            Text("상관계수").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
             if viewModel.correlationFindings != nil {

@@ -292,6 +292,7 @@ Typography.caption
 | `Typography.largeTitle` | 28pt | Bold | 페이지 대표 제목 |
 | `Typography.screenTitle` | 24pt | Bold | 화면 제목 |
 | `Typography.sectionTitle` | 20pt | Bold | 섹션 제목 |
+| `Typography.reportSectionTitle` | 19pt | Bold | 여러 패널이 반복되는 보고서 섹션 제목 |
 | `Typography.cardTitle` | 16pt | Semibold | 카드 제목 |
 | `Typography.body` | 17pt | Regular | 본문 |
 | `Typography.button` | 17pt | Semibold | 버튼 |
