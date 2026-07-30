@@ -95,7 +95,8 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 | 달력보기 | `Views/Calendar/CalendarView.swift` | `CalendarViewModel` |
 | 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
 | 보고서 | `Views/Report/ReportView.swift` | `ReportViewModel` |
-| 설정 (SDNN vs rMSSD 분석) | `Views/Settings/SettingsView.swift` | `HRVCorrelationViewModel` |
+| 설정 (SDNN vs rMSSD 분석) | `Views/Settings/AnalysisSettingsView.swift` | `HRVCorrelationViewModel` |
+| 설정 (전체 기간 상관계수 분석) | `Views/Settings/CorrelationAnalysisView.swift` | `CorrelationAnalysisViewModel` |
 | 설정 (알림 설정) | `Views/Settings/ReminderListView.swift` / `ReminderEntryForm.swift` | `ReminderListViewModel` |
 | rMSSD 급격한 변화 알림 (메뉴 없음, 알림 탭으로만 진입) | `Views/RMSSDEvent/RMSSDEventEntryForm.swift` | `RMSSDEventEntryViewModel` |
 

@@ -7,7 +7,13 @@ struct SettingsView: View {
                 NavigationLink {
                     AnalysisSettingsView()
                 } label: {
-                    Label("분석", systemImage: "waveform.path.ecg")
+                    Label("SDNN·rMSSD 분석", systemImage: "waveform.path.ecg")
+                }
+
+                NavigationLink {
+                    CorrelationAnalysisView()
+                } label: {
+                    Label("상관계수 분석", systemImage: "chart.xyaxis.line")
                 }
 
                 NavigationLink {

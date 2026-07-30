@@ -100,7 +100,6 @@ struct ReportView: View {
                         rmssdLowestFindingsSection
                         rmssdLowestDaysTableSection
                         sdnnRmssdSection
-                        correlationSection
                     } else if viewModel.isAnalyzing {
                         HeartLoader(height: 200)
                     } else {
@@ -503,19 +502,22 @@ struct ReportView: View {
             .padding(.bottom, 8)
 
             if let findings = viewModel.cvFindings {
-                if let selectedCVDailyPoint {
-                    cvSelectionSummary(selectedCVDailyPoint)
+                if let displayedPoint = cvDisplayedPoint(in: findings.dailyPoints) {
+                    cvSelectionSummary(displayedPoint)
                 }
-                VStack(spacing: 6) {
+                VStack(spacing: 10) {
                     cvChart(findings).chartLoadingOverlay(viewModel.isAnalyzing)
-                    HStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Theme.rmssd.opacity(0.15))
-                            .frame(width: 12, height: 8)
-                        Text("7일 이동 표준편차")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                    HStack(spacing: 10) {
+                        hourlyPatternLegendItem(label: "평균") {
+                            Rectangle()
+                                .fill(Theme.rmssd)
+                                .frame(width: 12, height: 2)
+                        }
+                        hourlyPatternLegendItem(label: "7일 이동 표준편차") {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.rmssd.opacity(0.15))
+                                .frame(width: 12, height: 8)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -558,7 +560,7 @@ struct ReportView: View {
                 )
                 .foregroundStyle(Theme.rmssd)
             }
-            if let selectedCVDailyPoint {
+            if let selectedCVDailyPoint = cvDisplayedPoint(in: findings.dailyPoints) {
                 PointMark(
                     x: .value("선택 날짜", selectedCVDailyPoint.date, unit: .day),
                     y: .value("선택 평균", selectedCVDailyPoint.mean)
@@ -629,6 +631,13 @@ struct ReportView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // 사용자가 아직 날짜를 탭하지 않았으면 분석 기간에서 가장 최근 일별 값을 기본 선택한다.
+    private func cvDisplayedPoint(
+        in points: [ReportViewModel.CVDailyPoint]
+    ) -> ReportViewModel.CVDailyPoint? {
+        selectedCVDailyPoint ?? points.max { $0.date < $1.date }
+    }
+
     // rMSSD(ms) 값 범위에 맞춰 0부터 대략 4등분한 "깔끔한" 눈금값을 계산한다 — 네이티브
     // AxisMarks(automatic)를 대신하는 값이라, 위에서 chartYScale의 상한도 이 값의 마지막(4*step)과
     // 맞춰서 커스텀 오버레이 눈금과 실제 축 범위가 어긋나지 않게 한다.
@@ -657,7 +666,7 @@ struct ReportView: View {
                 if let displayedPoint = hourlyPatternDisplayedPoint(in: viewModel.hourOfDayPattern) {
                     hourlyPatternSelectionSummary(displayedPoint)
                 }
-                VStack(spacing: 6) {
+                VStack(spacing: 10) {
                     hourlyPatternChart(viewModel.hourOfDayPattern).chartLoadingOverlay(viewModel.isAnalyzing)
                     HStack(spacing: 10) {
                         hourlyPatternLegendItem(label: "평균") {
@@ -953,75 +962,6 @@ struct ReportView: View {
             .gridCellColumns(columns)
     }
 
-    // MARK: - 상관계수
-
-    private struct CorrelationRow: Identifiable {
-        let id = UUID()
-        // |r| — 정렬 기준. 비교할 데이터 자체가 부족한 항목은 맨 아래로 밀리게 -1을 준다.
-        let strength: Double
-        let variable: String
-        let rText: String
-        let strengthText: String
-    }
-
-    // 상관관계 강한 순으로 보여준다 — 기분/커피/전날 수면시간은 실제 Pearson r, 전날 운동은
-    // 운동 여부(0/1)와 rMSSD의 점-이연 상관계수로 같은 기준(|r|)에 놓는다.
-    private var correlationRows: [CorrelationRow] {
-        guard let findings = viewModel.correlationFindings else { return [] }
-
-        func row(_ variable: String, _ r: Double?) -> CorrelationRow {
-            guard let r else {
-                return CorrelationRow(strength: -1, variable: variable, rText: "—", strengthText: "—")
-            }
-            return CorrelationRow(
-                strength: abs(r),
-                variable: variable,
-                rText: String(format: "%.2f", r),
-                strengthText: HRVStatistics.correlationStrengthLabel(r)
-            )
-        }
-
-        let rows = [
-            row("기분", findings.moodRMSSDCorrelation),
-            row("커피 잔 수", findings.coffeeRMSSDCorrelation),
-            row("전날 운동", findings.exerciseRMSSDCorrelation),
-            row("전날 수면시간", findings.sleepDurationRMSSDCorrelation)
-        ]
-        return rows.sorted { $0.strength > $1.strength }
-    }
-
-    private var correlationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("상관계수").font(Typography.reportSectionTitle)
-                .padding(.bottom, 8)
-
-            if viewModel.correlationFindings != nil {
-                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                    GridRow {
-                        Text("변수").font(.caption2).foregroundStyle(.secondary)
-                        Text("상관계수").font(.caption2).foregroundStyle(.secondary)
-                        Text("강도").font(.caption2).foregroundStyle(.secondary)
-                    }
-                    tableRowDivider(columns: 3)
-
-                    ForEach(correlationRows) { row in
-                        GridRow {
-                            Text(row.variable).font(.caption2)
-                            Text(row.rText).font(.caption2)
-                            Text(row.strengthText).font(.caption2)
-                        }
-                        tableRowDivider(columns: 3)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text("해당 기간에 비교할 데이터가 없어요")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .panelCard()
-    }
 }
 
 // 수면/CV처럼 섹션을 감싸는 카드 — vitalPanel(배경 Theme.primary50)과 달리
@@ -1188,7 +1128,7 @@ private struct PeriodRangeSheet: View {
                 } label: {
                     Label("분석", systemImage: "waveform.path.ecg")
                         .font(Typography.cardTitle)
-                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isDisabled || !hasValidDraftRange)

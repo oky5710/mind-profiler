@@ -16,6 +16,7 @@
 		1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */; };
 		150A91D8E26AF3F979AB59AD /* DayDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */; };
 		1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */; };
+		16CA71A1B2C3D4E5F6071829 /* CorrelationAnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16CA71A1B2C3D4E5F607182A /* CorrelationAnalysisViewModel.swift */; };
 		1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = FDA976353F815393EF917200 /* GoogleSignIn */; };
 		1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */; };
 		202460BD9C82EE2421D087D9 /* design-system.md in Resources */ = {isa = PBXBuildFile; fileRef = BD8714E5A70D3B643DB60482 /* design-system.md */; };
@@ -83,6 +84,7 @@
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
 		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
 		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
+		C9DF57A158B2ADA443EBCFD4 /* CorrelationAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */; };
 		CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */; };
 		CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400923908367E8D00165474D /* CoffeeEntryForm.swift */; };
 		CD7A941B9741D2627421A574 /* MedicationReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64708648392ADFC66B4F219 /* MedicationReminderService.swift */; };
@@ -106,6 +108,7 @@
 		11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventEntryForm.swift; sourceTree = "<group>"; };
 		139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdAlertCenter.swift; sourceTree = "<group>"; };
 		156BA80323127255242AD216 /* EntryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryType.swift; sourceTree = "<group>"; };
+		16CA71A1B2C3D4E5F607182A /* CorrelationAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisViewModel.swift; sourceTree = "<group>"; };
 		1AD2015ED40BC9A2F87BFF8D /* features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = features.md; sourceTree = "<group>"; };
 		21D63CA734994647CAA7014D /* HeartLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartLoader.swift; sourceTree = "<group>"; };
 		225DD3DE88849264BC0A42B7 /* AppDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -173,6 +176,7 @@
 		BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventModels.swift; sourceTree = "<group>"; };
 		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
+		C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisView.swift; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
 		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListView.swift; sourceTree = "<group>"; };
@@ -321,6 +325,7 @@
 				75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */,
 				B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */,
 				400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */,
+				16CA71A1B2C3D4E5F607182A /* CorrelationAnalysisViewModel.swift */,
 				9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */,
 				D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */,
 				7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */,
@@ -390,6 +395,7 @@
 			children = (
 				2CA6D2394987B7B159269517 /* SettingsView.swift */,
 				7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */,
+				C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */,
 				C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */,
 				4BCE4AEE9A3EA049D41D1DE3 /* RRIntervalExportView.swift */,
 				CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */,
@@ -526,6 +532,7 @@
 				F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */,
 				78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */,
 				C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */,
+				C9DF57A158B2ADA443EBCFD4 /* CorrelationAnalysisView.swift in Sources */,
 				1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */,
 				76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */,
 				8DA0F4F86D994BB6BD8C4885 /* KeychainService.swift in Sources */,
@@ -554,6 +561,7 @@
 				27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */,
 				CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */,
 				1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */,
+				16CA71A1B2C3D4E5F6071829 /* CorrelationAnalysisViewModel.swift in Sources */,
 				ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */,
 				298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */,
 				899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */,

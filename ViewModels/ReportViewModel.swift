@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 // 정신과 진료용 요약 보고서 — 이전 진료일부터 이번 진료일까지 기간을 골라 "분석"을 누르면
-// 그 기간의 수면/rMSSD/SDNN 비교/기분·운동·커피 상관관계를 한 번에 계산해서 보여준다.
+// 그 기간의 수면/rMSSD/SDNN 비교를 한 번에 계산해서 보여준다.
 @MainActor
 @Observable
 final class ReportViewModel {
@@ -62,18 +62,6 @@ final class ReportViewModel {
         var id: Int { hour }
     }
 
-    struct CorrelationFindings {
-        // 기분 점수 vs 그날 rMSSD 중앙값의 Pearson 상관계수.
-        let moodRMSSDCorrelation: Double?
-        // 그날 커피 잔 수 vs rMSSD 중앙값의 Pearson 상관계수.
-        let coffeeRMSSDCorrelation: Double?
-        // 전날 운동 여부(0/1)와 그날 rMSSD의 점-이연 상관계수 — 회복 효과를 보려는 거라 그날이
-        // 아니라 전날 운동 여부를 그날 rMSSD와 짝짓는다.
-        let exerciseRMSSDCorrelation: Double?
-        // 전날 밤 수면 시간(시간 단위) vs 그날 rMSSD 중앙값의 Pearson 상관계수.
-        let sleepDurationRMSSDCorrelation: Double?
-    }
-
     // 선택 기간 동안의 안정시 심박수/SDNN/rMSSD 원시 샘플 분포 중앙값 — 각각 다른 HealthKit 소스에서
     // 온 값이라 하나라도 없을 수 있다(예: rMSSD 계산용 원시 박동 시리즈가 없는 기기/기간).
     struct VitalMedians {
@@ -96,7 +84,6 @@ final class ReportViewModel {
     private(set) var hourOfDayPattern: [HourOfDayPoint] = []
     private(set) var rmssdFindings: RMSSDLowestFindings?
     private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
-    private(set) var correlationFindings: CorrelationFindings?
     private(set) var vitalMedians: VitalMedians?
     private(set) var rmssdLowestDayRows: [RMSSDLowestDayRow] = []
 
@@ -133,12 +120,11 @@ final class ReportViewModel {
             //   저녁에 잠들어 시작일 새벽까지 이어지는 밤이 안 잘리게 하루를 더 둔다 — 이만큼
             //   안 당기면 기간 첫날들이 "비교할 밤이 부족해서" 일관성 만점 처리돼 점수가 왜곡된다.
             // - rMSSD: CV 롤링 표준편차가 기간 시작일 근처도 온전한 7일 창을 보게 7일 전.
-            // - 운동: "전날 운동" 상관계수·rMSSD 최저점의 전날 운동 요약이 기간 시작일의 전날도
-            //   봐야 하니 1일 전.
+            // - 운동: rMSSD 최저점의 전날 운동 요약이 기간 시작일의 전날도 봐야 하니 1일 전.
             // - SDNN/안정시 심박수: 전부 기간 안의 값만 쓰므로 lookback이 필요 없다.
             // 종료일 밤(그날 저녁에 잠들어 다음날 새벽에 깨는 마지막 밤)도 안 잘리게, 수면만 종료
             // 경계도 하루 뒤로 넉넉히 늘린다 — 여기서 안 늘리면 마지막 밤이 자정에서 뚝 끊겨서
-            // 그 밤의 길이·단계 구성·점수·평균·수면시간 상관계수가 전부 실제보다 짧게 나온다.
+            // 그 밤의 길이·단계 구성·점수·평균이 전부 실제보다 짧게 나온다.
             let sleepFetchStart = calendar.date(byAdding: .day, value: -(SleepAnalysisService.bedtimeConsistencyWindow + 1), to: start) ?? start
             let sleepFetchEnd = calendar.date(byAdding: .day, value: 1, to: end) ?? end
             let rmssdFetchStart = calendar.date(byAdding: .day, value: -7, to: start) ?? start
@@ -148,18 +134,16 @@ final class ReportViewModel {
             async let sdnnSamplesTask = HealthKitService.fetchSDNNSamples(start: start, end: end)
             async let restingHeartRateSamplesTask = HealthKitService.fetchRestingHeartRateSamples(start: start, end: end)
             async let workoutsTask = HealthKitService.fetchWorkoutRanges(start: workoutFetchStart, end: end)
-            async let moodsTask = MoodService.allMoods()
-            async let coffeesTask = CoffeeService.allCoffees()
             async let calendarEventsTask = Self.fetchCalendarEventsSafely(start: start, end: end)
             async let lifeEventsTask = Self.fetchLifeEventsSafely()
             async let manualExercisesTask = Self.fetchManualExercisesSafely()
 
             let (
                 allSleepSamples, allRMSSDSamples, allSDNNSamples, allRestingHeartRateSamples,
-                allWorkouts, allMoods, allCoffees, calendarEvents, lifeEvents, manualExercises
+                allWorkouts, calendarEvents, lifeEvents, manualExercises
             ) = try await (
                 sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, restingHeartRateSamplesTask,
-                workoutsTask, moodsTask, coffeesTask, calendarEventsTask, lifeEventsTask, manualExercisesTask
+                workoutsTask, calendarEventsTask, lifeEventsTask, manualExercisesTask
             )
             // rMSSD/SDNN을 이미 위에서 받아왔으니, fetchSDNNRMSSDPairs()를 또 불러서 HealthKit을
             // 중복 조회하는 대신 이미 가진 배열로 짝만 짓는다.
@@ -205,25 +189,9 @@ final class ReportViewModel {
                 .prefix(3)
                 .map { $0 }
 
-            let periodMoods = Self.parseMoodEntries(allMoods).filter { $0.date >= start && $0.date < end }
-            let periodCoffees = Self.parseCoffeeEntries(allCoffees).filter { $0.date >= start && $0.date < end }
-
-            // HealthKit 운동과 수동 입력 운동(캘린더 ExerciseEntryForm)을 합친다 — HealthKit 연동이
-            // 안 된 수동 기록만 있는 날을 "전날 운동" 상관계수와 아래 rMSSD 최저일 요약 둘 다에서
-            // 똑같이 운동한 날로 잡아야 한다.
+            // HealthKit 운동과 수동 입력 운동(캘린더 ExerciseEntryForm)을 합쳐 아래 rMSSD 최저일
+            // 요약에서 전날 운동으로 사용한다.
             let workoutSummaries = Self.mergedWorkoutSummaries(healthKitWorkouts: allWorkouts, manualExercises: manualExercises)
-
-            // "전날 운동" 상관계수는 기간 첫날의 전날(기간 시작일 하루 전, workoutFetchStart부터
-            // 이미 가져와 둔 범위)도 봐야 하므로, 기간(start...end)으로 좁힌 목록이 아니라 이미
-            // 알맞게 앞당겨 가져온 workoutSummaries를 그대로 쓴다 — 좁히면 기간 첫날 전날의 운동이
-            // 통째로 빠져서 그날이 실제로는 운동한 날인데도 "쉬는 날"로 잘못 분류된다.
-            correlationFindings = Self.computeCorrelations(
-                dailyRMSSD: HRVStatistics.dailyMedian(periodRMSSD),
-                workouts: workoutSummaries.map { (start: $0.start, end: $0.end) },
-                moods: periodMoods,
-                coffees: periodCoffees,
-                sleepRanges: allRanges
-            )
 
             rmssdLowestDayRows = Self.computeLowestDayRows(
                 dailyMedians: HRVStatistics.dailyMedian(periodRMSSD),
@@ -460,84 +428,4 @@ final class ReportViewModel {
         }
     }
 
-    private static func computeCorrelations(
-        dailyRMSSD: [(date: Date, value: Double)],
-        workouts: [(start: Date, end: Date)],
-        moods: [(date: Date, score: Int)],
-        coffees: [(date: Date, count: Int)],
-        sleepRanges: [SleepRange]
-    ) -> CorrelationFindings {
-        let calendar = Calendar.current
-        let rmssdByDay = Dictionary(uniqueKeysWithValues: dailyRMSSD.map { (calendar.startOfDay(for: $0.date), $0.value) })
-
-        let moodPairs: [(Double, Double)] = moods.compactMap { mood in
-            guard let rmssd = rmssdByDay[calendar.startOfDay(for: mood.date)] else { return nil }
-            return (Double(mood.score), rmssd)
-        }
-
-        let coffeePairs: [(Double, Double)] = coffees.compactMap { coffee in
-            guard let rmssd = rmssdByDay[calendar.startOfDay(for: coffee.date)] else { return nil }
-            return (Double(coffee.count), rmssd)
-        }
-
-        // 그날 운동이 아니라 "전날" 운동 여부와 그날 rMSSD를 짝짓는다 — 운동의 회복 효과가
-        // 다음날 HRV에 나타나는지를 보려는 것.
-        let exerciseDays = Set(workouts.map { calendar.startOfDay(for: $0.start) })
-        var exercisePairs: [(Double, Double)] = []
-        for (day, value) in rmssdByDay {
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day) else { continue }
-            exercisePairs.append((exerciseDays.contains(previousDay) ? 1 : 0, value))
-        }
-
-        // 전날 밤 수면 시간(시간 단위)과 그날 rMSSD를 짝짓는다. 하루에 세션이 2개 이상(예: 이른
-        // 아침에 잠깐 더 잔 것 + 그날 밤잠)이면 같은 날짜 키가 중복되므로 uniqueKeysWithValues는
-        // 크래시한다 — 합산(+)으로 합쳐서 그날 총 수면시간을 쓴다.
-        // 자정 넘어 시작한 세션(예: 7/2 00:30 시작)은 raw startOfDay로 키를 잡으면 그날(7/2) 것으로
-        // 잡히는데, 실제로는 전날(7/1) 밤이 이어진 것이라 위 exercisePairs와 같은 기준(nightLabel)으로
-        // 키를 잡아야 한다 — 안 그러면 7/2 rMSSD와 짝지어야 할 전날(7/1) 밤 수면이 여기서 빠지고,
-        // 대신 7/3 rMSSD와 잘못 짝지어진다.
-        let sleepDurationByDay = Dictionary(
-            sleepRanges.map { (SleepAnalysisService.nightLabel(for: $0.start), $0.end.timeIntervalSince($0.start) / 3600) },
-            uniquingKeysWith: +
-        )
-        let sleepPairs: [(Double, Double)] = rmssdByDay.compactMap { day, value in
-            guard let previousDay = calendar.date(byAdding: .day, value: -1, to: day),
-                  let duration = sleepDurationByDay[previousDay] else { return nil }
-            return (duration, value)
-        }
-
-        return CorrelationFindings(
-            moodRMSSDCorrelation: HRVStatistics.pearsonCorrelation(moodPairs),
-            coffeeRMSSDCorrelation: HRVStatistics.pearsonCorrelation(coffeePairs),
-            exerciseRMSSDCorrelation: HRVStatistics.pearsonCorrelation(exercisePairs),
-            sleepDurationRMSSDCorrelation: HRVStatistics.pearsonCorrelation(sleepPairs)
-        )
-    }
-
-    // MoodLogEntry.date는 "yyyy-MM-dd"(DateKey.string(from:)로 생성), CoffeeLogEntry.date는
-    // ISO 8601(logCoffee가 ISO8601DateFormatter로 생성)이라 파싱 방식이 서로 다르다.
-    private static let moodDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        return formatter
-    }()
-
-    private static func parseMoodEntries(_ entries: [MoodLogEntry]) -> [(date: Date, score: Int)] {
-        entries.compactMap { entry in
-            guard let date = moodDateFormatter.date(from: entry.date) else { return nil }
-            return (date: date, score: entry.score)
-        }
-    }
-
-    private static func parseCoffeeEntries(_ entries: [CoffeeLogEntry]) -> [(date: Date, count: Int)] {
-        let calendar = Calendar.current
-        var counts: [Date: Int] = [:]
-        for entry in entries {
-            guard let date = DateKey.parseISODate(entry.date) else { continue }
-            counts[calendar.startOfDay(for: date), default: 0] += 1
-        }
-        return counts.map { (date: $0.key, count: $0.value) }
-    }
 }
