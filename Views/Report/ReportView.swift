@@ -4,6 +4,7 @@ import SwiftUI
 struct ReportView: View {
     @State private var viewModel = ReportViewModel()
     @State private var selectedSleepRange: SleepRange?
+    @State private var selectedCVDailyPoint: ReportViewModel.CVDailyPoint?
     @State private var selectedHourPatternPoint: ReportViewModel.HourOfDayPoint?
     // 오늘의 패턴 Gantt 차트와 같은 방식(고정 픽셀 너비)으로 선택 그림자를 그리려고 실측한다.
     @State private var sleepBarWidth: CGFloat = 20
@@ -28,7 +29,8 @@ struct ReportView: View {
     // 이 화면의 차트는 항상 날짜 단위(하루 간격) 데이터라 이 축약 규칙 하나만 해당한다.
     // 포맷 자체는 HRVAnalysisView.monthDayFormatter를 그대로 재사용해 앱 전체에서 동일하게 유지한다.
     // ui-style.md "그리드 라인은 옅게, 눈금 틱은 그보다 진하게" — HRVAnalysisView와 같은 값
-    // (그리드 .gray.opacity(0.25), 틱 .gray.opacity(0.85))과 같은 라벨 폰트(9pt)를 그대로 맞춘다.
+    // (그리드 .gray.opacity(0.25), 틱 .gray.opacity(0.85))을 유지하되 x축 라벨은 보고서에서
+    // 더 잘 보이도록 불투명한 primary 10pt로 표시한다.
     @AxisMarkBuilder
     private static func dateAxisMarks(_ value: AxisValue) -> some AxisMark {
         AxisGridLine().foregroundStyle(.gray.opacity(0.25))
@@ -36,9 +38,9 @@ struct ReportView: View {
         AxisValueLabel {
             if let date = value.as(Date.self) {
                 Text(HRVAnalysisView.monthDayFormatter.string(from: date))
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
                     .tracking(1)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
         }
     }
@@ -133,6 +135,7 @@ struct ReportView: View {
             isDisabled: viewModel.isAnalyzing
         ) {
             selectedSleepRange = nil
+            selectedCVDailyPoint = nil
             selectedHourPatternPoint = nil
             Task { await viewModel.analyze() }
         }
@@ -171,7 +174,7 @@ struct ReportView: View {
                 if value != nil, let unit {
                     Text(unit)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
                 }
             }
         }
@@ -487,12 +490,12 @@ struct ReportView: View {
         }
     }
 
-    // MARK: - 변동계수 (CV)
+    // MARK: - rMSSD 추이
 
     private var cvSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("변동계수 (CV)").font(Typography.reportSectionTitle)
+                Text("rMSSD 추이").font(Typography.reportSectionTitle)
                 if let findings = viewModel.cvFindings {
                     averageCVChip(findings.overallCV)
                 }
@@ -500,7 +503,22 @@ struct ReportView: View {
             .padding(.bottom, 8)
 
             if let findings = viewModel.cvFindings {
-                cvChart(findings).chartLoadingOverlay(viewModel.isAnalyzing)
+                if let selectedCVDailyPoint {
+                    cvSelectionSummary(selectedCVDailyPoint)
+                }
+                VStack(spacing: 6) {
+                    cvChart(findings).chartLoadingOverlay(viewModel.isAnalyzing)
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.rmssd.opacity(0.15))
+                            .frame(width: 12, height: 8)
+                        Text("7일 이동 표준편차")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
             } else {
                 Text("해당 기간에 rMSSD 데이터가 없어요")
                     .font(.footnote)
@@ -510,9 +528,10 @@ struct ReportView: View {
         .panelCard()
     }
 
-    // design-system.md Chip 스펙(15pt Medium) — 전체 기간 CV를 제목 옆에 짧게 보여준다.
+    // design-system.md Chip 스펙(15pt Medium) — 기간 내 전체 원시 샘플 분포로 계산한 CV를
+    // "평균"으로 오해하지 않도록 CV라고 명시한다.
     private func averageCVChip(_ value: Double) -> some View {
-        Text("평균 \(String(format: "%.1f", value))%")
+        Text("CV \(String(format: "%.1f", value))%")
             .font(.system(size: 15, weight: .medium))
             .foregroundStyle(Theme.primary)
             .padding(.horizontal, 10)
@@ -539,6 +558,14 @@ struct ReportView: View {
                 )
                 .foregroundStyle(Theme.rmssd)
             }
+            if let selectedCVDailyPoint {
+                PointMark(
+                    x: .value("선택 날짜", selectedCVDailyPoint.date, unit: .day),
+                    y: .value("선택 평균", selectedCVDailyPoint.mean)
+                )
+                .symbolSize(45)
+                .foregroundStyle(Theme.rmssd)
+            }
         }
         .frame(height: 180)
         // y축 라벨이 차트 레이아웃 공간을 차지하지 않아야 한다는 규칙(ui-style.md) — 수면
@@ -562,9 +589,44 @@ struct ReportView: View {
                         tickValues: cvYAxisTicks(findings),
                         label: { String(format: "%.0f", $0) }
                     )
+
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture { location in
+                            guard let plotFrame = proxy.plotFrame else { return }
+                            let plotRect = geo[plotFrame]
+                            let localX = location.x - plotRect.minX
+                            guard localX >= 0, localX <= plotRect.width,
+                                  let tappedDate: Date = proxy.value(atX: localX) else { return }
+                            selectedCVDailyPoint = findings.dailyPoints.min {
+                                abs($0.date.timeIntervalSince(tappedDate))
+                                    < abs($1.date.timeIntervalSince(tappedDate))
+                            }
+                        }
                 }
             }
         }
+    }
+
+    private func cvSelectionSummary(_ point: ReportViewModel.CVDailyPoint) -> some View {
+        let standardDeviation = (point.upperBand - point.lowerBand) / 2
+        return HStack(spacing: 8) {
+            Text(ReportView.dateFormatter.string(from: point.date))
+            Spacer(minLength: 4)
+            Text("평균")
+                .foregroundStyle(.secondary)
+            Text("\(Int(point.mean.rounded()))ms")
+                .bold()
+            Text("표준편차")
+                .foregroundStyle(.secondary)
+            Text("\(Int(standardDeviation.rounded()))ms")
+                .bold()
+        }
+        .font(.caption2)
+        .lineLimit(1)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // rMSSD(ms) 값 범위에 맞춰 0부터 대략 4등분한 "깔끔한" 눈금값을 계산한다 — 네이티브
@@ -583,23 +645,8 @@ struct ReportView: View {
     // 월별 캔들 차트와 유사한 형태로 겹쳐 그린다.
     private var hourlyPatternSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("시간대별 rMSSD 분포")
-                    .font(Typography.reportSectionTitle)
-                Spacer(minLength: 8)
-                HStack(spacing: 10) {
-                    hourlyPatternLegendItem(label: "평균") {
-                        Rectangle()
-                            .fill(Theme.rmssd)
-                            .frame(width: 12, height: 2)
-                    }
-                    hourlyPatternLegendItem(label: "±표준편차") {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Theme.rmssdRange)
-                            .frame(width: 6, height: 10)
-                    }
-                }
-            }
+            Text("시간대별 rMSSD 분포")
+                .font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
             if viewModel.hourOfDayPattern.isEmpty {
@@ -610,7 +657,22 @@ struct ReportView: View {
                 if let displayedPoint = hourlyPatternDisplayedPoint(in: viewModel.hourOfDayPattern) {
                     hourlyPatternSelectionSummary(displayedPoint)
                 }
-                hourlyPatternChart(viewModel.hourOfDayPattern).chartLoadingOverlay(viewModel.isAnalyzing)
+                VStack(spacing: 6) {
+                    hourlyPatternChart(viewModel.hourOfDayPattern).chartLoadingOverlay(viewModel.isAnalyzing)
+                    HStack(spacing: 10) {
+                        hourlyPatternLegendItem(label: "평균") {
+                            Rectangle()
+                                .fill(Theme.rmssd)
+                                .frame(width: 12, height: 2)
+                        }
+                        hourlyPatternLegendItem(label: "±표준편차") {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.rmssdRange)
+                                .frame(width: 6, height: 10)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
         }
         .panelCard()
@@ -663,9 +725,9 @@ struct ReportView: View {
                 AxisValueLabel {
                     if let hour = value.as(Int.self) {
                         Text("\(hour)시")
-                            .font(.system(size: 9))
+                            .font(.system(size: 10))
                             .tracking(1)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                     }
                 }
             }

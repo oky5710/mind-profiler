@@ -239,7 +239,7 @@ enum HealthKitService {
     // RR 간격 자체를 제곱하는 게 아니라, RR(i+1) - RR(i)를 제곱해야 한다.
     //
     // 외부 앱과 원시 계산값을 직접 비교할 수 있도록 범위 안 RR에는 상대변화율 필터를 적용하지 않는다.
-    // gap이나 범위 밖 간격에서는 연속 시퀀스를 끊어 그 앞뒤 RR을 서로 이웃한 값으로 비교하지 않는다.
+    // gap이나 범위 밖 RR은 해당 간격만 건너뛰고, 다음 정상 RR은 마지막 정상 RR과 비교한다.
     // 데이터 품질은 계산값에서 임의로 제거하지 않고 추후 별도 신뢰도 지표로 표현한다.
     private static func rMSSD(for series: HKHeartbeatSeriesSample) async throws -> Double? {
         let descriptor = HKHeartbeatSeriesQueryDescriptor(series)
@@ -249,26 +249,13 @@ enum HealthKitService {
         var diffCount = 0
 
         for try await beat in descriptor.results(for: store) {
-            let currentBeatTime = beat.timeIntervalSinceStart
+            defer { previousBeatTime = beat.timeIntervalSinceStart }
 
-            guard let previousTime = previousBeatTime else {
-                previousBeatTime = currentBeatTime
-                continue
-            }
+            guard let previousBeatTime else { continue }
+            guard !beat.precededByGap else { continue }
 
-            if beat.precededByGap {
-                previousBeatTime = currentBeatTime
-                previousInterval = nil
-                continue
-            }
-
-            let interval = (currentBeatTime - previousTime) * 1000
-            previousBeatTime = currentBeatTime
-
-            guard plausibleIntervalRangeMs.contains(interval) else {
-                previousInterval = nil
-                continue
-            }
+            let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
+            guard plausibleIntervalRangeMs.contains(interval) else { continue }
 
             if let previousInterval {
                 let diff = interval - previousInterval
