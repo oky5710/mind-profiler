@@ -12,7 +12,16 @@ extension HRVAnalysisView {
     var lineAndGanttChartsStack: some View {
         VStack(spacing: 0) {
             baseLineChart
-            ganttChart
+            // 일별 모드는 간트 차트(수면/운동/캘린더) 대신 안정시 심박수 막대 차트를 보여준다 —
+            // 일별로 뭉친 하루 대표값 시점에서는 시/분 단위 구간 막대가 더 이상 의미가 없어서다.
+            // 시간별 모드는 기존 간트 차트를 2/3 높이로 줄이고, 그 아래 커피/약복용/이벤트
+            // 아이콘 레인(1/3 높이)을 새로 추가한다.
+            if chartMode == .daily {
+                restingHeartRateChart
+            } else {
+                ganttChart
+                hourlyMarkerLane
+            }
         }
         // 상세 패널은 오버레이라 이 스택의 레이아웃 높이에 영향을 주지 않는다 — x축 위치(간트 차트
         // 바로 아래)에 붙여서 그 아래 범례 위에 겹쳐 보이게 한다. 히트 테스트는 켜둔 채로 둔다 —
@@ -56,30 +65,73 @@ extension HRVAnalysisView {
 
             if !hiddenSeries.contains(.rmssd) {
                 ForEach(currentRMSSDPoints) { point in
+                    // 선 자체는 브랜드 색(primary)으로 통일하고, rmssdColor(iris)는 그 위에 찍히는
+                    // 포인트(정상/저하/상승 등 의미가 있는 색 구분)에만 남겨서 선과 점의 역할을
+                    // 시각적으로 분리한다.
                     LineMark(
                         x: .value("시간", point.date),
                         y: .value("rMSSD", point.value),
                         series: .value("구간", "rmssd-\(point.segment)")
                     )
-                    .foregroundStyle(rmssdColor)
+                    .foregroundStyle(Theme.primary)
 
                     if showRMSSDPointMarkers {
-                        // 최근 30일 중앙값의 50% 미만으로 뚝 떨어진 값은 눈에 띄게 원 테두리를 빨강으로.
-                        let isCriticallyLow = viewModel.recentThirtyDayRMSSDMedian.map { point.value < $0 * 0.5 } ?? false
+                        // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
+                        // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강. 응답하지 않은 낮음/높음 포인트는
+                        // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
+                        if let event = matchedRMSSDEvent(for: point.date), event.direction == RMSSDThresholdDirection.high.rawValue {
+                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 같은 색의 옅은(20%) 테두리를
+                            // 살짝 더 큰 원을 뒤에 겹쳐 그려서 흉내 낸다(PointMark는 실제 stroke를
+                            // 지원하지 않는다).
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(110)
+                            .foregroundStyle(Theme.rmssdHigh.opacity(0.2))
 
-                        PointMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value)
-                        )
-                        .symbolSize(80)
-                        .foregroundStyle(isCriticallyLow ? .red : rmssdColor)
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(90)
+                            .foregroundStyle(Theme.rmssdHigh)
+                        } else if matchedRMSSDEvent(for: point.date) != nil {
+                            // 여기 도달했다는 건 위에서 높음(high)이 아니라고 걸러졌다는 뜻이라 낮음뿐이다.
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbol(.diamond)
+                            .symbolSize(90)
+                            .foregroundStyle(.red)
+                        } else {
+                            // 최근 30일 중앙값의 50% 미만/150% 이상으로 급격히 변한 값은 눈에 띄게
+                            // 원 테두리를 빨강/초록으로 — 백그라운드 급격한 변화 알림(RMSSDThreshold)과
+                            // 같은 기준을 쓴다.
+                            let direction = viewModel.recentThirtyDayRMSSDMedian.flatMap {
+                                RMSSDThreshold.direction(value: point.value, median: $0)
+                            }
+                            let ringColor: Color = switch direction {
+                            case .low: .red
+                            case .high: Theme.rmssdHigh
+                            case nil: rmssdColor
+                            }
 
-                        PointMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value)
-                        )
-                        .symbolSize(32)
-                        .foregroundStyle(.white)
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(80)
+                            .foregroundStyle(ringColor)
+
+                            PointMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value)
+                            )
+                            .symbolSize(32)
+                            .foregroundStyle(.white)
+                        }
                     }
                 }
             }
@@ -132,8 +184,8 @@ extension HRVAnalysisView {
     private static let ganttBarMarginPoints: CGFloat = 4
 
     var ganttBarYStart: Double {
-        guard ganttChartHeight > 0 else { return 0 }
-        return Double(Self.ganttBarMarginPoints / ganttChartHeight)
+        guard ganttBarsHeight > 0 else { return 0 }
+        return Double(Self.ganttBarMarginPoints / ganttBarsHeight)
     }
 
     var ganttBarYEnd: Double { 1 - ganttBarYStart }
@@ -143,6 +195,14 @@ extension HRVAnalysisView {
         case .holiday: Theme.holiday
         case .vacation: Theme.vacation
         case .general: calendarEventColor
+        }
+    }
+
+    func dailyMarkerColor(for kind: HRVAnalysisViewModel.DailyMarkerKind) -> Color {
+        switch kind {
+        case .coffee: Theme.coffee
+        case .medication: Theme.medication
+        case .event: calendarEventColor
         }
     }
 
@@ -239,7 +299,7 @@ extension HRVAnalysisView {
                     .lineStyle(StrokeStyle(lineWidth: 1))
             }
         }
-        .frame(height: ganttChartHeight)
+        .frame(height: ganttBarsHeight)
         .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...1)
         .chartXAxis(.hidden)
@@ -252,7 +312,7 @@ extension HRVAnalysisView {
                     yAxisTickValues: [],
                     xAxisTickDates: xAxisTickDates,
                     xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                    xAxisLabelBelow: true,
+                    xAxisLabelBelow: false,
                     tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
                     tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
                     tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
@@ -260,6 +320,101 @@ extension HRVAnalysisView {
                 )
                 ganttBorderOverlay(proxy: proxy)
             }
+        }
+    }
+
+    // 시간별 모드 전용 — 커피/약복용/이벤트를 시각 축 위의 점(원/별)으로 보여준다. 간트 차트
+    // 바로 아래, 회색 구분선으로 나눠서 별도 레인처럼 보이게 한다.
+    var hourlyMarkerLane: some View {
+        let visibleStart = hrvScrollPosition
+        let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
+        let visibleMarkers = viewModel.dailyMarkers.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
+
+        return Chart {
+            // Chart의 결과 빌더는 ForEach 안에서 케이스마다 다른 조합의 마크/수식어를 쓰는 switch를
+            // 잘 못 받아들여 엉뚱한 타입 추론 에러를 낸다 — 마크 하나로 통일하고 모양/색/크기만
+            // 종류별로 분기한다.
+            ForEach(visibleMarkers) { marker in
+                let isEvent = marker.kind == .event
+                let color = dailyMarkerColor(for: marker.kind)
+
+                // BasicChartSymbolShape엔 별 모양이 없어서(원/사각/세모/다이아몬드/십자 등만 있음),
+                // 이벤트만 SF Symbol을 직접 그리는 커스텀 심볼 뷰로 그린다.
+                PointMark(x: .value("시간", marker.date), y: .value("위치", 0.5))
+                    .symbol {
+                        if isEvent {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(color)
+                        } else {
+                            Circle()
+                                .fill(color)
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+            }
+        }
+        .frame(height: iconLaneHeight)
+        .chartXScale(domain: visibleDateRange)
+        .chartYScale(domain: 0...1)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        // "그리드"(y축 가로선, gray 0.25)보다 조금 더 진한 회색으로 위쪽에 구분선을 그어서, 위의
+        // 간트 막대 레인과 시각적으로 나뉘어 보이게 한다.
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.gray.opacity(0.4))
+                .frame(height: 1)
+        }
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: [],
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                xAxisLabelBelow: true,
+                tooltipDailyMarkers: visibleMarkers
+            )
+        }
+    }
+
+    // 일별 모드 전용 — 간트 차트(수면/운동/캘린더) 대신 안정시 심박수를 하루 막대 하나로 보여준다.
+    // 일별 모드는 rMSSD도 이미 하루 대표값(중앙값)이라 같은 결의 "하루 단위 요약" 지표로 맞췄다.
+    var restingHeartRateChart: some View {
+        let points = viewModel.wearableRestingHeartRatePointsDaily
+        let yAxisUpperBound = max(ceil((points.map(\.value).max() ?? 60) / 20) * 20, 20)
+
+        return Chart {
+            ForEach(points) { point in
+                BarMark(
+                    x: .value("날짜", point.date, unit: .day),
+                    y: .value("안정시 심박수", point.value)
+                )
+                .foregroundStyle(Theme.heart)
+                .cornerRadius(2)
+            }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+        }
+        .frame(height: ganttChartHeight)
+        .chartXScale(domain: visibleDateRange)
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                xAxisLabelBelow: true
+            )
         }
     }
 

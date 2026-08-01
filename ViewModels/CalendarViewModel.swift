@@ -11,6 +11,8 @@ final class CalendarViewModel {
     private var moodsByDate: [String: MoodLogEntry] = [:]
     private var coffeesByDate: [String: [CoffeeLogEntry]] = [:]
     private var exercisesByDate: [String: [ExerciseLogEntry]] = [:]
+    private var medicationLogsByDate: [String: [MedicationLogEntry]] = [:]
+    private var eventsByDate: [String: [LifeEventEntry]] = [:]
 
     init(referenceDate: Date = Date()) {
         let components = Calendar.current.dateComponents([.year, .month], from: referenceDate)
@@ -26,12 +28,17 @@ final class CalendarViewModel {
             async let moods = MoodService.allMoods()
             async let coffees = CoffeeService.allCoffees()
             async let exercises = ExerciseService.allExercises()
-            let (moodList, coffeeList, exerciseList) = try await (moods, coffees, exercises)
+            async let medicationLogs = MedicationService.allLogs()
+            async let events = LifeEventService.allEvents()
+            let (moodList, coffeeList, exerciseList, medicationLogList, eventList) = try await (moods, coffees, exercises, medicationLogs, events)
 
+            // MoodLog.date는 시각 없는 순수 날짜(Prisma @db.Date)라, 일반 parseISODate로 인스턴트를
+            // 만든 뒤 로컬 타임존으로 포맷하면 UTC보다 시간대가 뒤인 지역에서 하루 밀릴 수 있다 —
+            // dateOnlyString으로 문자열의 날짜 부분만 그대로 키로 쓴다.
             var moodMap: [String: MoodLogEntry] = [:]
             for entry in moodList {
-                guard let date = DateKey.parseISODate(entry.date) else { continue }
-                moodMap[DateKey.string(from: date)] = entry
+                guard let dayKey = DateKey.dateOnlyString(fromISO: entry.date) else { continue }
+                moodMap[dayKey] = entry
             }
             moodsByDate = moodMap
 
@@ -48,6 +55,24 @@ final class CalendarViewModel {
                 exerciseMap[DateKey.string(from: start), default: []].append(entry)
             }
             exercisesByDate = exerciseMap
+
+            // MedicationLog.date도 MoodLog.date와 같은 순수 날짜 필드라 같은 이유로 dateOnlyString을
+            // 쓴다 — parseISODate + 로컬 타임존이면 위와 같은 하루 밀림이 생길 수 있다.
+            var medicationLogMap: [String: [MedicationLogEntry]] = [:]
+            for entry in medicationLogList where entry.taken {
+                guard let dayKey = DateKey.dateOnlyString(fromISO: entry.date) else { continue }
+                medicationLogMap[dayKey, default: []].append(entry)
+            }
+            medicationLogsByDate = medicationLogMap
+
+            // Event.date는 시각까지 있는 진짜 타임스탬프라(Prisma DateTime, @db.Date 아님) 커피/운동과
+            // 같은 방식으로 parseISODate + 로컬 타임존 포맷을 그대로 쓴다.
+            var eventMap: [String: [LifeEventEntry]] = [:]
+            for entry in eventList {
+                guard let date = DateKey.parseISODate(entry.date) else { continue }
+                eventMap[DateKey.string(from: date), default: []].append(entry)
+            }
+            eventsByDate = eventMap
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -104,5 +129,13 @@ final class CalendarViewModel {
 
     func exercises(on date: Date) -> [ExerciseLogEntry] {
         exercisesByDate[DateKey.string(from: date)] ?? []
+    }
+
+    func medicationLogs(on date: Date) -> [MedicationLogEntry] {
+        medicationLogsByDate[DateKey.string(from: date)] ?? []
+    }
+
+    func events(on date: Date) -> [LifeEventEntry] {
+        eventsByDate[DateKey.string(from: date)] ?? []
     }
 }

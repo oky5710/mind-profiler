@@ -13,6 +13,13 @@ enum MedicationService {
         try await APIClient.shared.get("/medications/logs?date=\(DateKey.string(from: date))")
     }
 
+    // date 쿼리 없이 부르면 백엔드가 전체 복용 기록을 돌려준다 — 캘린더 달력 배지/날짜 요약
+    // 시트가 한 달 전체를 한 번에 보여줘야 해서, 날짜별로 따로 부르지 않고 이걸로 한 번에 받아
+    // 클라이언트에서 날짜별로 묶는다(다른 기록 타입과 동일한 패턴).
+    static func allLogs() async throws -> [MedicationLogEntry] {
+        try await APIClient.shared.get("/medications/logs")
+    }
+
     static func addMedication(
         name: String,
         timings: [MedicationTiming],
@@ -44,6 +51,13 @@ enum MedicationService {
 
     static func removeLog(id: String) async throws {
         let _: MedicationLogEntry = try await APIClient.shared.delete("/medications/logs/\(id)")
+    }
+
+    static func updateLog(id: String, timing: MedicationTiming) async throws {
+        let _: MedicationLogEntry = try await APIClient.shared.patch(
+            "/medications/logs/\(id)",
+            body: MedicationLogUpdateRequest(timing: timing.rawValue)
+        )
     }
 
     // 식약처 낱알식별정보 검색 — mind-record 웹의 /drugs/search와 동일. 인증 불필요한 공개

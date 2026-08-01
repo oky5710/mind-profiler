@@ -41,13 +41,22 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | POST | `/medications` | 약 등록(검색 결과+복용 시간대) | `MedicationService.addMedication` |
 | DELETE | `/medications/:id` | 약 삭제(soft delete) | `MedicationService.removeMedication` |
 | GET | `/medications/logs?date=yyyy-MM-dd` | 특정 날짜 복용 기록 조회(홈 화면 퀵버튼 체크 표시용) | `MedicationService.logs` |
+| GET | `/medications/logs` | 전체 복용 기록 조회(캘린더 배지/날짜 요약 시트용, 날짜 필터 없음) | `MedicationService.allLogs` |
 | POST | `/medications/logs/quick` | 해당 시간대로 등록된 약 전부 복용 처리 | `MedicationService.logTiming` |
+| PATCH | `/medications/logs/:id` | 복용 기록의 시간대 수정(날짜 요약 시트의 수정 아이콘) | `MedicationService.updateLog` |
 | DELETE | `/medications/logs/:id` | 복용 기록 삭제 | `MedicationService.removeLog` |
 | GET | `/drugs/search?name=` | 식약처 낱알식별정보 검색(공개 엔드포인트) | `MedicationService.searchDrugs` |
+| GET | `/medication-reminders` | 등록된 복용 알림 설정 전체 조회 | `MedicationReminderService.allReminders` |
+| POST | `/medication-reminders` | 복용 알림 설정 등록(설정값만 저장, 실제 알림 예약은 기기가 로컬로 함) | `MedicationReminderService.addReminder` |
+| PATCH | `/medication-reminders/:id` | 복용 알림 설정 수정(켜고 끄는 스위치도 `isEnabled` 필드로 이 엔드포인트를 씀) | `MedicationReminderService.updateReminder` |
+| DELETE | `/medication-reminders/:id` | 복용 알림 설정 삭제 | `MedicationReminderService.removeReminder` |
 | GET | `/events?date=yyyy-MM-dd` | 특정 날짜 이벤트 기록 조회 (`LifeEventEntryForm` 목록용) | `LifeEventService.entries` |
 | GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |
 | POST | `/events` | 이벤트 기록 생성 | `LifeEventService.logEvent` |
 | DELETE | `/events/:id` | 이벤트 기록 삭제 | `LifeEventService.removeEvent` |
+| GET | `/rmssd-events` | rMSSD 급격한 변화 알림 때 기록한 감정/메모 전체 조회 | `RMSSDEventService.allEvents` |
+| POST | `/rmssd-events` | rMSSD 이벤트 기록 생성(발생 시각/rMSSD 값/방향/감정/선택 메모) | `RMSSDEventService.logEvent` |
+| DELETE | `/rmssd-events/:id` | rMSSD 이벤트 기록 삭제 | `RMSSDEventService.removeEvent` |
 
 ## 아직 안 씀
 
@@ -60,7 +69,9 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 rMSSD 계산용 원시 박동 시리즈(`HKSeriesType.heartbeat()`, iOS 13+), HRV(SDNN,
 `heartRateVariabilitySDNN`) — SDNN은 HealthKit 제약상 heartbeat series 권한과 반드시 같이
 요청해야 하고(안 하면 크래시), 화면에서는 rMSSD 참고용 옅은 라인으로만 쓴다 — 그리고 안정시 심박수
-(`HKQuantityType(.restingHeartRate)`, 보고서의 "기간 요약" 중앙값용). 자세한 내용은
+(`HKQuantityType(.restingHeartRate)`, 보고서의 "기간 요약" 중앙값용). SDNN 측정은
+`HKObserverQuery` + 백그라운드 배달(`RMSSDThresholdMonitorService`)로도 관찰해서, 새 측정이
+들어올 때마다 rMSSD 급격한 변화를 감지한다. 자세한 내용은
 [architecture.md](architecture.md)의 HealthKit 섹션 참고.
 
 ## EventKit (백엔드 API 아님, 구글 캘린더 대체)

@@ -69,6 +69,22 @@ enum Theme {
         blue: 0.8392
     ) // iris-9 #5b5bd6
 
+    // rMSSD가 최근 30일 중앙값의 150% 이상으로 급격히 높아진 지점(원 테두리·다이아몬드) 전용 색.
+    // SwiftUI 기본 `.green`은 너무 쨍하고 촌스러워서, 사용자가 직접 지정한 채도 낮춘 초록으로 바꿨다.
+    static let rmssdHigh = Color(
+        red: 0.1922,
+        green: 0.6863,
+        blue: 0.4549
+    ) // #31af74
+
+    // 오늘의 패턴 시간별 모드, 간트 차트 아래 아이콘 레인의 약복용 마커 전용 색.
+    // 커피(orange)·이벤트(blue)와 겹치지 않으면서 브랜드 보라(primary)와도 구분되도록 핑크 계열로.
+    static let medication = Color(
+        red: 0.8392,
+        green: 0.2510,
+        blue: 0.6235
+    ) // pink-9 #d6409f
+
     // 월별 캔들스틱 박스(1Q~3Q) 전용 색.
     // rmssd와 같은 Iris 계열을 사용해 의미적 연결을 유지한다.
     // 넓은 면적을 채워도 무겁지 않도록 rmssd보다 옅은 6단계를 사용한다.

@@ -87,6 +87,7 @@ struct HRVAnalysisView: View {
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
     @State var tooltipSleepRange: SleepRange?
     @State var tooltipWorkoutRange: HRVAnalysisViewModel.WorkoutRange?
+    @State var tooltipDailyMarker: HRVAnalysisViewModel.DailyMarker?
 
     // hrvScrollPosition이 스크롤 중 계속 바뀌는데, 매 프레임 body가 다시 계산될 때마다
     // 전체 포인트를 다시 스캔하면 스크롤이 심하게 느려져서 모드/데이터가 바뀔 때만 갱신.
@@ -142,6 +143,16 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // 일별 모드의 point.date는 실제 샘플 시각이 아니라 그날 자정(그날의 대표값)이라, 시간 오차로
+    // 매칭하면 자정 근처가 아닌 이상 항상 실패한다 — 모드별로 다른 매칭 기준을 쓴다.
+    func matchedRMSSDEvent(for date: Date) -> RMSSDEventEntry? {
+        switch chartMode {
+        case .hourly: viewModel.rmssdEvent(near: date)
+        case .daily: viewModel.rmssdEvent(onDay: date)
+        case .monthly: nil
+        }
+    }
+
     // chartMode의 기본 기간을 zoomScale로 나눈 실제 표시 기간 — 핀치 줌으로 연속적으로 변한다.
     var visibleDomain: TimeInterval {
         chartMode.visibleDomain / Double(zoomScale)
@@ -170,8 +181,19 @@ struct HRVAnalysisView: View {
         availableHeight * 0.4
     }
 
+    // 시간별 모드에서만 쓰는 전체 예약 높이 — 실제 막대(수면/운동/캘린더) 차트가 이 중 2/3를,
+    // 그 아래 새 아이콘 레인(커피/약복용/이벤트)이 나머지 1/3을 차지한다. 이 값 자체는 그대로 둬서
+    // (라인 차트 + 이 값)을 바닥 기준으로 삼는 selectedItemDetailPanel의 오프셋 계산이 안 바뀐다.
     var ganttChartHeight: CGFloat {
         lineChartHeight / 2 * 0.7
+    }
+
+    var ganttBarsHeight: CGFloat {
+        ganttChartHeight * 2 / 3
+    }
+
+    var iconLaneHeight: CGFloat {
+        ganttChartHeight - ganttBarsHeight
     }
 
     // 시간별/일별은 "지금"까지만 스크롤 가능하지만, 월별은 이번 달이 아직 안 끝났어도 이번 달 데이터가
@@ -189,21 +211,28 @@ struct HRVAnalysisView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                VStack(alignment: .leading, spacing: 24) {
-                    hrvChart
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 10)
-                .padding(.bottom)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
-                    // 탭했을 때만 걸린다.
-                    tooltipPoint = nil
-                    tooltipCalendarEvent = nil
-                    tooltipSleepRange = nil
-                    tooltipWorkoutRange = nil
+                // .refreshable(아래 배치)은 ScrollView/List 같은 실제 스크롤 가능한 조상이 있어야
+                // 당겨서 새로고침 제스처를 인식한다 — VStack만 있던 예전 구조에선 아래로 당겨도
+                // 아무 반응이 없었다.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        hrvChart
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    .padding(.bottom)
+                    .frame(minHeight: geo.size.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
+                        // 탭했을 때만 걸린다.
+                        tooltipPoint = nil
+                        tooltipCalendarEvent = nil
+                        tooltipSleepRange = nil
+                        tooltipWorkoutRange = nil
+                        tooltipDailyMarker = nil
+                    }
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
@@ -231,6 +260,12 @@ struct HRVAnalysisView: View {
         .task {
             await viewModel.loadCalendarEventsIfNeeded()
         }
+        .task {
+            await viewModel.loadRMSSDEventsIfNeeded()
+        }
+        .task {
+            await viewModel.loadDailyMarkersIfNeeded()
+        }
         // 스크롤(드래그)이나 핀치 줌으로 보이는 구간이 바뀔 때마다 호출하지만, 이미 여유 있게
         // 로드된 범위 안이면 ensureHealthKitDataLoaded가 그냥 바로 반환하므로 실제 HealthKit
         // 조회는 가장자리에 가까워질 때만 드물게 일어난다.
@@ -254,6 +289,7 @@ struct HRVAnalysisView: View {
             tooltipCalendarEvent = nil
             tooltipSleepRange = nil
             tooltipWorkoutRange = nil
+            tooltipDailyMarker = nil
             recomputeRange()
         }
         .refreshable {
@@ -262,6 +298,8 @@ struct HRVAnalysisView: View {
             // 워치에서 새로 동기화된 데이터가 있을 수 있어서다.
             await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
             await viewModel.loadCalendarEventsIfNeeded()
+            await viewModel.reloadRMSSDEvents()
+            await viewModel.reloadDailyMarkers()
             recomputeRange()
         }
         // 탭을 나갔다가 다시 들어올 때마다 pull-to-refresh와 같은 강제 새로고침을 한다 — 캘린더에서
@@ -275,6 +313,8 @@ struct HRVAnalysisView: View {
                 await viewModel.reload()
                 await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
                 await viewModel.loadCalendarEventsIfNeeded()
+                await viewModel.reloadRMSSDEvents()
+                await viewModel.reloadDailyMarkers()
                 recomputeRange()
             }
         }
@@ -361,12 +401,14 @@ struct HRVAnalysisView: View {
         let dateText = chartMode == .daily
             ? Self.monthDayFormatter.string(from: point.date)
             : Self.tooltipDateFormatter.string(from: point.date)
+        let matchedEvent = matchedRMSSDEvent(for: point.date)
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(dateText)
                 .font(.caption2)
             // 라벨(rMSSD/SDNN)은 작게, 숫자는 크게 — Grid로 두 줄의 라벨 칸 너비를 맞춰서
-            // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다.
+            // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다. 기분은 rMSSD/SDNN처럼 측정값이
+            // 아니라 사용자가 고른 짧은 단어라 굳이 크게 강조하지 않고 라벨과 같은 작은 크기로 둔다.
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 4, verticalSpacing: 2) {
                 GridRow {
                     Text("rMSSD").font(.caption2)
@@ -378,6 +420,23 @@ struct HRVAnalysisView: View {
                         Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
                     }
                 }
+                if let emotion = matchedEvent.flatMap({ RMSSDEmotion(rawValue: $0.emotion) }) {
+                    GridRow {
+                        Text("기분").font(.caption2)
+                        Text(emotion.label).font(.caption2)
+                    }
+                }
+            }
+            if let note = matchedEvent?.note, !note.isEmpty {
+                // 메모는 입력 폼에서 글자 수 제한이 없어서, 다른 줄처럼 fixedSize에 맡기면(한 줄
+                // 통짜 너비를 그대로 요구) 툴팁이 화면 밖으로 넘어갈 만큼 넓어질 수 있다 — 너비를
+                // 직접 제한하고 세로로만 줄바꿈되게 한다.
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: 220, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .foregroundStyle(.white)
@@ -466,7 +525,50 @@ struct HRVAnalysisView: View {
                 .overlay(alignment: .topTrailing) {
                     closeButton { tooltipWorkoutRange = nil }
                 }
+        } else if let marker = tooltipDailyMarker {
+            tooltipLabel(for: marker)
+                .overlay(alignment: .topTrailing) {
+                    closeButton { tooltipDailyMarker = nil }
+                }
         }
+    }
+
+    private static let dailyMarkerTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    private func dailyMarkerKindLabel(_ kind: HRVAnalysisViewModel.DailyMarkerKind) -> String {
+        switch kind {
+        case .coffee: "커피"
+        case .medication: "약 복용"
+        case .event: "이벤트"
+        }
+    }
+
+    func tooltipLabel(for marker: HRVAnalysisViewModel.DailyMarker) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(dailyMarkerKindLabel(marker.kind))
+                .font(.caption2.bold())
+                .foregroundStyle(dailyMarkerColor(for: marker.kind))
+            // 약복용은 제목이 종류 라벨("약 복용")과 똑같아서 — 약 이름 자체는 원래 안 보여주는
+            // 정책이라(DayDetailSheet와 동일) 중복으로 한 번 더 보여줄 필요가 없다.
+            if marker.kind != .medication {
+                Text(marker.title)
+                    .font(.subheadline.bold())
+            }
+            Text(Self.dailyMarkerTimeFormatter.string(from: marker.date))
+                .font(.caption2)
+        }
+        .foregroundStyle(.black)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
+        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
     }
 
     private func closeButton(action: @escaping () -> Void) -> some View {

@@ -53,7 +53,8 @@ extension HRVAnalysisView {
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
-        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = [],
+        tooltipDailyMarkers: [HRVAnalysisViewModel.DailyMarker] = []
     ) -> some View {
         ZStack {
             xAxisOverlay(
@@ -71,13 +72,16 @@ extension HRVAnalysisView {
                 tooltipRanges: tooltipRanges,
                 tooltipSleepRanges: tooltipSleepRanges,
                 tooltipWorkoutRanges: tooltipWorkoutRanges,
-                tooltipAllDayMarkers: tooltipAllDayMarkers
+                tooltipAllDayMarkers: tooltipAllDayMarkers,
+                tooltipDailyMarkers: tooltipDailyMarkers
             )
         }
     }
 
-    // 선택된 Gantt 막대(캘린더 일정/수면 구간) 강조용 그림자 도형 — 차트 마크 자체는 shadow()를
-    // 지원하지 않아서, 같은 위치·크기·색으로 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 대신 그림자를 준다.
+    // 선택된 Gantt 막대(캘린더 일정/수면 구간) 강조 도형 — 차트 마크 자체는 진하게(불투명) 다시
+    // 그릴 수 없어서, 같은 위치·크기·색의 진짜 SwiftUI 도형을 하나 더 겹쳐 그려서 대신 진하게 보이게
+    // 한다. 예전엔 여기에 shadow()도 줬는데, 그 그림자가 테두리(stroke)처럼 보인다는 피드백을 받아
+    // 뺐다 — 지금은 그냥 불투명 색만으로 선택 상태를 나타낸다.
     @ViewBuilder
     private func selectionShadow(start: Date, end: Date, color: Color, proxy: ChartProxy, geo: GeometryProxy) -> some View {
         if let plotFrame = proxy.plotFrame,
@@ -88,7 +92,6 @@ extension HRVAnalysisView {
                 .fill(color)
                 .frame(width: abs(x1 - x0), height: abs(y1 - y0))
                 .position(x: plotRect.minX + (x0 + x1) / 2, y: plotRect.minY + (y0 + y1) / 2)
-                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
                 .allowsHitTesting(false)
         }
     }
@@ -148,13 +151,15 @@ extension HRVAnalysisView {
         tooltipRanges: [HRVAnalysisViewModel.CalendarEventRange] = [],
         tooltipSleepRanges: [SleepRange] = [],
         tooltipWorkoutRanges: [HRVAnalysisViewModel.WorkoutRange] = [],
-        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = []
+        tooltipAllDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] = [],
+        tooltipDailyMarkers: [HRVAnalysisViewModel.DailyMarker] = []
     ) -> some View {
         // 툴팁 말풍선이 화면/차트 밖으로 나가지 않도록, 세로선 자체는 실제 위치에 그리되
         // 말풍선의 x 위치만 플롯 안쪽으로 밀어 넣는다 (말풍선 예상 반너비만큼 여유를 둠).
         let estimatedTooltipHalfWidth: CGFloat = 45
         // 종일 일정 원은 탭 지점이 그 원에서 이만큼(포인트) 이내일 때만 반응한다 — 그 날 전체가 아니라
-        // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함.
+        // 실제로 원을 눌렀을 때만 툴팁이 뜨게 하기 위함. 아이콘 레인의 커피/약복용/이벤트 마커도
+        // 같은 방식으로 반응한다.
         let allDayMarkerHitRadius: CGFloat = 16
 
         return GeometryReader { geo in
@@ -228,6 +233,7 @@ extension HRVAnalysisView {
                                     tooltipCalendarEvent = nil
                                     tooltipSleepRange = nil
                                     tooltipWorkoutRange = nil
+                                    tooltipDailyMarker = nil
                                     return
                                 }
 
@@ -292,6 +298,20 @@ extension HRVAnalysisView {
                                 } else {
                                     tooltipWorkoutRange = nil
                                 }
+
+                                // 아이콘 레인의 커피/약복용/이벤트 마커 — 종일 일정 원과 같은 방식으로
+                                // 가장 가까운 마커가 실제 반경 안에 들어왔을 때만 인정한다.
+                                if tooltipDailyMarkers.isEmpty {
+                                    tooltipDailyMarker = nil
+                                } else {
+                                    let localX = value.location.x - plotRect.minX
+                                    let nearest = tooltipDailyMarkers.min(by: { a, b in
+                                        abs((proxy.position(forX: a.date) ?? .infinity) - localX)
+                                            < abs((proxy.position(forX: b.date) ?? .infinity) - localX)
+                                    })
+                                    let nearestX = nearest.flatMap { proxy.position(forX: $0.date) } ?? .infinity
+                                    tooltipDailyMarker = abs(nearestX - localX) <= allDayMarkerHitRadius ? nearest : nil
+                                }
                             }
                             .onEnded { _ in
                                 dragAnchorPosition = nil
@@ -322,6 +342,7 @@ extension HRVAnalysisView {
                     tooltipCalendarEvent = nil
                     tooltipSleepRange = nil
                     tooltipWorkoutRange = nil
+                    tooltipDailyMarker = nil
                 }
                 guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
                 let proposedScale = anchorScale * value

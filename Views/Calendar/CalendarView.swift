@@ -70,7 +70,9 @@ struct CalendarView: View {
                 date: day.date,
                 mood: viewModel.mood(on: day.date),
                 coffees: viewModel.coffees(on: day.date),
-                exercises: viewModel.exercises(on: day.date)
+                exercises: viewModel.exercises(on: day.date),
+                medicationLogs: viewModel.medicationLogs(on: day.date),
+                events: viewModel.events(on: day.date)
             ) {
                 pendingEntryDay = day
             } onRefresh: {
@@ -126,8 +128,6 @@ struct CalendarView: View {
     private static let rowSpacing: CGFloat = 4
     private static let columnSpacing: CGFloat = 4
     private static let dateCircleSize: CGFloat = 24
-    // 배지 한 줄(이모지+캡션 폰트)의 대략적인 높이 — 칸에 몇 줄까지 들어갈 수 있는지 계산하는 데만 쓴다.
-    private static let badgeLineHeight: CGFloat = 16
     private static let minRowHeight: CGFloat = 40
     // 실제 그 달의 주 수(4~6주)와 무관하게 항상 6주 기준으로 칸 높이를 나눈다 — 달마다 칸 크기가
     // 들쭉날쭉해지지 않고, 6주짜리 달이 와도 제목줄/하단 탭바를 침범하지 않는다.
@@ -168,38 +168,70 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    private struct DayBadge {
-        let text: String
+    // 기분 이모지도 아래 배지 줄과 함께 줄바꿈되도록 같은 BadgeFlowLayout 안에 넣는다 — 예전엔
+    // 날짜 숫자와 같은 줄 오른쪽 끝에 따로 떠 있어서, 그 줄만 보면 옆 칸 날짜의 기분처럼 헷갈릴 수
+    // 있었다. 색으로 뭉뚱그리지 않는 유일한 항목이라(어떤 기분이었는지가 중요) 이모지 그대로 쓰고,
+    // 나머지(커피/운동/약복용/이벤트)만 유형별 색이 있는 원 배지로 통일해서 개수만큼 나란히 그린다.
+    private struct DayBadge: Identifiable {
+        let id = UUID()
         let color: Color
+        // 화면에는 안 보이고 VoiceOver 접근성 요약에만 쓴다 — 원 배지 자체는 색으로만 구분돼서,
+        // 그것만으로는 "커피"인지 "운동"인지 시각 정보 없이는 알 수 없다.
+        let label: String
     }
 
-    private func badges(mood: MoodLogEntry?, coffeeCount: Int, exerciseCount: Int) -> [DayBadge] {
-        var result: [DayBadge] = []
-        if let mood {
-            result.append(DayBadge(text: MoodService.options.first { $0.score == mood.score }?.emoji ?? "", color: .primary))
+    private static let circleBadgeSize: CGFloat = 10
+    // 채도를 낮춘 파스텔 톤 — 원래 브랜드/차트 색(Theme.exercise 등)은 진해서 작은 원 배지로 쓰면
+    // 너무 튀어 보인다.
+    private static let coffeeBadgeColor = Color(red: 0.80, green: 0.65, blue: 0.52)
+    private static let exerciseBadgeColor = Color(red: 0.70, green: 0.85, blue: 0.75)
+    private static let medicationBadgeColor = Color(red: 0.98, green: 0.90, blue: 0.62)
+    private static let eventBadgeColor = Color(red: 0.72, green: 0.82, blue: 0.95)
+
+    private func badges(coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> [DayBadge] {
+        // Array(repeating:count:)는 단 하나의 인스턴스를 복사하므로 id(UUID())가 전부 같아져
+        // ForEach가 요구하는 고유성이 깨진다 — 매번 새로 만들어야 한다.
+        func dots(_ count: Int, color: Color, label: String) -> [DayBadge] {
+            (0..<count).map { _ in DayBadge(color: color, label: label) }
         }
-        if coffeeCount > 0 {
-            result.append(DayBadge(text: coffeeCount > 1 ? "☕×\(coffeeCount)" : "☕", color: .brown))
-        }
-        if exerciseCount > 0 {
-            result.append(DayBadge(text: exerciseCount > 1 ? "🏃×\(exerciseCount)" : "🏃", color: .primary))
-        }
-        return result
+        return dots(coffeeCount, color: Self.coffeeBadgeColor, label: "커피")
+            + dots(exerciseCount, color: Self.exerciseBadgeColor, label: "운동")
+            + dots(medicationCount, color: Self.medicationBadgeColor, label: "약 복용")
+            + dots(eventCount, color: Self.eventBadgeColor, label: "이벤트")
+    }
+
+    // 배지 하나하나는 색만 있는 원이라 VoiceOver에 개별로 노출하면 "커피, 커피, 커피"처럼 겹쳐
+    // 읽힌다 — 이모지를 포함한 줄 전체를 하나로 묶어서 유형별 개수 요약 하나로만 읽히게 한다.
+    private func badgesAccessibilitySummary(moodScore: Int?, coffeeCount: Int, exerciseCount: Int, medicationCount: Int, eventCount: Int) -> String {
+        var parts: [String] = []
+        if let moodScore { parts.append("기분 \(moodScore)점") }
+        if coffeeCount > 0 { parts.append("커피 \(coffeeCount)건") }
+        if exerciseCount > 0 { parts.append("운동 \(exerciseCount)건") }
+        if medicationCount > 0 { parts.append("약 복용 \(medicationCount)건") }
+        if eventCount > 0 { parts.append("이벤트 \(eventCount)건") }
+        return parts.joined(separator: ", ")
+    }
+
+    private func badgeView(_ badge: DayBadge) -> some View {
+        Circle()
+            .fill(badge.color)
+            .frame(width: Self.circleBadgeSize, height: Self.circleBadgeSize)
     }
 
     private func dayCell(date: Date, columnIndex: Int, cellHeight: CGFloat) -> some View {
         let day = Calendar.current.component(.day, from: date)
         let mood = viewModel.mood(on: date)
+        let moodEmoji = mood.flatMap { entry in MoodService.options.first { $0.score == entry.score }?.emoji }
         let coffeeCount = viewModel.coffees(on: date).count
         let exerciseCount = viewModel.exercises(on: date).count
+        // 아침약 10개를 먹었어도 그건 "아침" 한 번이지 10번이 아니다 — 실제 개별 복용 로그 개수가
+        // 아니라, 그날 챙긴 서로 다른 시간대(아침/점심/저녁/취침전/필요시) 개수만큼만 원을 그린다
+        // (DayDetailSheet의 시간대 그룹핑과 같은 기준).
+        let medicationCount = Set(viewModel.medicationLogs(on: date).map(\.timing)).count
+        let eventCount = viewModel.events(on: date).count
         let isToday = Calendar.current.isDateInToday(date)
 
-        let allBadges = badges(mood: mood, coffeeCount: coffeeCount, exerciseCount: exerciseCount)
-        // 칸 높이에 실제로 들어갈 수 있는 배지 줄 수를 계산해서, 다 못 들어가면 마지막 한 자리를
-        // "+N"으로 남겨 보이지 않는 항목이 있다는 걸 알린다.
-        let maxBadgeLines = max(Int((cellHeight - Self.dateCircleSize) / Self.badgeLineHeight), 0)
-        let visibleBadges = allBadges.count > maxBadgeLines ? Array(allBadges.prefix(max(maxBadgeLines - 1, 0))) : allBadges
-        let overflowCount = allBadges.count - visibleBadges.count
+        let allBadges = badges(coffeeCount: coffeeCount, exerciseCount: exerciseCount, medicationCount: medicationCount, eventCount: eventCount)
 
         return Button {
             selectedDetailDay = SelectedDay(date: date)
@@ -211,19 +243,38 @@ struct CalendarView: View {
                     .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
                     .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
 
-                ForEach(Array(visibleBadges.enumerated()), id: \.offset) { _, badge in
-                    Text(badge.text)
+                // 기분 이모지는 날짜 바로 아래 자기 줄에 단독으로 둔다 — 배지와 같은 줄에 흘려 넣으면
+                // 배지가 이모지 옆에 붙어버려 어디까지가 이모지 줄인지 헷갈린다. 배지 줄은 그 아래
+                // 따로 시작해서 이모지와 겹치지 않고 자기 줄부터 줄바꿈한다.
+                if let moodEmoji {
+                    Text(moodEmoji)
                         .font(.caption2)
-                        .foregroundStyle(badge.color)
+                        // "기분 N점"으로 아래 배지 접근성 요약에 이미 포함되므로 중복으로 읽히지
+                        // 않게 감춘다.
+                        .accessibilityHidden(true)
                 }
-                if overflowCount > 0 {
-                    Text("+\(overflowCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+
+                // 배지는 가로로 나란히 놓다가 칸 너비를 넘기면 다음 줄로 줄바꿈한다(BadgeFlowLayout).
+                // 정확히 몇 줄까지 들어가는지는 미리 계산하지 않고, 칸 높이를 넘는 나머지 줄은 아래
+                // .clipped()로 그냥 잘라 숨긴다 — 날짜를 탭하면 요약 시트에서 어차피 전부 보인다.
+                BadgeFlowLayout(spacing: 3) {
+                    ForEach(allBadges) { badge in
+                        badgeView(badge)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(badgesAccessibilitySummary(
+                    moodScore: mood?.score,
+                    coffeeCount: coffeeCount,
+                    exerciseCount: exerciseCount,
+                    medicationCount: medicationCount,
+                    eventCount: eventCount
+                ))
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: cellHeight, alignment: .topLeading)
+            .clipped()
         }
         .buttonStyle(.plain)
     }

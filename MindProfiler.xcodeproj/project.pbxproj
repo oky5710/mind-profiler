@@ -7,14 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */; };
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
 		0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */; };
 		0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C6AF9A7770E01E42D3583C /* HomeView.swift */; };
+		06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A28FD29167293ED732541EB /* MedicationLogEditForm.swift */; };
 		076CB2ADDEA53311D494E822 /* LifeEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */; };
 		1043C701F9710E29DF998374 /* MedicationManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */; };
 		150A91D8E26AF3F979AB59AD /* DayDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */; };
 		1618FE6163CD29AC677A90AF /* HRVCorrelationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */; };
 		1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = FDA976353F815393EF917200 /* GoogleSignIn */; };
+		1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */; };
 		202460BD9C82EE2421D087D9 /* design-system.md in Resources */ = {isa = PBXBuildFile; fileRef = BD8714E5A70D3B643DB60482 /* design-system.md */; };
 		27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCDEABE829D5B4188733280 /* ExamEntryForm.swift */; };
 		298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */; };
@@ -23,15 +26,21 @@
 		2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F284358300A4D1100CE1C47 /* Assets.xcassets */; };
 		2F284360300A596100CE1C47 /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2F28435F300A596100CE1C47 /* AGENTS.md */; };
 		3C332F9973A910F1A9C171AB /* RRIntervalExportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */; };
+		3C5833101B57E583B6CDF217 /* MedicationReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */; };
 		4154723F090A2390BC67FF3E /* ui-style.md in Resources */ = {isa = PBXBuildFile; fileRef = FB3F76D2A4694A2F654A1B62 /* ui-style.md */; };
+		46FD50BDB7766225F32BF817 /* ReminderEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */; };
 		4700209C461D0BB22C7E8AF6 /* DailyValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983D87F35A4B0F9CE144B7C4 /* DailyValue.swift */; };
+		470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */; };
 		4CEF353801D9275A38CFCF8E /* ExamModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661F32A272362CA8CF1CA9C9 /* ExamModels.swift */; };
+		5124DBB25C473642007675E2 /* ReminderListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */; };
 		52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8296BF009909079BC325B648 /* MoodService.swift */; };
 		546EA496568AB165FEE92A39 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE7ECB87862084848E2504A /* AuthModels.swift */; };
 		554F663B81BFC26EA2C4A043 /* HeartLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D63CA734994647CAA7014D /* HeartLoader.swift */; };
 		5D19F5A91F7A12624AABB18C /* ExerciseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */; };
+		5E015D1143986F1FF8934207 /* RMSSDEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D553D84925EA368698C8FF /* RMSSDEventService.swift */; };
 		63D6917DE455882DFE349BB3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D406E7D6B4DE3F230832DE06 /* HealthKit.framework */; };
 		6663270304ED23D94FC361ED /* MedicationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D6C75DD02E38AA10033162 /* MedicationModels.swift */; };
+		67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */; };
 		6D57DF092916206B7C46BDEF /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 228203F978C4084F09581D10 /* architecture.md */; };
 		74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */; };
 		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
@@ -42,12 +51,14 @@
 		78A3672F3AB6421ABCB9FE08 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA6D2394987B7B159269517 /* SettingsView.swift */; };
 		7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */; };
 		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
+		8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */; };
 		8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */; };
 		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
 		899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */; };
 		8AF1FB4557169DFB2FD06F0E /* LifeEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E922C72C21453864B098F86 /* LifeEventModels.swift */; };
 		8DA0F4F86D994BB6BD8C4885 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C79742243835DC0370C6F78 /* KeychainService.swift */; };
 		962A6287F5A7DA07B688C976 /* MedicationEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */; };
+		9B1DD9B8EBD1BEE0C68067F4 /* RMSSDThresholdMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */; };
 		9B1F4A2C5E6D7089ABCDEF01 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */; };
 		9B1F4A2C5E6D7089ABCDEF03 /* CalendarEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF04 /* CalendarEventService.swift */; };
 		9B1F4A2C5E6D7089ABCDEF05 /* SleepAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF06 /* SleepAnalysisService.swift */; };
@@ -70,26 +81,34 @@
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
 		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
+		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
 		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
 		CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */; };
 		CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400923908367E8D00165474D /* CoffeeEntryForm.swift */; };
+		CD7A941B9741D2627421A574 /* MedicationReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64708648392ADFC66B4F219 /* MedicationReminderService.swift */; };
 		CEB820D33F1D6C3BFD06BFF6 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */; };
 		DA1645B114170F56B34D126E /* MoodEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */; };
 		DB7CF3D984143CAB8FDA431A /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */; };
 		DDCA1A77F0536391896A1E44 /* DateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441617D9A1D63082D4432F0C /* DateKey.swift */; };
+		EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */; };
+		EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225DD3DE88849264BC0A42B7 /* AppDelegate.swift */; };
+		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
 		08D6C75DD02E38AA10033162 /* MedicationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationModels.swift; sourceTree = "<group>"; };
 		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
 		0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Axes.swift"; sourceTree = "<group>"; };
 		103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventService.swift; sourceTree = "<group>"; };
 		11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventEntryForm.swift; sourceTree = "<group>"; };
+		139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdAlertCenter.swift; sourceTree = "<group>"; };
 		156BA80323127255242AD216 /* EntryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryType.swift; sourceTree = "<group>"; };
 		1AD2015ED40BC9A2F87BFF8D /* features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = features.md; sourceTree = "<group>"; };
 		21D63CA734994647CAA7014D /* HeartLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartLoader.swift; sourceTree = "<group>"; };
+		225DD3DE88849264BC0A42B7 /* AppDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		228203F978C4084F09581D10 /* architecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = architecture.md; sourceTree = "<group>"; };
 		27C6AF9A7770E01E42D3583C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEntryForm.swift; sourceTree = "<group>"; };
@@ -101,6 +120,7 @@
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
 		32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixabayService.swift; sourceTree = "<group>"; };
+		3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThreshold.swift; sourceTree = "<group>"; };
 		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
 		400923908367E8D00165474D /* CoffeeEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeEntryForm.swift; sourceTree = "<group>"; };
@@ -112,15 +132,21 @@
 		51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInConfig.swift; sourceTree = "<group>"; };
 		59197C66879A601A9A0A99AF /* ExerciseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseModels.swift; sourceTree = "<group>"; };
 		59B5AB45E929438E760BA513 /* CatPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhoto.swift; sourceTree = "<group>"; };
+		59D553D84925EA368698C8FF /* RMSSDEventService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventService.swift; sourceTree = "<group>"; };
 		661F32A272362CA8CF1CA9C9 /* ExamModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamModels.swift; sourceTree = "<group>"; };
+		6A28FD29167293ED732541EB /* MedicationLogEditForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLogEditForm.swift; sourceTree = "<group>"; };
 		75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		77D915F1380B35DFCE086458 /* DayEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEntrySheet.swift; sourceTree = "<group>"; };
 		7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseService.swift; sourceTree = "<group>"; };
+		7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListViewModel.swift; sourceTree = "<group>"; };
 		7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisSettingsView.swift; sourceTree = "<group>"; };
 		8296BF009909079BC325B648 /* MoodService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodService.swift; sourceTree = "<group>"; };
 		85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		88F7EE3749D826B753973FC3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		8AF23AC877DAF03E6DD07A49 /* PRD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRD.md; sourceTree = "<group>"; };
+		8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminderModels.swift; sourceTree = "<group>"; };
+		92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BadgeFlowLayout.swift; sourceTree = "<group>"; };
+		983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventEntryViewModel.swift; sourceTree = "<group>"; };
 		983D87F35A4B0F9CE144B7C4 /* DailyValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyValue.swift; sourceTree = "<group>"; };
 		99BBF75C69CCFB7FD1C52F90 /* MedicationEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationEntryForm.swift; sourceTree = "<group>"; };
 		9B1F4A2C5E6D7089ABCDEF02 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
@@ -138,23 +164,29 @@
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
 		A1F448D53B0E674CEA76B276 /* MindProfiler.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MindProfiler.entitlements; sourceTree = "<group>"; };
 		A260AC61F3C8A7585B32E365 /* ExamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamService.swift; sourceTree = "<group>"; };
+		A64708648392ADFC66B4F219 /* MedicationReminderService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminderService.swift; sourceTree = "<group>"; };
 		A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisView.swift; sourceTree = "<group>"; };
 		B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayDetailSheet.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamped.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
 		BD8714E5A70D3B643DB60482 /* design-system.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "design-system.md"; sourceTree = "<group>"; };
+		BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventModels.swift; sourceTree = "<group>"; };
 		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
 		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListView.swift; sourceTree = "<group>"; };
 		D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RRIntervalExportViewModel.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdMonitorService.swift; sourceTree = "<group>"; };
 		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventEntryForm.swift; sourceTree = "<group>"; };
 		FB3F76D2A4694A2F654A1B62 /* ui-style.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "ui-style.md"; sourceTree = "<group>"; };
+		FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderEntryForm.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +235,7 @@
 				A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */,
 				11EC6AA1B7741E4D7C4C42FA /* LifeEventEntryForm.swift */,
 				B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */,
+				6A28FD29167293ED732541EB /* MedicationLogEditForm.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -212,6 +245,7 @@
 			children = (
 				2F284354300A4D1000CE1C47 /* MindProfilerApp.swift */,
 				2F284356300A4D1000CE1C47 /* RootTabView.swift */,
+				225DD3DE88849264BC0A42B7 /* AppDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -262,6 +296,15 @@
 			name = "Recovered References";
 			sourceTree = "<group>";
 		};
+		3F85E12E693D0192E945E0A4 /* RMSSDEvent */ = {
+			isa = PBXGroup;
+			children = (
+				FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */,
+			);
+			name = RMSSDEvent;
+			path = RMSSDEvent;
+			sourceTree = "<group>";
+		};
 		517A17634B4DCE20C3815264 /* Home */ = {
 			isa = PBXGroup;
 			children = (
@@ -280,6 +323,8 @@
 				400D76AE170FC24A8476C32E /* HRVCorrelationViewModel.swift */,
 				9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */,
 				D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */,
+				7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */,
+				983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -293,6 +338,7 @@
 				150797E360A4676EC3AA3172 /* Report */,
 				C85D194E457D64C0284A6769 /* Settings */,
 				08A45562C411526B1A2418CA /* HRVAnalysis */,
+				3F85E12E693D0192E945E0A4 /* RMSSDEvent */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -315,6 +361,11 @@
 				7BBD8C1E9CFDE7CC372055FF /* ExerciseService.swift */,
 				C68DBBE4CFFC691126AEB83B /* MedicationService.swift */,
 				103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */,
+				A64708648392ADFC66B4F219 /* MedicationReminderService.swift */,
+				056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */,
+				3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */,
+				59D553D84925EA368698C8FF /* RMSSDEventService.swift */,
+				EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -328,6 +379,8 @@
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */,
 				B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */,
 				EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */,
+				139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */,
+				92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -339,6 +392,8 @@
 				7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */,
 				C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */,
 				4BCE4AEE9A3EA049D41D1DE3 /* RRIntervalExportView.swift */,
+				CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */,
+				FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -375,6 +430,8 @@
 				59197C66879A601A9A0A99AF /* ExerciseModels.swift */,
 				08D6C75DD02E38AA10033162 /* MedicationModels.swift */,
 				3E922C72C21453864B098F86 /* LifeEventModels.swift */,
+				8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */,
+				BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -523,6 +580,22 @@
 				3C332F9973A910F1A9C171AB /* RRIntervalExportViewModel.swift in Sources */,
 				7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */,
 				150A91D8E26AF3F979AB59AD /* DayDetailSheet.swift in Sources */,
+				3C5833101B57E583B6CDF217 /* MedicationReminderModels.swift in Sources */,
+				CD7A941B9741D2627421A574 /* MedicationReminderService.swift in Sources */,
+				C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */,
+				5124DBB25C473642007675E2 /* ReminderListViewModel.swift in Sources */,
+				8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */,
+				46FD50BDB7766225F32BF817 /* ReminderEntryForm.swift in Sources */,
+				EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */,
+				67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */,
+				EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */,
+				5E015D1143986F1FF8934207 /* RMSSDEventService.swift in Sources */,
+				9B1DD9B8EBD1BEE0C68067F4 /* RMSSDThresholdMonitorService.swift in Sources */,
+				00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */,
+				1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */,
+				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,
+				06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */,
+				EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

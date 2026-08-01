@@ -67,9 +67,16 @@ struct MedicationLogEntry: Decodable, Identifiable {
     let date: String
     let timing: String?
     let taken: Bool
+    // 실제로 복용 버튼을 누른 시각 — 캘린더 날짜 요약 시트에서 몇 시에 체크했는지 보여주는 데 쓴다.
+    let takenAt: String?
     // 백엔드가 findLogs에서 medication을 include해서 항상 같이 온다 — "이 날의 기록" 목록에 약
     // 이름을 보여주는 데만 쓴다.
     let medication: MedicationSummary?
+}
+
+// 캘린더 날짜 요약 시트의 수정 아이콘 — 잘못 고른 시간대를 바로잡는 용도라 timing 하나만 보낸다.
+struct MedicationLogUpdateRequest: Encodable {
+    let timing: String
 }
 
 struct MedicationSummary: Decodable {

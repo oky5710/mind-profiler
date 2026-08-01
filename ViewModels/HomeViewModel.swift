@@ -113,6 +113,10 @@ final class HomeViewModel {
             // 안내한다(그 전까진 아무 피드백 없이 조용히 실패하는 것처럼 보였다).
             if result.isEmpty {
                 medicationErrorMessage = "\(timing.label)에 복용하도록 등록된 약이 없어요. 캘린더에서 약을 등록해보세요."
+            } else {
+                // 이 시간대로 알림을 걸어뒀다면, 다음 정기 재동기화를 기다리지 않고 오늘 자 알림을
+                // 바로 취소한다.
+                ReminderNotificationService.shared.cancelTodayOccurrences(forTiming: timing)
             }
             await refreshTodayMedicationLogs()
         } catch {
