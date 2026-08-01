@@ -203,6 +203,7 @@ extension HRVAnalysisView {
         switch kind {
         case .coffee: Theme.hourlyCoffeeMarker
         case .medication: Theme.hourlyMedicationMarker
+        case .symptom: Theme.systemRed
         case .event: calendarEventColor
         }
     }
@@ -336,6 +337,7 @@ extension HRVAnalysisView {
                 && $0.date <= visibleEnd
                 && ($0.kind != .coffee || !hiddenSeries.contains(.coffee))
                 && ($0.kind != .medication || !hiddenSeries.contains(.medication))
+                && ($0.kind != .symptom || !hiddenSeries.contains(.symptom))
                 && ($0.kind != .event || !hiddenSeries.contains(.lifeEvent))
         }
 
@@ -344,16 +346,19 @@ extension HRVAnalysisView {
             // 잘 못 받아들여 엉뚱한 타입 추론 에러를 낸다 — 마크 하나로 통일하고 모양/색/크기만
             // 종류별로 분기한다.
             ForEach(visibleMarkers) { marker in
-                let isEvent = marker.kind == .event
                 let color = dailyMarkerColor(for: marker.kind)
 
                 // BasicChartSymbolShape엔 별 모양이 없어서(원/사각/세모/다이아몬드/십자 등만 있음),
                 // 이벤트만 SF Symbol을 직접 그리는 커스텀 심볼 뷰로 그린다.
                 PointMark(x: .value("시간", marker.date), y: .value("위치", 0.5))
                     .symbol {
-                        if isEvent {
+                        if marker.kind == .event {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 10))
+                                .foregroundStyle(color)
+                        } else if marker.kind == .symptom {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 11))
                                 .foregroundStyle(color)
                         } else {
                             Circle()

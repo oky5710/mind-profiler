@@ -36,7 +36,7 @@ struct OnboardingView: View {
     private var introduction: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Mind Profiler")
-                .font(.largeTitle.bold())
+                .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(Theme.primary)
             Text("당신의 하루를 숫자로 이해해 보세요.")
                 .font(.title3.bold())
@@ -66,7 +66,7 @@ struct OnboardingView: View {
             }
             .font(.subheadline)
             Text(footnote)
-                .font(.subheadline.bold())
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.primary)
         }
     }
@@ -89,7 +89,7 @@ struct OnboardingView: View {
                 }
             }
             Text("오늘 수치가 낮다고 해서 반드시 건강이 나쁘다는 의미는 아닙니다.")
-                .font(.subheadline.bold())
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.primary)
                 .fixedSize(horizontal: false, vertical: true)
         }

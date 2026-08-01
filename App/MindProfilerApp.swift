@@ -12,6 +12,7 @@ struct MindProfilerApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var toastCenter = ToastCenter()
     @State private var rmssdThresholdAlertCenter = RMSSDThresholdAlertCenter()
+    @State private var isShowingSplash = true
 
     init() {
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(
@@ -23,7 +24,10 @@ struct MindProfilerApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authViewModel.isAuthenticated {
+                if isShowingSplash {
+                    SplashView()
+                        .transition(.opacity)
+                } else if authViewModel.isAuthenticated {
                     if authViewModel.shouldShowOnboarding {
                         OnboardingView {
                             authViewModel.completeOnboarding()
@@ -47,6 +51,74 @@ struct MindProfilerApp: App {
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }
+            .task {
+                guard isShowingSplash else { return }
+                try? await Task.sleep(for: .seconds(1.5))
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isShowingSplash = false
+                }
+            }
         }
+    }
+}
+
+private struct SplashView: View {
+    @State private var photoURL: URL?
+    @State private var didFailToLoadPhoto = false
+
+    var body: some View {
+        ZStack {
+            Group {
+                if let photoURL {
+                    AsyncImage(url: photoURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            fallbackPhoto
+                        default:
+                            loadingBackground
+                        }
+                    }
+                } else {
+                    if didFailToLoadPhoto {
+                        fallbackPhoto
+                    } else {
+                        loadingBackground
+                    }
+                }
+            }
+            .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [.black.opacity(0.5), .clear, .black.opacity(0.7)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            Text("Track your mind.\nFind the patterns.")
+                .font(Typography.screenTitle)
+                .foregroundStyle(.white.opacity(0.9))
+                .multilineTextAlignment(.center)
+                .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
+        }
+        .task {
+            do {
+                photoURL = try await PixabayService.fetchRandomCatPhotoURL()
+            } catch {
+                didFailToLoadPhoto = true
+            }
+        }
+    }
+
+    private var fallbackPhoto: some View {
+        Image("FallbackCatPhoto")
+            .resizable()
+            .scaledToFill()
+    }
+
+    private var loadingBackground: some View {
+        Color.black
     }
 }

@@ -35,4 +35,42 @@ struct LifeEventEntry: Decodable, Identifiable {
     let type: String
     let title: String
     let description: String?
+    let intensity: Int?
+
+    var symptomType: SymptomType? {
+        guard type == LifeEventType.other.rawValue, intensity != nil else { return nil }
+        return SymptomType.allCases.first { $0.label == title }
+    }
+}
+
+enum SymptomType: String, CaseIterable, Identifiable {
+    case palpitation
+    case shortnessOfBreath
+    case chestTightness
+    case dizziness
+    case anxiety
+    case fatigueOrDrowsiness
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .palpitation: "심장 두근거림"
+        case .shortnessOfBreath: "숨가쁨"
+        case .chestTightness: "가슴 답답함"
+        case .dizziness: "어지러움"
+        case .anxiety: "불안감"
+        case .fatigueOrDrowsiness: "피로/졸림"
+        case .other: "기타"
+        }
+    }
+}
+
+struct SymptomRequest: Encodable {
+    let date: String
+    let type = "OTHER"
+    let title: String
+    let description: String?
+    let intensity: Int
 }

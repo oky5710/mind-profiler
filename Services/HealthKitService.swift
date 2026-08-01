@@ -28,6 +28,30 @@ enum HealthKitService {
         }
     }
 
+    enum SleepTimelineStage: String, CaseIterable {
+        case deep, core, rem, awake
+
+        var label: String {
+            switch self {
+            case .deep: "깊은 수면"
+            case .core: "코어 수면"
+            case .rem: "REM 수면"
+            case .awake: "비수면"
+            }
+        }
+
+        fileprivate init?(categoryValue: Int) {
+            switch categoryValue {
+            case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: self = .deep
+            case HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                 HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue: self = .core
+            case HKCategoryValueSleepAnalysis.asleepREM.rawValue: self = .rem
+            case HKCategoryValueSleepAnalysis.awake.rawValue: self = .awake
+            default: return nil
+            }
+        }
+    }
+
     // 운동 상세 패널에 보여줄 종목 이름. HKWorkoutActivityType은 80개가 넘어서 자주 쓰는 종목만
     // 매핑하고, 나머지는 뭉뚱그려 "기타 운동"으로 보여준다.
     static func workoutActivityTypeDisplayName(_ type: HKWorkoutActivityType) -> String {
@@ -72,6 +96,8 @@ enum HealthKitService {
                 HKSeriesType.heartbeat(),
                 HKQuantityType(.heartRateVariabilitySDNN),
                 HKQuantityType(.restingHeartRate),
+                HKQuantityType(.heartRate),
+                HKQuantityType(.respiratoryRate),
             ]
         )
     }
@@ -117,6 +143,24 @@ enum HealthKitService {
     static func fetchRestingHeartRateSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
         try await fetchQuantitySamples(
             type: HKQuantityType(.restingHeartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            start: start,
+            end: end
+        )
+    }
+
+    static func fetchHeartRateSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
+        try await fetchQuantitySamples(
+            type: HKQuantityType(.heartRate),
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            start: start,
+            end: end
+        )
+    }
+
+    static func fetchRespiratoryRateSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
+        try await fetchQuantitySamples(
+            type: HKQuantityType(.respiratoryRate),
             unit: HKUnit.count().unitDivided(by: .minute()),
             start: start,
             end: end
@@ -331,6 +375,36 @@ enum HealthKitService {
                         return (start: sample.startDate, end: sample.endDate, stage: stage)
                     }
                 continuation.resume(returning: stageSamples)
+            }
+            store.execute(query)
+        }
+    }
+
+    static func fetchSleepTimelineSamples(
+        start: Date,
+        end: Date
+    ) async throws -> [(start: Date, end: Date, stage: SleepTimelineStage)] {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let predicate = dateRangePredicate(start: start, end: end)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let timeline: [(start: Date, end: Date, stage: SleepTimelineStage)] =
+                    (samples as? [HKCategorySample] ?? []).compactMap { sample -> (Date, Date, SleepTimelineStage)? in
+                    guard let stage = SleepTimelineStage(categoryValue: sample.value) else { return nil }
+                    return (start: sample.startDate, end: sample.endDate, stage: stage)
+                }
+                continuation.resume(returning: timeline)
             }
             store.execute(query)
         }

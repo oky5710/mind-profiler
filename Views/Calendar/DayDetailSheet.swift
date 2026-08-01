@@ -54,6 +54,14 @@ struct DayDetailSheet: View {
         mood == nil && coffees.isEmpty && exercises.isEmpty && medicationLogs.isEmpty && events.isEmpty
     }
 
+    private var symptoms: [LifeEventEntry] {
+        events.filter { $0.symptomType != nil }
+    }
+
+    private var lifeEvents: [LifeEventEntry] {
+        events.filter { $0.symptomType == nil }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -155,12 +163,38 @@ struct DayDetailSheet: View {
                     }
                 }
 
-                if !events.isEmpty {
+                if !symptoms.isEmpty {
+                    Section("증상 \(symptoms.count)건") {
+                        ForEach(symptoms) { entry in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(entry.symptomType?.label ?? entry.title)
+                                    Spacer()
+                                    Text("강도 \(entry.intensity ?? 3)")
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let eventDate = DateKey.parseISODate(entry.date) {
+                                    Text(Self.timeFormatter.string(from: eventDate))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let description = entry.description, !description.isEmpty {
+                                    Text(description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .swipeToDelete { Task { await deleteEvent(entry) } }
+                        }
+                    }
+                }
+
+                if !lifeEvents.isEmpty {
                     // 이벤트는 아직 수정(PATCH) 엔드포인트가 없어서 삭제만 지원한다 — 스와이프로만
                     // 지운다(휴지통 아이콘 버튼은 다른 섹션들과 마찬가지로 빼서 중복 없이 스와이프
                     // 하나로 통일).
-                    Section("이벤트 \(events.count)건") {
-                        ForEach(events) { entry in
+                    Section("이벤트 \(lifeEvents.count)건") {
+                        ForEach(lifeEvents) { entry in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.title)

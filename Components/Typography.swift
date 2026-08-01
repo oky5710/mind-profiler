@@ -19,6 +19,8 @@ enum Typography {
     static let button = Font.system(size: 18, weight: .semibold)
     // 15pt Regular — 보조 설명.
     static let secondary = Font.system(size: 15, weight: .regular)
-    // 13pt Regular — 캡션. 이보다 더 작은 크기는 쓰지 않는다.
+    // 13pt Regular — 일반 캡션. 수면 단계 차트 라벨만 아래 전용 토큰을 사용한다.
     static let caption = Font.system(size: 13, weight: .regular)
+    // 12pt Regular — 수면 단계 차트의 행 라벨 전용.
+    static let sleepStageLabel = Font.system(size: 12, weight: .regular)
 }

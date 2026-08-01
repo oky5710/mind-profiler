@@ -52,7 +52,7 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 | DELETE | `/medication-reminders/:id` | 복용 알림 설정 삭제 | `MedicationReminderService.removeReminder` |
 | GET | `/events?date=yyyy-MM-dd` | 특정 날짜 이벤트 기록 조회 (`LifeEventEntryForm` 목록용) | `LifeEventService.entries` |
 | GET | `/events` | 전체 이벤트 기록 조회 | `LifeEventService.allEvents` |
-| POST | `/events` | 이벤트 기록 생성 | `LifeEventService.logEvent` |
+| POST | `/events` | 이벤트 및 증상 기록 생성. 증상은 `type=OTHER`, 정해진 증상명을 `title`, 1~5 강도를 `intensity`, 선택 설명을 `description`으로 저장 | `LifeEventService.logEvent` / `logSymptom` |
 | DELETE | `/events/:id` | 이벤트 기록 삭제 | `LifeEventService.removeEvent` |
 | GET | `/rmssd-events` | rMSSD 급격한 변화 알림 때 기록한 감정/메모 전체 조회 | `RMSSDEventService.allEvents` |
 | POST | `/rmssd-events` | rMSSD 이벤트 기록 생성(발생 시각/rMSSD 값/방향/감정/선택 메모) | `RMSSDEventService.logEvent` |

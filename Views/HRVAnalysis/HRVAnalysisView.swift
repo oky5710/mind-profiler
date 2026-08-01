@@ -25,9 +25,16 @@ enum HRVChartMode: String, CaseIterable {
     }
 }
 
+private enum PatternSection: String, CaseIterable, Identifiable {
+    case hrv = "HRV"
+    case sleep = "수면"
+
+    var id: String { rawValue }
+}
+
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, restingHeartRate, sleep, exercise, coffee, medication, lifeEvent
+    case rmssd, examRmssd, restingHeartRate, sleep, exercise, coffee, medication, symptom, lifeEvent
     case median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
@@ -40,6 +47,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .exercise: "운동"
         case .coffee: "커피"
         case .medication: "약 복용"
+        case .symptom: "증상"
         case .lifeEvent: "이벤트"
         case .median: "최근 30일 중앙값"
         case .sdnn: "SDNN"
@@ -55,6 +63,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .restingHeartRate: "chart.bar.fill"
         case .sleep, .exercise: "square.fill"
         case .coffee, .medication: "circle.fill"
+        case .symptom: "exclamationmark.circle.fill"
         case .lifeEvent: "star.fill"
         case .median: "minus"
         case .sdnn: "minus"
@@ -71,7 +80,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sdnn: mode == .hourly
         case .restingHeartRate: mode == .daily
         case .sleep: mode != .monthly
-        case .exercise, .coffee, .medication, .lifeEvent, .calendarEvent: mode == .hourly
+        case .exercise, .coffee, .medication, .symptom, .lifeEvent, .calendarEvent: mode == .hourly
         case .cv: mode == .monthly
         }
     }
@@ -109,6 +118,7 @@ struct HRVAnalysisView: View {
     // 처음 나타날 때는 아래 .task들이 이미 최초 로딩을 하니, onAppear의 강제 재조회는 그 다음
     // 탭 재진입부터만 하면 된다 — 최초 진입에서 두 번 불러오는 낭비를 막는다.
     @State var hasAppearedBefore = false
+    @State private var selectedPatternSection: PatternSection = .hrv
 
     let rmssdColor = Theme.rmssd
     let examRmssdColor = Theme.examRmssd
@@ -118,7 +128,7 @@ struct HRVAnalysisView: View {
 
     static let hourMinuteFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "HH"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()
@@ -219,7 +229,18 @@ struct HRVAnalysisView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { geo in
+            VStack(spacing: 0) {
+                Picker("분석 종류", selection: $selectedPatternSection) {
+                    ForEach(PatternSection.allCases) { section in
+                        Text(section.rawValue).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 10)
+
+                if selectedPatternSection == .hrv {
+                    GeometryReader { geo in
                 // .refreshable(아래 배치)은 ScrollView/List 같은 실제 스크롤 가능한 조상이 있어야
                 // 당겨서 새로고침 제스처를 인식한다 — VStack만 있던 예전 구조에선 아래로 당겨도
                 // 아무 반응이 없었다.
@@ -245,6 +266,10 @@ struct HRVAnalysisView: View {
                 }
                 .onAppear { availableHeight = geo.size.height }
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
+                    }
+                } else {
+                    SleepOverviewView()
+                }
             }
             .navigationTitle("오늘의 패턴")
             .navigationBarTitleDisplayMode(.inline)
@@ -579,6 +604,7 @@ struct HRVAnalysisView: View {
         switch kind {
         case .coffee: "커피"
         case .medication: "약 복용"
+        case .symptom: "증상"
         case .event: "이벤트"
         }
     }
@@ -593,6 +619,14 @@ struct HRVAnalysisView: View {
             if marker.kind != .medication {
                 Text(marker.title)
                     .font(.subheadline.bold())
+            }
+            if let intensity = marker.intensity {
+                Text("강도 \(intensity)")
+                    .font(.caption2.bold())
+            }
+            if let description = marker.description, !description.isEmpty {
+                Text(description)
+                    .font(.caption2)
             }
             Text(Self.dailyMarkerTimeFormatter.string(from: marker.date))
                 .font(.caption2)
@@ -801,12 +835,717 @@ struct HRVAnalysisView: View {
         case .exercise: exerciseColor
         case .coffee: Theme.hourlyCoffeeMarker
         case .medication: Theme.hourlyMedicationMarker
+        case .symptom: Theme.systemRed
         case .lifeEvent: calendarEventColor
         case .median: .gray
         case .sdnn: Theme.systemGray4
         case .calendarEvent: calendarEventColor
         case .cv: Theme.systemTeal
         }
+    }
+}
+
+@MainActor
+@Observable
+private final class SleepOverviewViewModel {
+    struct TimelineSegment: Identifiable {
+        let id = UUID()
+        let start: Date
+        let end: Date
+        let stage: HealthKitService.SleepTimelineStage
+    }
+
+    struct MetricPoint: Identifiable {
+        let id = UUID()
+        let date: Date
+        let value: Double
+    }
+
+    struct WakeMetrics {
+        let totalDuration: TimeInterval
+        let count: Int
+        let longestDuration: TimeInterval
+        let longestContinuousSleep: TimeInterval
+    }
+
+    private(set) var selectedNight = Calendar.current.date(
+        byAdding: .day,
+        value: -1,
+        to: Calendar.current.startOfDay(for: Date())
+    ) ?? Date()
+    private(set) var timeline: [TimelineSegment] = []
+    private(set) var rmssdPoints: [MetricPoint] = []
+    private(set) var heartRatePoints: [MetricPoint] = []
+    private(set) var respiratoryRatePoints: [MetricPoint] = []
+    private(set) var rmssdThirtyDayAverage: Double?
+    private(set) var dailyRestingHeartRate: Double?
+    private(set) var sleepRange: SleepRange?
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
+
+    var chartDomain: ClosedRange<Date> {
+        if let sleepRange, sleepRange.end > sleepRange.start {
+            let start = sleepRange.start.addingTimeInterval(-30 * 60)
+            let end = sleepRange.end.addingTimeInterval(30 * 60)
+            return start...end
+        }
+        let start = fallbackDomain.lowerBound.addingTimeInterval(-30 * 60)
+        let end = fallbackDomain.upperBound.addingTimeInterval(30 * 60)
+        return start...end
+    }
+
+    private var fallbackDomain: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let start = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: selectedNight) ?? selectedNight
+        let end = calendar.date(byAdding: .hour, value: 18, to: start) ?? start.addingTimeInterval(18 * 60 * 60)
+        return start...end
+    }
+
+    var totalSleepDuration: TimeInterval? {
+        sleepRange.map { $0.stageDurations.values.reduce(0, +) }
+    }
+
+    var wakeMetrics: WakeMetrics {
+        guard let sleepRange else {
+            return WakeMetrics(totalDuration: 0, count: 0, longestDuration: 0, longestContinuousSleep: 0)
+        }
+
+        let awakeSegments = timeline
+            .filter { $0.stage == .awake }
+            .sorted { $0.start < $1.start }
+        var merged: [(start: Date, end: Date)] = []
+        for segment in awakeSegments {
+            if let last = merged.last, segment.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, segment.end)
+            } else {
+                merged.append((segment.start, segment.end))
+            }
+        }
+
+        let durations = merged.map { $0.end.timeIntervalSince($0.start) }
+        var continuousDurations: [TimeInterval] = []
+        var cursor = sleepRange.start
+        for segment in merged {
+            continuousDurations.append(max(0, segment.start.timeIntervalSince(cursor)))
+            cursor = max(cursor, segment.end)
+        }
+        continuousDurations.append(max(0, sleepRange.end.timeIntervalSince(cursor)))
+
+        return WakeMetrics(
+            totalDuration: durations.reduce(0, +),
+            count: durations.filter { $0 >= 60 }.count,
+            longestDuration: durations.max() ?? 0,
+            longestContinuousSleep: continuousDurations.max() ?? 0
+        )
+    }
+
+    var heartRateDomain: ClosedRange<Double> {
+        var values = heartRatePoints.map(\.value)
+        if let dailyRestingHeartRate {
+            values.append(dailyRestingHeartRate)
+        }
+        guard let minimum = values.min(), let maximum = values.max() else {
+            return 0...1
+        }
+        guard minimum < maximum else {
+            return (minimum - 1)...(maximum + 1)
+        }
+        return minimum...maximum
+    }
+
+    func moveDay(by value: Int) async {
+        let calendar = Calendar.current
+        guard let next = calendar.date(byAdding: .day, value: value, to: selectedNight) else { return }
+        let latest = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: Date())) ?? Date()
+        guard next <= latest else { return }
+        selectedNight = next
+        await load()
+    }
+
+    func load() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            try await HealthKitService.requestAuthorization()
+            let calendar = Calendar.current
+            let searchDomain = fallbackDomain
+            let contextStart = calendar.date(
+                byAdding: .day,
+                value: -SleepAnalysisService.bedtimeConsistencyWindow,
+                to: searchDomain.lowerBound
+            ) ?? searchDomain.lowerBound
+
+            let sleepSamples = try await HealthKitService.fetchSleepStageSamples(
+                start: contextStart,
+                end: searchDomain.upperBound
+            )
+            sleepRange = SleepAnalysisService.buildSleepRanges(sleepSamples).last {
+                calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: selectedNight)
+            }
+
+            guard let sleepRange else {
+                timeline = []
+                rmssdPoints = []
+                heartRatePoints = []
+                respiratoryRatePoints = []
+                dailyRestingHeartRate = nil
+                return
+            }
+
+            let domain = sleepRange.start...sleepRange.end
+            async let timelineTask = HealthKitService.fetchSleepTimelineSamples(start: domain.lowerBound, end: domain.upperBound)
+            async let rmssdTask = HealthKitService.fetchRMSSDSamples(start: domain.lowerBound, end: domain.upperBound)
+            async let heartRateTask = HealthKitService.fetchHeartRateSamples(start: domain.lowerBound, end: domain.upperBound)
+            async let respiratoryTask = HealthKitService.fetchRespiratoryRateSamples(start: domain.lowerBound, end: domain.upperBound)
+            // 수면은 취침일로 표시하지만 HealthKit 안정시 심박수는 보통 기상일에 기록된다.
+            let wakeDayStart = calendar.startOfDay(for: sleepRange.end)
+            let wakeDayEnd = calendar.date(byAdding: .day, value: 1, to: wakeDayStart)
+                ?? wakeDayStart.addingTimeInterval(24 * 60 * 60)
+            async let restingHeartRateTask = HealthKitService.fetchRestingHeartRateSamples(
+                start: wakeDayStart,
+                end: wakeDayEnd
+            )
+            let (rawTimeline, rmssd, heartRate, respiratoryRate, restingHeartRates) = try await (
+                timelineTask,
+                rmssdTask,
+                heartRateTask,
+                respiratoryTask,
+                restingHeartRateTask
+            )
+            timeline = rawTimeline.map {
+                TimelineSegment(
+                    start: max($0.start, domain.lowerBound),
+                    end: min($0.end, domain.upperBound),
+                    stage: $0.stage
+                )
+            }
+            rmssdPoints = rmssd.map { MetricPoint(date: $0.date, value: $0.value) }
+            heartRatePoints = heartRate.map { MetricPoint(date: $0.date, value: $0.value) }
+            respiratoryRatePoints = respiratoryRate.map { MetricPoint(date: $0.date, value: $0.value) }
+            dailyRestingHeartRate = restingHeartRates.isEmpty
+                ? nil
+                : restingHeartRates.map(\.value).reduce(0, +) / Double(restingHeartRates.count)
+
+            if rmssdThirtyDayAverage == nil {
+                let averageEnd = Date()
+                let averageStart = calendar.date(byAdding: .day, value: -30, to: averageEnd) ?? averageEnd
+                let recentRMSSD = try await HealthKitService.fetchRMSSDSamples(start: averageStart, end: averageEnd)
+                if !recentRMSSD.isEmpty {
+                    rmssdThirtyDayAverage = recentRMSSD.map(\.value).reduce(0, +) / Double(recentRMSSD.count)
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+}
+
+private struct SleepOverviewView: View {
+    @State private var viewModel = SleepOverviewViewModel()
+    @State private var selectedRMSSDDate: Date?
+    @State private var selectedHeartRateDate: Date?
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M월 d일 EEEE"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter
+    }()
+
+    private static let tooltipTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                summary
+
+                if viewModel.isLoading && viewModel.timeline.isEmpty {
+                    ProgressView("수면 데이터를 불러오는 중...")
+                        .frame(maxWidth: .infinity, minHeight: 260)
+                } else if let errorMessage = viewModel.errorMessage, viewModel.timeline.isEmpty {
+                    ContentUnavailableView(
+                        "수면 데이터를 불러올 수 없어요",
+                        systemImage: "bed.double",
+                        description: Text(errorMessage)
+                    )
+                    .frame(minHeight: 260)
+                } else if viewModel.sleepRange == nil {
+                    ContentUnavailableView(
+                        "수면 기록이 없어요",
+                        systemImage: "bed.double",
+                        description: Text("좌우로 스와이프해 다른 날짜를 확인해 보세요.")
+                    )
+                    .frame(minHeight: 260)
+                } else {
+                    wakeMetricsSummary
+                    VStack(spacing: 0) {
+                        sleepStageChart
+                        rmssdChart
+                        heartRateChart
+                        respiratoryRateChart
+                    }
+                    .sleepConnectedTimeGrid(domain: viewModel.chartDomain)
+                    chartLegend
+                }
+            }
+            .padding()
+        }
+        .refreshable { await viewModel.load() }
+        .simultaneousGesture(daySwipeGesture)
+        .task { await viewModel.load() }
+    }
+
+    private var summary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("수면 일자")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                    Text(Self.dateFormatter.string(from: viewModel.selectedNight))
+                        .font(Typography.cardTitle)
+                }
+                Spacer()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("총 수면 시간")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                    if let duration = viewModel.totalSleepDuration {
+                        Text(SleepAnalysisService.formattedDuration(duration))
+                            .font(Typography.cardTitle)
+                    } else {
+                        Text("—")
+                            .font(Typography.cardTitle)
+                    }
+                }
+                Spacer()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("수면 점수")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.sleepRange.map { "\($0.estimatedScore)점" } ?? "—")
+                        .font(Typography.cardTitle)
+                        .foregroundStyle(Theme.sleep)
+                }
+            }
+        }
+    }
+
+    private var wakeMetricsSummary: some View {
+        let metrics = viewModel.wakeMetrics
+        return LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            spacing: 8
+        ) {
+            wakeMetric("총 각성 시간", value: SleepAnalysisService.formattedDuration(metrics.totalDuration))
+            wakeMetric("각성 횟수", value: "\(metrics.count)회")
+            wakeMetric("가장 긴 각성", value: SleepAnalysisService.formattedDuration(metrics.longestDuration))
+            wakeMetric("가장 긴 연속 수면", value: SleepAnalysisService.formattedDuration(metrics.longestContinuousSleep))
+        }
+    }
+
+    private func wakeMetric(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(Typography.cardTitle)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var sleepStageChart: some View {
+        VStack(spacing: 0) {
+            Chart(viewModel.timeline) { segment in
+                RectangleMark(
+                    xStart: .value("시작", segment.start),
+                    xEnd: .value("끝", segment.end),
+                    y: .value("단계", segment.stage.label)
+                )
+                .foregroundStyle(stageColor(segment.stage))
+                .cornerRadius(3)
+            }
+            .chartXScale(domain: viewModel.chartDomain)
+            .chartYScale(domain: ["비수면", "REM 수면", "코어 수면", "깊은 수면"])
+            .sleepTimeGrid()
+            .chartYAxis(.hidden)
+            .sleepXAxisBaseline()
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    if let plotFrame = proxy.plotFrame {
+                        let frame = geometry[plotFrame]
+                        ForEach(["깊은 수면", "코어 수면", "REM 수면", "비수면"], id: \.self) { label in
+                            if let yPosition = proxy.position(forY: label) {
+                                Text(label)
+                                    .font(Typography.sleepStageLabel)
+                                    .fixedSize()
+                                    .frame(height: 18, alignment: .bottom)
+                                    .offset(
+                                        x: frame.minX + 6,
+                                        y: frame.minY + yPosition - 24
+                                    )
+                            }
+                        }
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .frame(height: 220)
+    }
+
+    private var rmssdChart: some View {
+        metricChart {
+            Chart {
+                ForEach(viewModel.rmssdPoints) { point in
+                    LineMark(x: .value("시간", point.date), y: .value("rMSSD", point.value))
+                        .foregroundStyle(Theme.rmssd)
+                    PointMark(x: .value("시간", point.date), y: .value("rMSSD", point.value))
+                        .symbol {
+                            Circle()
+                                .fill(.white)
+                                .stroke(Theme.rmssd, lineWidth: 2)
+                                .frame(width: 7, height: 7)
+                        }
+                }
+                if let selectedRMSSDPoint {
+                    PointMark(
+                        x: .value("선택 시간", selectedRMSSDPoint.date),
+                        y: .value("선택 rMSSD", selectedRMSSDPoint.value)
+                    )
+                    .symbol {
+                        Circle()
+                            .fill(.white)
+                            .stroke(Theme.rmssd, lineWidth: 2)
+                            .frame(width: 7, height: 7)
+                    }
+                }
+                if let average = viewModel.rmssdThirtyDayAverage {
+                    RuleMark(y: .value("최근 30일 평균", average))
+                        .foregroundStyle(Theme.systemGray)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+            }
+            .chartXScale(domain: viewModel.chartDomain)
+            .sleepTimeGrid()
+            .chartYAxis(.hidden)
+            .sleepXAxisBaseline()
+            .sleepPointTapSelection(
+                points: viewModel.rmssdPoints,
+                selection: $selectedRMSSDDate
+            )
+            .sleepValueTooltip(
+                point: selectedRMSSDPoint,
+                time: selectedRMSSDPoint.map { Self.tooltipTimeFormatter.string(from: $0.date) },
+                value: selectedRMSSDPoint.map { String(format: "%.1f ms", $0.value) }
+            )
+        }
+    }
+
+    private var selectedRMSSDPoint: SleepOverviewViewModel.MetricPoint? {
+        guard let selectedRMSSDDate else { return nil }
+        return viewModel.rmssdPoints.min {
+            abs($0.date.timeIntervalSince(selectedRMSSDDate))
+                < abs($1.date.timeIntervalSince(selectedRMSSDDate))
+        }
+    }
+
+    private var heartRateChart: some View {
+        metricChart {
+            Chart {
+                ForEach(viewModel.heartRatePoints) { point in
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("심박수", point.value)
+                    )
+                    .foregroundStyle(Theme.heart)
+
+                    if selectedHeartRatePoint?.id == point.id {
+                        PointMark(
+                            x: .value("선택 시간", point.date),
+                            y: .value("선택 심박수", point.value)
+                        )
+                        .foregroundStyle(Theme.heart)
+                        .symbolSize(36)
+                    }
+                }
+                if let restingHeartRate = viewModel.dailyRestingHeartRate {
+                    RuleMark(y: .value("안정시 심박수", restingHeartRate))
+                        .foregroundStyle(Theme.systemMint)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                }
+            }
+            .chartXScale(domain: viewModel.chartDomain)
+            .chartYScale(domain: viewModel.heartRateDomain)
+            .sleepTimeGrid()
+            .chartYAxis(.hidden)
+            .sleepXAxisBaseline()
+            .padding(.top, 8)
+            .sleepPointTapSelection(
+                points: viewModel.heartRatePoints,
+                selection: $selectedHeartRateDate
+            )
+            .sleepValueTooltip(
+                point: selectedHeartRatePoint,
+                time: selectedHeartRatePoint.map { Self.tooltipTimeFormatter.string(from: $0.date) },
+                value: selectedHeartRatePoint.map { String(format: "%.0f bpm", $0.value) }
+            )
+        }
+    }
+
+    private var selectedHeartRatePoint: SleepOverviewViewModel.MetricPoint? {
+        guard let selectedHeartRateDate else { return nil }
+        return viewModel.heartRatePoints.min {
+            abs($0.date.timeIntervalSince(selectedHeartRateDate))
+                < abs($1.date.timeIntervalSince(selectedHeartRateDate))
+        }
+    }
+
+    private var respiratoryRateChart: some View {
+        metricChart {
+            Chart(viewModel.respiratoryRatePoints) { point in
+                LineMark(
+                    x: .value("시간", point.date),
+                    y: .value("호흡수", point.value)
+                )
+                .foregroundStyle(Theme.systemTeal)
+            }
+            .chartXScale(domain: viewModel.chartDomain)
+            .sleepTimeGrid()
+            .chartYAxis(.hidden)
+            .sleepXAxisBaseline()
+        }
+    }
+
+    private func metricChart<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(height: 65)
+    }
+
+    private func stageLegendItem(_ label: String, stage: HealthKitService.SleepTimelineStage) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(stageColor(stage))
+                .frame(width: 10, height: 10)
+            Text(label)
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var chartLegend: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            alignment: .leading,
+            spacing: 8
+        ) {
+            stageLegendItem("깊은 수면", stage: .deep)
+            stageLegendItem("코어 수면", stage: .core)
+            stageLegendItem("REM 수면", stage: .rem)
+            stageLegendItem("비수면", stage: .awake)
+            metricLegendItem("rMSSD", color: Theme.rmssd)
+            metricLegendItem("30일 rMSSD 평균", color: Theme.systemGray, isDashed: true)
+            metricLegendItem("심박수", color: Theme.heart, isLine: true)
+            metricLegendItem("안정시 심박수", color: Theme.systemMint, isDashed: true)
+            metricLegendItem("호흡수", color: Theme.systemTeal, isLine: true)
+        }
+        .padding(.top, 4)
+    }
+
+    private func metricLegendItem(
+        _ label: String,
+        color: Color,
+        isDashed: Bool = false,
+        isLine: Bool = false
+    ) -> some View {
+        HStack(spacing: 5) {
+            if isDashed || isLine {
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: 5))
+                    path.addLine(to: CGPoint(x: 14, y: 5))
+                }
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: isLine ? 2 : 1, dash: isDashed ? [3, 2] : [])
+                )
+                .frame(width: 14, height: 10)
+            } else {
+                Circle()
+                    .fill(color)
+                    .frame(width: 9, height: 9)
+                    .frame(width: 14, height: 10)
+            }
+            Text(label)
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func stageColor(_ stage: HealthKitService.SleepTimelineStage) -> Color {
+        switch stage {
+        case .deep: Theme.sleepStageDeep
+        case .core: Theme.sleepStageCore
+        case .rem: Theme.sleepStageREM
+        case .awake: Theme.systemGray3
+        }
+    }
+
+    private var daySwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height),
+                      abs(value.translation.width) > 60 else { return }
+                Task {
+                    await viewModel.moveDay(by: value.translation.width < 0 ? 1 : -1)
+                }
+            }
+    }
+}
+
+private extension View {
+    func sleepValueTooltip(
+        point: SleepOverviewViewModel.MetricPoint?,
+        time: String?,
+        value: String?
+    ) -> some View {
+        chartOverlay { proxy in
+            GeometryReader { geometry in
+                if let point,
+                   let time,
+                   let value,
+                   let plotFrame = proxy.plotFrame,
+                   let x = proxy.position(forX: point.date),
+                   let y = proxy.position(forY: point.value) {
+                    let frame = geometry[plotFrame]
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(time)
+                        Text(value)
+                            .fontWeight(.semibold)
+                    }
+                    .font(Typography.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 5))
+                    .fixedSize()
+                    .position(
+                        x: min(max(frame.minX + x, frame.minX + 38), frame.maxX - 38),
+                        y: max(frame.minY + 20, frame.minY + y - 28)
+                    )
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    func sleepPointTapSelection(
+        points: [SleepOverviewViewModel.MetricPoint],
+        selection: Binding<Date?>
+    ) -> some View {
+        chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        SpatialTapGesture().onEnded { value in
+                            guard let plotFrame = proxy.plotFrame else {
+                                selection.wrappedValue = nil
+                                return
+                            }
+                            let frame = geometry[plotFrame]
+                            guard frame.contains(value.location) else {
+                                selection.wrappedValue = nil
+                                return
+                            }
+
+                            let closest = points.compactMap { point -> (Date, CGFloat)? in
+                                guard let x = proxy.position(forX: point.date),
+                                      let y = proxy.position(forY: point.value) else { return nil }
+                                let pointLocation = CGPoint(x: frame.minX + x, y: frame.minY + y)
+                                return (point.date, hypot(
+                                    pointLocation.x - value.location.x,
+                                    pointLocation.y - value.location.y
+                                ))
+                            }
+                            .min { $0.1 < $1.1 }
+
+                            selection.wrappedValue = closest.map { $0.1 <= 24 ? $0.0 : nil } ?? nil
+                        }
+                    )
+            }
+        }
+    }
+
+    func sleepTimeGrid() -> some View {
+        chartXAxis {
+            AxisMarks(values: .stride(by: .hour)) { _ in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
+                    .foregroundStyle(Theme.systemGray4.opacity(0.65))
+                AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .omitted)))
+                    .font(Typography.caption)
+            }
+        }
+    }
+
+    func sleepConnectedTimeGrid(domain: ClosedRange<Date>) -> some View {
+        background {
+            GeometryReader { geometry in
+                let duration = domain.upperBound.timeIntervalSince(domain.lowerBound)
+
+                Path { path in
+                    guard duration > 0 else { return }
+                    for date in sleepHourMarks(in: domain) {
+                        let ratio = date.timeIntervalSince(domain.lowerBound) / duration
+                        let x = geometry.size.width * ratio
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: geometry.size.height))
+                    }
+                }
+                .stroke(Theme.systemGray4.opacity(0.65), lineWidth: 0.6)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    func sleepXAxisBaseline() -> some View {
+        chartOverlay { proxy in
+            GeometryReader { geometry in
+                if let plotFrame = proxy.plotFrame {
+                    let frame = geometry[plotFrame]
+
+                    Path { path in
+                        path.move(to: CGPoint(x: frame.minX, y: frame.maxY))
+                        path.addLine(to: CGPoint(x: frame.maxX, y: frame.maxY))
+                    }
+                    .stroke(Theme.systemGray, lineWidth: 1.2)
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func sleepHourMarks(in domain: ClosedRange<Date>) -> [Date] {
+        let calendar = Calendar.current
+        guard var date = calendar.dateInterval(of: .hour, for: domain.lowerBound)?.end else { return [] }
+        var dates: [Date] = []
+        while date < domain.upperBound {
+            dates.append(date)
+            guard let next = calendar.date(byAdding: .hour, value: 1, to: date) else { break }
+            date = next
+        }
+        return dates
     }
 }
 

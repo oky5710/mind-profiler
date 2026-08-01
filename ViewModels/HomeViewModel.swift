@@ -3,8 +3,6 @@ import Foundation
 @MainActor
 @Observable
 final class HomeViewModel {
-    private(set) var photoURL: URL?
-    private(set) var isLoading = true
     private(set) var errorMessage: String?
 
     private(set) var todayMoodScore: Int?
@@ -20,34 +18,6 @@ final class HomeViewModel {
 
     private var hasCheckedCoffee = false
     private var hasCheckedMedicationLogs = false
-
-    func loadPhoto() async {
-        isLoading = true
-        errorMessage = nil
-        photoURL = nil
-
-        var attempts = 0
-        var lastError: Error?
-        while attempts <= 2 {
-            do {
-                photoURL = try await PixabayService.fetchRandomCatPhotoURL()
-                isLoading = false
-                return
-            } catch {
-                lastError = error
-                attempts += 1
-
-                if case APIError.server(let statusCode, _) = error, (400..<500).contains(statusCode) {
-                    break
-                }
-                if attempts <= 2 {
-                    try? await Task.sleep(for: .seconds(1))
-                }
-            }
-        }
-        errorMessage = lastError?.localizedDescription
-        isLoading = false
-    }
 
     func loadTodayMoodIfNeeded() async {
         guard !hasCheckedMood else { return }

@@ -9,6 +9,10 @@ enum LifeEventService {
         try await APIClient.shared.get("/events?date=\(DateKey.string(from: date))")
     }
 
+    static func symptomEntries(on date: Date) async throws -> [LifeEventEntry] {
+        try await entries(on: date).filter { $0.symptomType != nil }
+    }
+
     static func removeEvent(id: String) async throws {
         let _: LifeEventEntry = try await APIClient.shared.delete("/events/\(id)")
     }
@@ -21,6 +25,23 @@ enum LifeEventService {
                 type: type.rawValue,
                 title: title,
                 description: description
+            )
+        )
+    }
+
+    static func logSymptom(
+        dateTime: Date,
+        symptom: SymptomType,
+        intensity: Int,
+        description: String?
+    ) async throws {
+        let _: LifeEventEntry = try await APIClient.shared.post(
+            "/events",
+            body: SymptomRequest(
+                date: ISO8601DateFormatter().string(from: dateTime),
+                title: symptom.label,
+                description: description,
+                intensity: intensity
             )
         )
     }

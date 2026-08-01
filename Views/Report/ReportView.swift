@@ -534,7 +534,7 @@ struct ReportView: View {
     // "평균"으로 오해하지 않도록 CV라고 명시한다.
     private func averageCVChip(_ value: Double) -> some View {
         Text("CV \(String(format: "%.1f", value))%")
-            .font(.system(size: 15, weight: .medium))
+            .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(Theme.primary)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)

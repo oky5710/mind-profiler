@@ -54,10 +54,10 @@ final class HRVAnalysisViewModel {
         let category: CalendarEventCategory
     }
 
-    // 시간별 모드 간트 차트 아래 아이콘 레인에 찍는 커피/약복용/이벤트 마커. 셋 다 "그 순간에 일어난
+    // 시간별 모드 간트 차트 아래 아이콘 레인에 찍는 커피/약복용/증상/이벤트 마커. 모두 "그 순간에 일어난
     // 일"이라 구간이 아니라 점 하나로 표현한다.
     enum DailyMarkerKind {
-        case coffee, medication, event
+        case coffee, medication, symptom, event
     }
 
     struct DailyMarker: Identifiable {
@@ -68,6 +68,8 @@ final class HRVAnalysisViewModel {
         let date: Date
         let kind: DailyMarkerKind
         let title: String
+        let intensity: Int?
+        let description: String?
     }
 
     // mind-record 웹의 GAP_THRESHOLD_MS(3시간)와 동일 — 정상 측정 간격(~2시간)보다 조금 더 긴 값.
@@ -165,14 +167,36 @@ final class HRVAnalysisViewModel {
     var dailyMarkers: [DailyMarker] {
         let coffeeMarkers = coffeeLogs.compactMap { entry -> DailyMarker? in
             guard let date = DateKey.parseISODate(entry.date) else { return nil }
-            return DailyMarker(id: "coffee-\(entry.id)", date: date, kind: .coffee, title: entry.type ?? "커피")
+            return DailyMarker(
+                id: "coffee-\(entry.id)",
+                date: date,
+                kind: .coffee,
+                title: entry.type ?? "커피",
+                intensity: nil,
+                description: entry.memo
+            )
         }
         let medicationDailyMarkers = medicationMarkers.map { marker in
-            DailyMarker(id: marker.id, date: marker.date, kind: .medication, title: "약 복용")
+            DailyMarker(
+                id: marker.id,
+                date: marker.date,
+                kind: .medication,
+                title: "약 복용",
+                intensity: nil,
+                description: nil
+            )
         }
         let eventMarkers = lifeEvents.compactMap { entry -> DailyMarker? in
             guard let date = DateKey.parseISODate(entry.date) else { return nil }
-            return DailyMarker(id: "event-\(entry.id)", date: date, kind: .event, title: entry.title)
+            let kind: DailyMarkerKind = entry.symptomType == nil ? .event : .symptom
+            return DailyMarker(
+                id: "event-\(entry.id)",
+                date: date,
+                kind: kind,
+                title: entry.title,
+                intensity: entry.intensity,
+                description: entry.description
+            )
         }
         return coffeeMarkers + medicationDailyMarkers + eventMarkers
     }

@@ -93,9 +93,10 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 | 화면(PRD.md) | View | ViewModel |
 |---|---|---|
-| 진입 화면 | `Views/Home/HomeView.swift` | `HomeViewModel` |
+| 스플래시 / 홈 | `App/MindProfilerApp.swift`의 `SplashView` / `Views/Home/HomeView.swift` | 스플래시는 자체 이미지 상태 / 홈은 `HomeViewModel` |
 | 달력보기 | `Views/Calendar/CalendarView.swift` | `CalendarViewModel` |
 | 오늘의 패턴 | `Views/HRVAnalysis/HRVAnalysisView.swift` (+ `HRVAnalysisView+Axes.swift`, `HRVAnalysisView+Charts.swift`) | `HRVAnalysisViewModel` |
+| 오늘의 패턴 (수면 탭) | `Views/HRVAnalysis/HRVAnalysisView.swift`의 `SleepOverviewView` | `SleepOverviewViewModel` |
 | 보고서 | `Views/Report/ReportView.swift` | `ReportViewModel` |
 | 설정 (SDNN vs rMSSD 분석) | `Views/Settings/AnalysisSettingsView.swift` | `HRVCorrelationViewModel` |
 | 설정 (전체 기간 상관계수 분석) | `Views/Settings/CorrelationAnalysisView.swift` | `CorrelationAnalysisViewModel` |

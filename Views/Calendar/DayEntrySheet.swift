@@ -54,20 +54,18 @@ struct DayEntrySheet: View {
         List {
             Section {
                 DatePicker("날짜", selection: $date, in: ...Date(), displayedComponents: .date)
+                    .environment(\.locale, Locale(identifier: "ko_KR"))
             }
             Section {
                 ForEach(EntryType.allCases) { type in
                     Button {
                         selected = type
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(type.title)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text(type.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(type.title)
+                            .font(Typography.sectionTitle)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Theme.primary)
+                            .padding(.vertical, 2)
                     }
                 }
             }
@@ -95,6 +93,8 @@ struct DayEntrySheet: View {
             ExerciseEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .medication:
             MedicationEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
+        case .symptom:
+            SymptomEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         case .event:
             LifeEventEntryForm(date: date, onSaved: dismissingSaved, onRefresh: onSaved)
         }

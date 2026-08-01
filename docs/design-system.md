@@ -282,6 +282,7 @@ Typography.caption
 - Weight와 Size로 위계를 만든다.
 - Dynamic Type을 지원할 수 있도록 시스템 폰트를 사용한다.
 - 같은 의미의 텍스트는 항상 같은 스타일을 사용한다.
+- 텍스트에 브랜드 컬러 `Theme.primary`를 사용할 때는 Weight 600(`semibold`)을 적용한다.
 
 ---
 
@@ -298,6 +299,7 @@ Typography.caption
 | `Typography.button` | 17pt | Semibold | 버튼 |
 | `Typography.secondary` | 15pt | Regular | 보조 설명 |
 | `Typography.caption` | 13pt | Regular | 캡션 |
+| `Typography.sleepStageLabel` | 12pt | Regular | 수면 단계 차트 행 라벨 전용 |
 
 ---
 
