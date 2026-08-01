@@ -457,7 +457,7 @@ extension HRVAnalysisView {
                 Text(Self.monthDayFormatter.string(from: date))
             }
         }
-        .font(.system(size: 9))
+        .font(Typography.chartAxisLabel)
         .tracking(1)
     }
 
@@ -479,7 +479,7 @@ extension HRVAnalysisView {
     func monthlyAxisLabel(for date: Date) -> some View {
         Text(Self.monthFormatter.string(from: date))
             .bold()
-            .font(.system(size: 9))
+            .font(Typography.chartAxisLabel)
             .tracking(1)
     }
 

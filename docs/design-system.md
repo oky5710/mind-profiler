@@ -300,6 +300,8 @@ Typography.caption
 | `Typography.secondary` | 15pt | Regular | 보조 설명 |
 | `Typography.caption` | 13pt | Regular | 캡션 |
 | `Typography.sleepStageLabel` | 12pt | Regular | 수면 단계 차트 행 라벨 전용 |
+| `Typography.sleepDate` | 17pt | Semibold | 수면 패턴 상단 날짜 전용 |
+| `Typography.chartAxisLabel` | 9pt | Regular | 오늘의 패턴 차트 x축 라벨 전용 |
 
 ---
 

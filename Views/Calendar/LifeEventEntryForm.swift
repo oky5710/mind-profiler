@@ -63,6 +63,7 @@ struct LifeEventEntryForm: View {
                     Text("저장")
                 }
             }
+            .buttonStyle(CalendarSaveButtonStyle())
             .disabled(isSaving)
 
             Section("이 날의 기록") {
@@ -210,6 +211,7 @@ struct SymptomEntryForm: View {
                     Text("저장")
                 }
             }
+            .buttonStyle(CalendarSaveButtonStyle())
             .disabled(isSaving)
 
             Section("이 날의 증상") {

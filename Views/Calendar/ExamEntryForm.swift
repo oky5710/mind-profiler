@@ -84,6 +84,7 @@ struct ExamEntryForm: View {
                     Text("저장")
                 }
             }
+            .buttonStyle(CalendarSaveButtonStyle())
             .disabled(isSaving)
 
             Section("이 날의 기록") {

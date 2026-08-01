@@ -33,6 +33,7 @@ struct MedicationEntryForm: View {
                         Text("저장")
                     }
                 }
+                .buttonStyle(CalendarSaveButtonStyle())
                 .disabled(isSaving)
             }
 

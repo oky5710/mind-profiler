@@ -23,4 +23,8 @@ enum Typography {
     static let caption = Font.system(size: 13, weight: .regular)
     // 12pt Regular — 수면 단계 차트의 행 라벨 전용.
     static let sleepStageLabel = Font.system(size: 12, weight: .regular)
+    // 17pt Semibold — 수면 패턴 상단 날짜 전용.
+    static let sleepDate = Font.system(size: 17, weight: .semibold)
+    // 9pt Regular — 오늘의 패턴 차트 x축 라벨 전용.
+    static let chartAxisLabel = Font.system(size: 9, weight: .regular)
 }

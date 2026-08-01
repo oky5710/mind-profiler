@@ -938,6 +938,15 @@ private final class SleepOverviewViewModel {
         await load()
     }
 
+    func selectNight(_ date: Date) async {
+        let calendar = Calendar.current
+        let selected = calendar.startOfDay(for: date)
+        let latest = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: Date())) ?? Date()
+        guard selected <= latest else { return }
+        selectedNight = selected
+        await load()
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil
@@ -1110,6 +1119,8 @@ private struct SleepOverviewView: View {
     @State private var viewModel = SleepOverviewViewModel()
     @State private var selectedRMSSDDate: Date?
     @State private var selectedHeartRateDate: Date?
+    @State private var showsDatePicker = false
+    @State private var pendingNight = Calendar.current.startOfDay(for: Date())
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1127,7 +1138,7 @@ private struct SleepOverviewView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
                 summary
 
                 if viewModel.isLoading && viewModel.timeline.isEmpty {
@@ -1156,7 +1167,6 @@ private struct SleepOverviewView: View {
                         respiratoryRateChart
                     }
                     .sleepConnectedTimeGrid(domain: viewModel.chartDomain)
-                    chartLegend
                 }
             }
             .padding()
@@ -1164,13 +1174,31 @@ private struct SleepOverviewView: View {
         .refreshable { await viewModel.load() }
         .simultaneousGesture(daySwipeGesture)
         .task { await viewModel.load() }
+        .sheet(isPresented: $showsDatePicker) {
+            sleepDatePickerSheet
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var summary: some View {
         let metrics = viewModel.currentContinuityMetrics
-        return VStack(alignment: .leading, spacing: 10) {
-            Text(Self.dateFormatter.string(from: viewModel.selectedNight))
-                .font(Typography.cardTitle)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(Self.dateFormatter.string(from: viewModel.selectedNight))
+                    .font(Typography.sleepDate)
+                Spacer()
+                Button {
+                    pendingNight = viewModel.selectedNight
+                    showsDatePicker = true
+                } label: {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(Theme.primary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("수면 날짜 선택")
+            }
+            .padding(.vertical, 2)
 
             LazyVGrid(
                 columns: Array(repeating: GridItem(.flexible()), count: 3),
@@ -1189,6 +1217,31 @@ private struct SleepOverviewView: View {
         }
     }
 
+    private var sleepDatePickerSheet: some View {
+        NavigationStack {
+            DatePicker(
+                "수면 날짜",
+                selection: $pendingNight,
+                in: ...latestSelectableNight,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.graphical)
+            .environment(\.locale, Locale(identifier: "ko_KR"))
+            .padding()
+            .navigationTitle("날짜 선택")
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: pendingNight) { _, newDate in
+                showsDatePicker = false
+                Task { await viewModel.selectNight(newDate) }
+            }
+        }
+    }
+
+    private var latestSelectableNight: Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: Date())) ?? Date()
+    }
+
     private var continuitySummary: SleepContinuitySummary {
         SleepContinuitySummaryBuilder.build(
             current: viewModel.currentContinuityMetrics,
@@ -1205,9 +1258,9 @@ private struct SleepOverviewView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Theme.systemGray6)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(10)
+        .background(Theme.primary50)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     private static func formattedDuration(_ interval: TimeInterval) -> String {
@@ -1227,7 +1280,7 @@ private struct SleepOverviewView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 4))
     }
 
     private var sleepStageChart: some View {
@@ -1244,33 +1297,9 @@ private struct SleepOverviewView: View {
             .chartXScale(domain: viewModel.chartDomain)
             .chartYScale(domain: ["비수면", "REM 수면", "코어 수면", "깊은 수면"])
             .sleepTimeGrid()
-            .chartYAxis {
-                AxisMarks(values: ["비수면", "REM 수면", "코어 수면", "깊은 수면"]) { _ in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
-                        .foregroundStyle(Theme.systemGray4.opacity(0.65))
-                }
-            }
+            .chartYAxis(.hidden)
+            .sleepStageLabels()
             .sleepXAxisBaseline()
-            .chartOverlay { proxy in
-                GeometryReader { geometry in
-                    if let plotFrame = proxy.plotFrame {
-                        let frame = geometry[plotFrame]
-                        ForEach(["깊은 수면", "코어 수면", "REM 수면", "비수면"], id: \.self) { label in
-                            if let yPosition = proxy.position(forY: label) {
-                                Text(label)
-                                    .font(Typography.sleepStageLabel)
-                                    .fixedSize()
-                                    .frame(height: 18, alignment: .bottom)
-                                    .offset(
-                                        x: frame.minX + 6,
-                                        y: frame.minY + yPosition - 24
-                                    )
-                            }
-                        }
-                    }
-                }
-                .allowsHitTesting(false)
-            }
         }
         .frame(height: 220)
     }
@@ -1310,6 +1339,7 @@ private struct SleepOverviewView: View {
             .chartXScale(domain: viewModel.chartDomain)
             .sleepTimeGrid()
             .chartYAxis(.hidden)
+            .sleepMetricLabel("rMSSD")
             .sleepXAxisBaseline()
             .sleepPointTapSelection(
                 points: viewModel.rmssdPoints,
@@ -1352,7 +1382,7 @@ private struct SleepOverviewView: View {
                 }
                 if let restingHeartRate = viewModel.dailyRestingHeartRate {
                     RuleMark(y: .value("안정시 심박수", restingHeartRate))
-                        .foregroundStyle(Theme.systemMint)
+                        .foregroundStyle(Theme.systemGray)
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                 }
             }
@@ -1360,6 +1390,7 @@ private struct SleepOverviewView: View {
             .chartYScale(domain: viewModel.heartRateDomain)
             .sleepTimeGrid()
             .chartYAxis(.hidden)
+            .sleepMetricLabel("심박수")
             .sleepXAxisBaseline()
             .padding(.top, 8)
             .sleepPointTapSelection(
@@ -1394,6 +1425,7 @@ private struct SleepOverviewView: View {
             .chartXScale(domain: viewModel.chartDomain)
             .sleepTimeGrid()
             .chartYAxis(.hidden)
+            .sleepMetricLabel("호흡수")
             .sleepXAxisBaseline()
         }
     }
@@ -1401,65 +1433,6 @@ private struct SleepOverviewView: View {
     private func metricChart<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .frame(height: 65)
-    }
-
-    private func stageLegendItem(_ label: String, stage: HealthKitService.SleepTimelineStage) -> some View {
-        HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(stageColor(stage))
-                .frame(width: 10, height: 10)
-            Text(label)
-                .font(Typography.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var chartLegend: some View {
-        LazyVGrid(
-            columns: [GridItem(.flexible()), GridItem(.flexible())],
-            alignment: .leading,
-            spacing: 8
-        ) {
-            stageLegendItem("깊은 수면", stage: .deep)
-            stageLegendItem("코어 수면", stage: .core)
-            stageLegendItem("REM 수면", stage: .rem)
-            stageLegendItem("비수면", stage: .awake)
-            metricLegendItem("rMSSD", color: Theme.rmssd)
-            metricLegendItem("30일 rMSSD 평균", color: Theme.systemGray, isDashed: true)
-            metricLegendItem("심박수", color: Theme.heart, isLine: true)
-            metricLegendItem("안정시 심박수", color: Theme.systemMint, isDashed: true)
-            metricLegendItem("호흡수", color: Theme.systemTeal, isLine: true)
-        }
-        .padding(.top, 4)
-    }
-
-    private func metricLegendItem(
-        _ label: String,
-        color: Color,
-        isDashed: Bool = false,
-        isLine: Bool = false
-    ) -> some View {
-        HStack(spacing: 5) {
-            if isDashed || isLine {
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: 5))
-                    path.addLine(to: CGPoint(x: 14, y: 5))
-                }
-                .stroke(
-                    color,
-                    style: StrokeStyle(lineWidth: isLine ? 2 : 1, dash: isDashed ? [3, 2] : [])
-                )
-                .frame(width: 14, height: 10)
-            } else {
-                Circle()
-                    .fill(color)
-                    .frame(width: 9, height: 9)
-                    .frame(width: 14, height: 10)
-            }
-            Text(label)
-                .font(Typography.caption)
-                .foregroundStyle(.secondary)
-        }
     }
 
     private func stageColor(_ stage: HealthKitService.SleepTimelineStage) -> Color {
@@ -1484,6 +1457,55 @@ private struct SleepOverviewView: View {
 }
 
 private extension View {
+    func sleepStageLabels() -> some View {
+        chartPlotStyle { plotArea in
+            plotArea.overlay {
+                GeometryReader { geometry in
+                    ZStack(alignment: .topLeading) {
+                        ForEach(1..<4, id: \.self) { index in
+                            Path { path in
+                                let y = geometry.size.height * CGFloat(index) / 4
+                                path.move(to: CGPoint(x: 0, y: y))
+                                path.addLine(to: CGPoint(x: geometry.size.width, y: y))
+                            }
+                            .stroke(Theme.systemGray4.opacity(0.65), lineWidth: 0.6)
+                        }
+
+                        VStack(spacing: 0) {
+                            ForEach(["깊은 수면", "코어 수면", "REM 수면", "비수면"], id: \.self) { label in
+                                Text(label)
+                                    .font(Typography.sleepStageLabel)
+                                    .foregroundStyle(.primary)
+                                    .padding(.leading, 6)
+                                    .padding(.top, 6)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        maxHeight: .infinity,
+                                        alignment: .topLeading
+                                    )
+                            }
+                        }
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    func sleepMetricLabel(_ label: String) -> some View {
+        chartPlotStyle { plotArea in
+            plotArea.overlay(alignment: .topLeading) {
+                Text(label)
+                    .font(Typography.sleepStageLabel)
+                    .foregroundStyle(.primary)
+                    .fixedSize()
+                    .padding(.leading, 6)
+                    .padding(.top, 6)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
     func sleepValueTooltip(
         point: SleepOverviewViewModel.MetricPoint?,
         time: String?,
@@ -1560,11 +1582,15 @@ private extension View {
 
     func sleepTimeGrid() -> some View {
         chartXAxis {
-            AxisMarks(values: .stride(by: .hour)) { _ in
+            AxisMarks(values: .stride(by: .hour)) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
                     .foregroundStyle(Theme.systemGray4.opacity(0.65))
-                AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .omitted)))
-                    .font(Typography.caption)
+                AxisValueLabel {
+                    if let date = value.as(Date.self) {
+                        Text("\(Calendar.current.component(.hour, from: date))")
+                            .font(Typography.chartAxisLabel)
+                    }
+                }
             }
         }
     }

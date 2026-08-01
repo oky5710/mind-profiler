@@ -247,3 +247,18 @@ enum Theme {
         blue: 0.8588
     ) // #6650DB
 }
+
+struct CalendarSaveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Typography.button)
+            .foregroundStyle(.white)
+            .tint(.white)
+            .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
+            .background(
+                Theme.primary.opacity(configuration.isPressed ? 0.82 : 1),
+                in: RoundedRectangle(cornerRadius: 4)
+            )
+            .contentShape(Rectangle())
+    }
+}
