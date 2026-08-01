@@ -861,13 +861,6 @@ private final class SleepOverviewViewModel {
         let value: Double
     }
 
-    struct WakeMetrics {
-        let totalDuration: TimeInterval
-        let count: Int
-        let longestDuration: TimeInterval
-        let longestContinuousSleep: TimeInterval
-    }
-
     private(set) var selectedNight = Calendar.current.date(
         byAdding: .day,
         value: -1,
@@ -879,6 +872,7 @@ private final class SleepOverviewViewModel {
     private(set) var respiratoryRatePoints: [MetricPoint] = []
     private(set) var rmssdThirtyDayAverage: Double?
     private(set) var dailyRestingHeartRate: Double?
+    private(set) var continuityBaseline: SleepContinuityBaseline?
     private(set) var sleepRange: SleepRange?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
@@ -905,37 +899,19 @@ private final class SleepOverviewViewModel {
         sleepRange.map { $0.stageDurations.values.reduce(0, +) }
     }
 
-    var wakeMetrics: WakeMetrics {
+    var currentContinuityMetrics: SleepContinuityMetrics {
         guard let sleepRange else {
-            return WakeMetrics(totalDuration: 0, count: 0, longestDuration: 0, longestContinuousSleep: 0)
+            return SleepContinuityMetrics(
+                totalAwakeDuration: 0,
+                awakeningCount: 0,
+                longestAwakening: 0,
+                longestContinuousSleep: 0,
+                sleepWindowDuration: 0
+            )
         }
-
-        let awakeSegments = timeline
-            .filter { $0.stage == .awake }
-            .sorted { $0.start < $1.start }
-        var merged: [(start: Date, end: Date)] = []
-        for segment in awakeSegments {
-            if let last = merged.last, segment.start <= last.end {
-                merged[merged.count - 1].end = max(last.end, segment.end)
-            } else {
-                merged.append((segment.start, segment.end))
-            }
-        }
-
-        let durations = merged.map { $0.end.timeIntervalSince($0.start) }
-        var continuousDurations: [TimeInterval] = []
-        var cursor = sleepRange.start
-        for segment in merged {
-            continuousDurations.append(max(0, segment.start.timeIntervalSince(cursor)))
-            cursor = max(cursor, segment.end)
-        }
-        continuousDurations.append(max(0, sleepRange.end.timeIntervalSince(cursor)))
-
-        return WakeMetrics(
-            totalDuration: durations.reduce(0, +),
-            count: durations.filter { $0 >= 60 }.count,
-            longestDuration: durations.max() ?? 0,
-            longestContinuousSleep: continuousDurations.max() ?? 0
+        return Self.makeContinuityMetrics(
+            ranges: [sleepRange],
+            timeline: timeline.map { ($0.start, $0.end, $0.stage) }
         )
     }
 
@@ -971,11 +947,8 @@ private final class SleepOverviewViewModel {
             try await HealthKitService.requestAuthorization()
             let calendar = Calendar.current
             let searchDomain = fallbackDomain
-            let contextStart = calendar.date(
-                byAdding: .day,
-                value: -SleepAnalysisService.bedtimeConsistencyWindow,
-                to: searchDomain.lowerBound
-            ) ?? searchDomain.lowerBound
+            let contextStart = calendar.date(byAdding: .day, value: -30, to: selectedNight)
+                ?? searchDomain.lowerBound
 
             let sleepSamples = try await HealthKitService.fetchSleepStageSamples(
                 start: contextStart,
@@ -991,6 +964,7 @@ private final class SleepOverviewViewModel {
                 heartRatePoints = []
                 respiratoryRatePoints = []
                 dailyRestingHeartRate = nil
+                continuityBaseline = nil
                 return
             }
 
@@ -1007,12 +981,17 @@ private final class SleepOverviewViewModel {
                 start: wakeDayStart,
                 end: wakeDayEnd
             )
-            let (rawTimeline, rmssd, heartRate, respiratoryRate, restingHeartRates) = try await (
+            async let thirtyDayTimelineTask = HealthKitService.fetchSleepTimelineSamples(
+                start: contextStart,
+                end: searchDomain.upperBound
+            )
+            let (rawTimeline, rmssd, heartRate, respiratoryRate, restingHeartRates, thirtyDayTimeline) = try await (
                 timelineTask,
                 rmssdTask,
                 heartRateTask,
                 respiratoryTask,
-                restingHeartRateTask
+                restingHeartRateTask,
+                thirtyDayTimelineTask
             )
             timeline = rawTimeline.map {
                 TimelineSegment(
@@ -1027,6 +1006,12 @@ private final class SleepOverviewViewModel {
             dailyRestingHeartRate = restingHeartRates.isEmpty
                 ? nil
                 : restingHeartRates.map(\.value).reduce(0, +) / Double(restingHeartRates.count)
+            continuityBaseline = Self.makeContinuityBaseline(
+                ranges: SleepAnalysisService.buildSleepRanges(sleepSamples),
+                timeline: thirtyDayTimeline,
+                from: calendar.startOfDay(for: contextStart),
+                through: selectedNight
+            )
 
             if rmssdThirtyDayAverage == nil {
                 let averageEnd = Date()
@@ -1039,6 +1024,84 @@ private final class SleepOverviewViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private static func makeContinuityBaseline(
+        ranges: [SleepRange],
+        timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)],
+        from startNight: Date,
+        through endNight: Date
+    ) -> SleepContinuityBaseline? {
+        let eligibleRanges = ranges.filter {
+            let night = SleepAnalysisService.nightLabel(for: $0.start)
+            return night >= startNight && night < endNight
+        }
+        let rangesByNight = Dictionary(grouping: eligibleRanges) {
+            SleepAnalysisService.nightLabel(for: $0.start)
+        }
+        let nights = rangesByNight.values.map {
+            makeContinuityMetrics(ranges: $0, timeline: timeline)
+        }
+        return makeSleepContinuityBaseline(from: nights)
+    }
+
+    private static func makeContinuityMetrics(
+        ranges: [SleepRange],
+        timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)]
+    ) -> SleepContinuityMetrics {
+        var totalAwakeDuration: TimeInterval = 0
+        var awakeningCount = 0
+        var longestAwakening: TimeInterval = 0
+        var longestContinuousSleep: TimeInterval = 0
+        var sleepWindowDuration: TimeInterval = 0
+
+        for range in ranges {
+            sleepWindowDuration += max(0, range.end.timeIntervalSince(range.start))
+            let awakeIntervals = timeline
+                .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
+                .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
+            let mergedAwake = mergeIntervals(awakeIntervals)
+            let awakeDurations = mergedAwake.map { $0.end.timeIntervalSince($0.start) }
+            totalAwakeDuration += awakeDurations.reduce(0, +)
+            awakeningCount += awakeDurations.filter { $0 >= 60 }.count
+            longestAwakening = max(longestAwakening, awakeDurations.max() ?? 0)
+
+            var cursor = range.start
+            for awake in mergedAwake {
+                longestContinuousSleep = max(
+                    longestContinuousSleep,
+                    max(0, awake.start.timeIntervalSince(cursor))
+                )
+                cursor = max(cursor, awake.end)
+            }
+            longestContinuousSleep = max(
+                longestContinuousSleep,
+                max(0, range.end.timeIntervalSince(cursor))
+            )
+        }
+
+        return SleepContinuityMetrics(
+            totalAwakeDuration: totalAwakeDuration,
+            awakeningCount: awakeningCount,
+            longestAwakening: longestAwakening,
+            longestContinuousSleep: longestContinuousSleep,
+            sleepWindowDuration: sleepWindowDuration
+        )
+    }
+
+    private static func mergeIntervals(
+        _ intervals: [(start: Date, end: Date)]
+    ) -> [(start: Date, end: Date)] {
+        let sorted = intervals.sorted { $0.start < $1.start }
+        var merged: [(start: Date, end: Date)] = []
+        for interval in sorted {
+            if let last = merged.last, interval.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, interval.end)
+            } else {
+                merged.append(interval)
+            }
+        }
+        return merged
     }
 
 }
@@ -1085,7 +1148,7 @@ private struct SleepOverviewView: View {
                     )
                     .frame(minHeight: 260)
                 } else {
-                    wakeMetricsSummary
+                    continuitySummaryCard
                     VStack(spacing: 0) {
                         sleepStageChart
                         rmssdChart
@@ -1104,52 +1167,54 @@ private struct SleepOverviewView: View {
     }
 
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("수면 일자")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
-                    Text(Self.dateFormatter.string(from: viewModel.selectedNight))
-                        .font(Typography.cardTitle)
-                }
-                Spacer()
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("총 수면 시간")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
-                    if let duration = viewModel.totalSleepDuration {
-                        Text(SleepAnalysisService.formattedDuration(duration))
-                            .font(Typography.cardTitle)
-                    } else {
-                        Text("—")
-                            .font(Typography.cardTitle)
-                    }
-                }
-                Spacer()
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("수면 점수")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
-                    Text(viewModel.sleepRange.map { "\($0.estimatedScore)점" } ?? "—")
-                        .font(Typography.cardTitle)
-                        .foregroundStyle(Theme.sleep)
-                }
+        let metrics = viewModel.currentContinuityMetrics
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(Self.dateFormatter.string(from: viewModel.selectedNight))
+                .font(Typography.cardTitle)
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible()), count: 3),
+                spacing: 8
+            ) {
+                wakeMetric(
+                    "총 수면 시간",
+                    value: viewModel.totalSleepDuration.map { Self.formattedDuration($0) } ?? "—"
+                )
+                wakeMetric("총 각성 시간", value: Self.formattedDuration(metrics.totalAwakeDuration))
+                wakeMetric(
+                    "가장 긴 연속 수면",
+                    value: Self.formattedDuration(metrics.longestContinuousSleep)
+                )
             }
         }
     }
 
-    private var wakeMetricsSummary: some View {
-        let metrics = viewModel.wakeMetrics
-        return LazyVGrid(
-            columns: [GridItem(.flexible()), GridItem(.flexible())],
-            spacing: 8
-        ) {
-            wakeMetric("총 각성 시간", value: SleepAnalysisService.formattedDuration(metrics.totalDuration))
-            wakeMetric("각성 횟수", value: "\(metrics.count)회")
-            wakeMetric("가장 긴 각성", value: SleepAnalysisService.formattedDuration(metrics.longestDuration))
-            wakeMetric("가장 긴 연속 수면", value: SleepAnalysisService.formattedDuration(metrics.longestContinuousSleep))
+    private var continuitySummary: SleepContinuitySummary {
+        SleepContinuitySummaryBuilder.build(
+            current: viewModel.currentContinuityMetrics,
+            baseline: viewModel.continuityBaseline
+        )
+    }
+
+    private var continuitySummaryCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(continuitySummary.title)
+                .font(Typography.cardTitle)
+            Text(continuitySummary.detail)
+                .font(Typography.secondary)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Theme.systemGray6)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private static func formattedDuration(_ interval: TimeInterval) -> String {
+        let totalMinutes = Int(interval) / 60
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return hours == 0 ? "\(minutes)분" : "\(hours)시간 \(minutes)분"
     }
 
     private func wakeMetric(_ title: String, value: String) -> some View {
@@ -1179,7 +1244,12 @@ private struct SleepOverviewView: View {
             .chartXScale(domain: viewModel.chartDomain)
             .chartYScale(domain: ["비수면", "REM 수면", "코어 수면", "깊은 수면"])
             .sleepTimeGrid()
-            .chartYAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(values: ["비수면", "REM 수면", "코어 수면", "깊은 수면"]) { _ in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
+                        .foregroundStyle(Theme.systemGray4.opacity(0.65))
+                }
+            }
             .sleepXAxisBaseline()
             .chartOverlay { proxy in
                 GeometryReader { geometry in

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7C0010120260801A7C00101 /* SleepContinuityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0010220260801A7C00102 /* SleepContinuityModels.swift */; };
 		00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */; };
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
 		0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */; };
@@ -101,6 +102,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A7C0010220260801A7C00102 /* SleepContinuityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepContinuityModels.swift; sourceTree = "<group>"; };
 		056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
 		08D6C75DD02E38AA10033162 /* MedicationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationModels.swift; sourceTree = "<group>"; };
 		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
@@ -441,6 +443,7 @@
 				3E922C72C21453864B098F86 /* LifeEventModels.swift */,
 				8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */,
 				BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */,
+				A7C0010220260801A7C00102 /* SleepContinuityModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -558,6 +561,7 @@
 				CC721CF6D5546D27FA89CBD4 /* CoffeeEntryForm.swift in Sources */,
 				A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */,
 				4700209C461D0BB22C7E8AF6 /* DailyValue.swift in Sources */,
+				A7C0010120260801A7C00101 /* SleepContinuityModels.swift in Sources */,
 				4CEF353801D9275A38CFCF8E /* ExamModels.swift in Sources */,
 				A47997059D6D806917A223D5 /* ExamService.swift in Sources */,
 				554F663B81BFC26EA2C4A043 /* HeartLoader.swift in Sources */,
