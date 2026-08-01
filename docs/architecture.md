@@ -23,7 +23,9 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 ## 백엔드
 
-- NestJS 백엔드(`mind-chart-backend`)와 Postgres(Neon) DB를 그대로 공유한다. 백엔드는 이 앱을 위해 변경하지 않는다.
+- NestJS 백엔드(`mind-chart-backend`)와 Postgres(Neon) DB를 공유한다. Google 최초 로그인 시 `User`를
+  자동 생성하고 `UserRole` 기본값 `user`를 적용한다. 역할은 DB에서만 `researcher`/`admin`으로 승격하며
+  클라이언트가 역할을 지정하는 API는 두지 않는다.
 - 인증은 `POST /auth/google`로 Google idToken을 보내고, 백엔드가 발급한 JWT를 이후 모든 요청에 `Authorization: Bearer`로 사용한다. 자세한 엔드포인트는 [api.md](api.md) 참고.
 - JWT는 Keychain(`KeychainService`)에 저장하고, 앱 재실행 시 저장된 토큰 유무로 로그인 상태를 판단한다.
 

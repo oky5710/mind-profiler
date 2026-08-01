@@ -79,6 +79,7 @@
 		B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */; };
 		B2C3D4E5F6A7B8C9D0E1F4A6 /* Comparable+Clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */; };
 		B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC3 /* LoginView.swift */; };
+		B4FC20525F341F604B1B7E6C /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC4 /* OnboardingView.swift */; };
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
 		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
@@ -146,6 +147,7 @@
 		8296BF009909079BC325B648 /* MoodService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodService.swift; sourceTree = "<group>"; };
 		85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		88F7EE3749D826B753973FC3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		88F7EE3749D826B753973FC4 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		8AF23AC877DAF03E6DD07A49 /* PRD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRD.md; sourceTree = "<group>"; };
 		8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminderModels.swift; sourceTree = "<group>"; };
 		92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BadgeFlowLayout.swift; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 			isa = PBXGroup;
 			children = (
 				88F7EE3749D826B753973FC3 /* LoginView.swift */,
+				88F7EE3749D826B753973FC4 /* OnboardingView.swift */,
 			);
 			path = Login;
 			sourceTree = "<group>";
@@ -540,6 +543,7 @@
 				546EA496568AB165FEE92A39 /* AuthModels.swift in Sources */,
 				75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */,
 				B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */,
+				B4FC20525F341F604B1B7E6C /* OnboardingView.swift in Sources */,
 				BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */,
 				756383A51162B80D589630D8 /* PixabayService.swift in Sources */,
 				B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */,

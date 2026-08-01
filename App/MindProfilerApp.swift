@@ -24,7 +24,13 @@ struct MindProfilerApp: App {
         WindowGroup {
             Group {
                 if authViewModel.isAuthenticated {
-                    RootTabView()
+                    if authViewModel.shouldShowOnboarding {
+                        OnboardingView {
+                            authViewModel.completeOnboarding()
+                        }
+                    } else {
+                        RootTabView()
+                    }
                 } else {
                     LoginView()
                 }

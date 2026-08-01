@@ -17,6 +17,14 @@
 
 ### 로그인 (`Views/Login`)
 - Google Sign-In(`GoogleSignIn` SDK) → 백엔드 `POST /auth/google`로 idToken 교환 → JWT를 Keychain에 저장.
+- Google 계정으로 처음 로그인하면 백엔드가 사용자를 자동 생성하며 기본 역할은 `user`다. 역할은
+  클라이언트 요청으로 지정하거나 변경할 수 없고, 운영자가 DB에서 본인 계정만 `admin`, 승인한 계정만
+  `researcher`로 변경한다. 역할 변경 뒤에는 새 역할이 포함된 JWT를 받도록 다시 로그인해야 한다.
+- 백엔드가 최초 가입 응답에 `isNewUser=true`를 보내면 `OnboardingView`를 표시한다. 안내에는 앱의
+  목적(하루 변화·장기 추세·생활 습관 관계 탐색), HRV에 영향을 주는 요인, 의학적 진단이 아니라는
+  주의사항을 담는다. 내용은 스크롤되지만 Primary 배경·흰색 글자의 `시작하기` 버튼은 화면 하단에
+  고정한다. 버튼을 누르면 완료 상태를 기기에 저장하고 기본 홈 화면으로 전환한다. 버튼을 누르기 전에
+  앱이 종료돼도 다음 실행에서 안내를 다시 표시한다.
 
 ### 진입 화면 / 홈 (`Views/Home`)
 - Pixabay 랜덤 고양이 사진 위에 "Track your mind. Find the patterns." 태그라인 오버레이(볼드, 흰색

@@ -18,7 +18,7 @@ MindProfiler는 mind-record(웹)와 **같은** NestJS 백엔드(`mind-chart-back
 
 | Method | Path | 용도 | 클라이언트 코드 |
 |---|---|---|---|
-| POST | `/auth/google` | Google idToken → 백엔드 JWT 교환 (`authorized: false`) | `AuthViewModel.signInWithGoogle` |
+| POST | `/auth/google` | Google idToken → 백엔드 JWT 교환 (`authorized: false`). 최초 로그인은 기본 `role=user` 계정을 자동 생성하고 `isNewUser=true` 반환, 역할 변경은 요청으로 받지 않음 | `AuthViewModel.signInWithGoogle` |
 | GET | `/hrv` | 전체 HRV 검사 기록 조회 (날짜 필터 없음, 클라이언트에서 그룹핑 — `ExamEntryForm` 목록도 여기서 그 날짜만 걸러낸다) | `ExamService.allExams` / `entries` |
 | POST | `/hrv` | HRV 검사 기록 생성 | `ExamService.createExam` |
 | DELETE | `/hrv/:id` | HRV 검사 기록 삭제 | `ExamService.removeExam` |
