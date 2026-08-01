@@ -7,6 +7,20 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 12) {
+                    if let caseType = viewModel.briefingCaseType {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("사건명")
+                                .font(Typography.caption)
+                                .foregroundStyle(.secondary)
+                            Text(caseType.title)
+                                .font(Typography.sectionTitle)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Theme.primary50)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+
                     if viewModel.hasCheckedMood && viewModel.todayMoodScore == nil {
                         moodPicker
                     }
@@ -63,11 +77,11 @@ struct HomeView: View {
                 }
                 .padding()
             }
-            .navigationTitle("오늘의 요약")
+            .navigationTitle("오늘의 수사 노트")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("오늘의 요약").font(Typography.screenTitle)
+                    Text("오늘의 수사 노트").font(Typography.screenTitle)
                 }
             }
         }
@@ -76,6 +90,7 @@ struct HomeView: View {
         // 않는다. 각 IfNeeded 함수가 이미 "성공적으로 확인함" 상태를 스스로 추적하므로, 매번 다시
         // 불러도 실제로 이미 성공한 항목은 그냥 바로 반환된다.
         .onAppear {
+            Task { await viewModel.loadDailyBriefingIfNeeded() }
             Task { await viewModel.loadTodayMoodIfNeeded() }
             Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
             Task { await viewModel.loadTodayMedicationLogsIfNeeded() }

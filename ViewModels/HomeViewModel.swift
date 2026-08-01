@@ -4,6 +4,7 @@ import Foundation
 @Observable
 final class HomeViewModel {
     private(set) var errorMessage: String?
+    private(set) var briefingCaseType: BriefingCaseType?
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?
@@ -18,6 +19,74 @@ final class HomeViewModel {
 
     private var hasCheckedCoffee = false
     private var hasCheckedMedicationLogs = false
+    private var hasLoadedDailyBriefing = false
+
+    func loadDailyBriefingIfNeeded() async {
+        guard !hasLoadedDailyBriefing else { return }
+        hasLoadedDailyBriefing = true
+
+        do {
+            try await HealthKitService.requestAuthorization()
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            let latestNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+            let fetchStart = calendar.date(byAdding: .day, value: -38, to: latestNight) ?? latestNight
+            let fetchEnd = calendar.date(byAdding: .day, value: 2, to: today) ?? Date()
+
+            async let sleepTask = HealthKitService.fetchSleepStageSamples(start: fetchStart, end: fetchEnd)
+            async let timelineTask = HealthKitService.fetchSleepTimelineSamples(start: fetchStart, end: fetchEnd)
+            async let rmssdTask = HealthKitService.fetchRMSSDSamples(start: fetchStart, end: fetchEnd)
+            let (sleepSamples, timeline, rmssdSamples) = try await (sleepTask, timelineTask, rmssdTask)
+
+            let ranges = SleepAnalysisService.buildSleepRanges(sleepSamples)
+            guard let currentRange = ranges.last(where: {
+                calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: latestNight)
+            }) else {
+                briefingCaseType = nil
+                return
+            }
+
+            let previousRanges = ranges
+                .filter { SleepAnalysisService.nightLabel(for: $0.start) < latestNight }
+                .suffix(30)
+            guard !previousRanges.isEmpty else {
+                briefingCaseType = nil
+                return
+            }
+
+            let current = Self.briefingNight(range: currentRange, timeline: timeline, rmssd: rmssdSamples)
+            let previous = previousRanges.map {
+                Self.briefingNight(range: $0, timeline: timeline, rmssd: rmssdSamples)
+            }
+            guard
+                let sleepDurationMedian = previous.map(\.sleepDuration).median,
+                let awakeRatioMedian = previous.map(\.awakeRatio).median,
+                let longestContinuousSleepMedian = previous.map(\.longestContinuousSleep).median,
+                let currentRMSSD = current.rmssd,
+                let rmssdMedian = previous.compactMap(\.rmssd).median,
+                rmssdMedian > 0
+            else {
+                briefingCaseType = nil
+                return
+            }
+
+            let input = DailyBriefingInput(
+                sleepDurationChangeMinutes: (current.sleepDuration - sleepDurationMedian) / 60,
+                awakeRatioChangePercent: Self.percentChange(
+                    current: current.awakeRatio,
+                    baseline: awakeRatioMedian
+                ),
+                longestContinuousSleepChangeMinutes:
+                    (current.longestContinuousSleep - longestContinuousSleepMedian) / 60,
+                rmssdChangePercent: Self.percentChange(current: currentRMSSD, baseline: rmssdMedian)
+            )
+            briefingCaseType = BriefingCaseDetector.detect(from: input)
+        } catch {
+            // 사건명 분석 실패는 기존 간편 입력의 오류 영역과 동작에 영향을 주지 않는다.
+            briefingCaseType = nil
+            hasLoadedDailyBriefing = false
+        }
+    }
 
     func loadTodayMoodIfNeeded() async {
         guard !hasCheckedMood else { return }
@@ -105,5 +174,65 @@ final class HomeViewModel {
             medicationErrorMessage = error.localizedDescription
             return false
         }
+    }
+
+    private struct BriefingNight {
+        let sleepDuration: TimeInterval
+        let awakeRatio: Double
+        let longestContinuousSleep: TimeInterval
+        let rmssd: Double?
+    }
+
+    private static func briefingNight(
+        range: SleepRange,
+        timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)],
+        rmssd: [(date: Date, value: Double)]
+    ) -> BriefingNight {
+        let awakeIntervals = timeline
+            .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
+            .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
+        let mergedAwake = mergeIntervals(awakeIntervals)
+        let windowDuration = max(0, range.end.timeIntervalSince(range.start))
+        let awakeDuration = mergedAwake.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
+
+        var longestContinuousSleep: TimeInterval = 0
+        var cursor = range.start
+        for awake in mergedAwake {
+            longestContinuousSleep = max(longestContinuousSleep, awake.start.timeIntervalSince(cursor))
+            cursor = max(cursor, awake.end)
+        }
+        longestContinuousSleep = max(longestContinuousSleep, range.end.timeIntervalSince(cursor))
+
+        return BriefingNight(
+            sleepDuration: range.stageDurations.values.reduce(0, +),
+            awakeRatio: windowDuration > 0 ? awakeDuration / windowDuration : 0,
+            longestContinuousSleep: max(0, longestContinuousSleep),
+            rmssd: rmssd
+                .filter { $0.date >= range.start && $0.date <= range.end }
+                .map(\.value)
+                .median
+        )
+    }
+
+    private static func mergeIntervals(
+        _ intervals: [(start: Date, end: Date)]
+    ) -> [(start: Date, end: Date)] {
+        var merged: [(start: Date, end: Date)] = []
+        for interval in intervals.sorted(by: { $0.start < $1.start }) {
+            if let last = merged.last, interval.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, interval.end)
+            } else {
+                merged.append(interval)
+            }
+        }
+        return merged
+    }
+
+    private static func percentChange(current: Double, baseline: Double) -> Double {
+        guard baseline != 0 else {
+            if current == 0 { return 0 }
+            return current > 0 ? .infinity : -.infinity
+        }
+        return ((current - baseline) / baseline) * 100
     }
 }

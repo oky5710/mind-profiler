@@ -1289,19 +1289,20 @@ private struct SleepOverviewView: View {
                 RectangleMark(
                     xStart: .value("시작", segment.start),
                     xEnd: .value("끝", segment.end),
-                    y: .value("단계", segment.stage.label)
+                    yStart: .value("단계 시작", stageYRange(segment.stage).lowerBound),
+                    yEnd: .value("단계 끝", stageYRange(segment.stage).upperBound)
                 )
                 .foregroundStyle(stageColor(segment.stage))
                 .cornerRadius(3)
             }
             .chartXScale(domain: viewModel.chartDomain)
-            .chartYScale(domain: ["비수면", "REM 수면", "코어 수면", "깊은 수면"])
+            .chartYScale(domain: 0...4)
             .sleepTimeGrid()
             .chartYAxis(.hidden)
             .sleepStageLabels()
             .sleepXAxisBaseline()
         }
-        .frame(height: 220)
+        .frame(height: 154)
     }
 
     private var rmssdChart: some View {
@@ -1392,7 +1393,6 @@ private struct SleepOverviewView: View {
             .chartYAxis(.hidden)
             .sleepMetricLabel("심박수")
             .sleepXAxisBaseline()
-            .padding(.top, 8)
             .sleepPointTapSelection(
                 points: viewModel.heartRatePoints,
                 selection: $selectedHeartRateDate
@@ -1444,6 +1444,17 @@ private struct SleepOverviewView: View {
         }
     }
 
+    private func stageYRange(
+        _ stage: HealthKitService.SleepTimelineStage
+    ) -> ClosedRange<Double> {
+        switch stage {
+        case .deep: 3.08...3.92
+        case .core: 2.08...2.92
+        case .rem: 1.08...1.92
+        case .awake: 0.08...0.92
+        }
+    }
+
     private var daySwipeGesture: some Gesture {
         DragGesture(minimumDistance: 30)
             .onEnded { value in
@@ -1462,7 +1473,7 @@ private extension View {
             plotArea.overlay {
                 GeometryReader { geometry in
                     ZStack(alignment: .topLeading) {
-                        ForEach(1..<4, id: \.self) { index in
+                        ForEach(0..<4, id: \.self) { index in
                             Path { path in
                                 let y = geometry.size.height * CGFloat(index) / 4
                                 path.move(to: CGPoint(x: 0, y: y))
@@ -1475,7 +1486,7 @@ private extension View {
                             ForEach(["깊은 수면", "코어 수면", "REM 수면", "비수면"], id: \.self) { label in
                                 Text(label)
                                     .font(Typography.sleepStageLabel)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Theme.systemGray)
                                     .padding(.leading, 6)
                                     .padding(.top, 6)
                                     .frame(
@@ -1497,10 +1508,10 @@ private extension View {
             plotArea.overlay(alignment: .topLeading) {
                 Text(label)
                     .font(Typography.sleepStageLabel)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Theme.systemGray)
                     .fixedSize()
                     .padding(.leading, 6)
-                    .padding(.top, 6)
+                    .padding(.top, 0)
                     .allowsHitTesting(false)
             }
         }
