@@ -536,9 +536,14 @@ rMSSD가 최근 30일 중앙값 대비 급격히 낮아지거나(50% 미만, 위
   배달을 재현할 수 없어 실제 기기 + 페어링된 애플워치로만 확인 가능하다.
 
 ### 설정 (`Views/Settings`)
-`SettingsView`는 목록 항목(SDNN·rMSSD 분석 / 상관계수 분석 / 약 등록 / 알림 설정 / RR 데이터 내보내기)만 있는 메뉴 화면이고,
+`SettingsView`는 목록 항목(SDNN·rMSSD 분석 / 상관계수 분석 / 약 등록 / 알림 설정 / RR 데이터 내보내기 / 개발자에게 문의하기)만 있는 메뉴 화면이고,
 실제 내용은 각각 별도 화면으로 푸시된다 — 전부 `SettingsView`의 `NavigationStack` 안에서 열리므로
 자기 자신은 새 `NavigationStack`을 만들지 않는다.
+
+- **개발자에게 문의하기 (`DeveloperContactView`)**: 여러 줄 `TextEditor`에서 길이 제한 없이 문의를
+  작성한다. 공백만 입력한 상태에서는 보내기 버튼이 비활성화되며, 버튼을 누르면 수신자·제목·본문을
+  채운 `mailto` URL로 시스템 메일 앱을 연다. 실제 발송 전에는 메일 앱에서 내용을 다시 확인할 수
+  있고, 메일 앱이나 계정을 사용할 수 없으면 화면에 오류 안내를 표시한다.
 
 - **분석 (`AnalysisSettingsView`)**: SDNN vs rMSSD 분석. 같은 측정 시각(±5초)의 SDNN·rMSSD 쌍을
   찾아 평균 SDNN·평균 rMSSD·SDNN/rMSSD 비율·Pearson 상관계수를 계산해서 보여준다

@@ -34,6 +34,12 @@ struct SettingsView: View {
                     Label("RR 데이터 내보내기", systemImage: "waveform.path")
                 }
 
+                NavigationLink {
+                    DeveloperContactView()
+                } label: {
+                    Label("개발자에게 문의하기", systemImage: "envelope")
+                }
+
                 #if DEBUG
                 // 실제 rMSSD를 낮추거나 높일 수 없어서, 감지 로직은 건너뛰고 알림이 뜬 이후의
                 // 흐름(탭 → 입력 화면 → 저장)만 확인해보는 디버그용 버튼 — 릴리스 빌드에는 없다.
@@ -54,6 +60,94 @@ struct SettingsView: View {
                 ToolbarItem(placement: .principal) {
                     Text("설정").font(Typography.screenTitle)
                 }
+            }
+        }
+    }
+}
+
+private struct DeveloperContactView: View {
+    private static let developerEmail = "kyoh@hutom.co.kr"
+
+    @Environment(\.openURL) private var openURL
+    @State private var message = ""
+    @State private var isShowingMailError = false
+    @FocusState private var isMessageFocused: Bool
+
+    private var trimmedMessage: String {
+        message.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                ZStack(alignment: .topLeading) {
+                    if message.isEmpty {
+                        Text("문의 내용을 자세히 적어 주세요.")
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+
+                    TextEditor(text: $message)
+                        .focused($isMessageFocused)
+                        .frame(minHeight: 280)
+                        .scrollContentBackground(.hidden)
+                }
+            } header: {
+                Text("문의 내용")
+            } footer: {
+                Text("작성한 내용은 메일 앱으로 전달되며, 보내기 전 다시 확인할 수 있어요.")
+            }
+
+            Section {
+                Button {
+                    sendEmail()
+                } label: {
+                    Label("메일 앱에서 보내기", systemImage: "paperplane.fill")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .font(Typography.button)
+                }
+                .disabled(trimmedMessage.isEmpty)
+            }
+        }
+        .contentMargins(.top, 10, for: .scrollContent)
+        .scrollDismissesKeyboard(.interactively)
+        .navigationTitle("개발자에게 문의하기")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("완료") {
+                    isMessageFocused = false
+                }
+            }
+        }
+        .alert("메일 앱을 열 수 없어요", isPresented: $isShowingMailError) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("이 기기에서 메일을 보낼 수 있도록 메일 앱과 계정을 확인해 주세요.")
+        }
+    }
+
+    private func sendEmail() {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = Self.developerEmail
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "MindProfiler 문의"),
+            URLQueryItem(name: "body", value: trimmedMessage)
+        ]
+
+        guard let url = components.url else {
+            isShowingMailError = true
+            return
+        }
+
+        isMessageFocused = false
+        openURL(url) { accepted in
+            if !accepted {
+                isShowingMailError = true
             }
         }
     }
