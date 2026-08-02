@@ -262,6 +262,21 @@ enum Theme {
     ) // #6650DB
 }
 
+// 홈의 "수사 기록" 카드와 설정의 "장기 미제 사건" 화면이 공유하는 연보라 카드 배경.
+extension View {
+    func investigationCard() -> some View {
+        background {
+            Rectangle()
+                .fill(Theme.primary50)
+        }
+        .overlay {
+            Rectangle()
+                .stroke(Theme.primary100, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.10), radius: 4, x: 0, y: 2)
+    }
+}
+
 struct CalendarSaveButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

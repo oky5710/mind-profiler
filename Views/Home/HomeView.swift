@@ -60,8 +60,6 @@ struct HomeView: View {
                     .padding(.top, 16)
                     .padding(.horizontal, 24)
 
-                    unsolvedCasesSection
-
                     if let errorMessage = viewModel.errorMessage {
                         inlineError(errorMessage)
                             .padding(.horizontal)
@@ -90,74 +88,11 @@ struct HomeView: View {
             Task { await viewModel.loadTodayMoodIfNeeded() }
             Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
             Task { await viewModel.loadTodayMedicationLogsIfNeeded() }
-            Task { await viewModel.loadUnsolvedCasesIfNeeded() }
         }
         .onChange(of: refreshRequestID) { _, requestID in
             guard requestID != nil else { return }
             Task { await viewModel.loadDailyBriefing() }
         }
-    }
-
-    private var unsolvedCasesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("장기 미제 사건")
-                .font(Typography.body.weight(.bold))
-                .foregroundStyle(Theme.primary800)
-
-            VStack(alignment: .leading, spacing: 0) {
-                if viewModel.isLoadingUnsolvedCases && viewModel.unsolvedCaseResults.isEmpty {
-                    ProgressView("최근 90일의 증거를 분석하는 중...")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                } else {
-                    ForEach(Array(viewModel.unsolvedCaseResults.enumerated()), id: \.element.id) { index, result in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text(result.type.icon)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(result.type.title)
-                                    .font(Typography.body.weight(.semibold))
-                                    .foregroundStyle(Theme.primary800)
-                                Text(result.summary)
-                                    .font(Typography.caption)
-                                    .foregroundStyle(.secondary)
-
-                                if let insight = result.insight {
-                                    Divider()
-                                        .padding(.vertical, 6)
-                                    Text(insight.title)
-                                        .font(Typography.body.weight(.bold))
-                                        .foregroundStyle(Theme.primary800)
-                                    Text(insight.summary)
-                                        .font(Typography.body)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Text(insight.evidence)
-                                        .font(Typography.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Text(CaseInsight.caution)
-                                        .font(Typography.caption)
-                                        .foregroundStyle(.secondary)
-                                        .padding(.top, 4)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 12)
-
-                        if index < viewModel.unsolvedCaseResults.count - 1 {
-                            Divider().opacity(0.5)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .investigationCard()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 16)
-        .padding(.horizontal, 24)
     }
 
     private func briefingHeader(score: RecoveryScore?, date: Date?) -> some View {
@@ -376,20 +311,6 @@ struct HomeView: View {
         }
     }
 
-}
-
-private extension View {
-    func investigationCard() -> some View {
-        background {
-            Rectangle()
-                .fill(Theme.primary50)
-        }
-        .overlay {
-            Rectangle()
-                .stroke(Theme.primary100, lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.10), radius: 4, x: 0, y: 2)
-    }
 }
 
 #Preview {

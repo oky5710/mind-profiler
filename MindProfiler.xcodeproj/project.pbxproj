@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
-		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
-		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
-		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
-		A7C0010120260801A7C00101 /* SleepContinuityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0010220260801A7C00102 /* SleepContinuityModels.swift */; };
-		A7C0020120260801A7C00201 /* DailyBriefingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0020220260801A7C00202 /* DailyBriefingModels.swift */; };
 		00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */; };
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
 		0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */; };
@@ -26,6 +20,7 @@
 		1C1A237FCABD50AEEE0C19B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = FDA976353F815393EF917200 /* GoogleSignIn */; };
 		1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */; };
 		202460BD9C82EE2421D087D9 /* design-system.md in Resources */ = {isa = PBXBuildFile; fileRef = BD8714E5A70D3B643DB60482 /* design-system.md */; };
+		20827A64B5C8AD04830F3692 /* UnsolvedCasesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */; };
 		27D50849DB1BA7F10CBDB2AC /* ExamEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCDEABE829D5B4188733280 /* ExamEntryForm.swift */; };
 		298D79DD45FF501FC446FC38 /* HRVAnalysisView+Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC26E2A0D8FA6247D4C4149 /* HRVAnalysisView+Axes.swift */; };
 		2F284355300A4D1000CE1C47 /* MindProfilerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F284354300A4D1000CE1C47 /* MindProfilerApp.swift */; };
@@ -79,6 +74,8 @@
 		A434A2EBA7FA9B4AABF06E27 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */; };
 		A47997059D6D806917A223D5 /* ExamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A260AC61F3C8A7585B32E365 /* ExamService.swift */; };
 		A780EA1A0DED674066AEE640 /* DayEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D915F1380B35DFCE086458 /* DayEntrySheet.swift */; };
+		A7C0010120260801A7C00101 /* SleepContinuityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0010220260801A7C00102 /* SleepContinuityModels.swift */; };
+		A7C0020120260801A7C00201 /* DailyBriefingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0020220260801A7C00202 /* DailyBriefingModels.swift */; };
 		ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48F6DDAC8977311FEEA3765 /* MoodModels.swift */; };
 		ACB301EB655C35EA72C61F02 /* HRVAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */; };
 		B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EAF21DE948BC59DE5A285D /* HomeViewModel.swift */; };
@@ -88,6 +85,7 @@
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
 		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
+		C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */; };
 		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
 		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
 		C9DF57A158B2ADA443EBCFD4 /* CorrelationAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */; };
@@ -101,17 +99,15 @@
 		EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */; };
 		EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225DD3DE88849264BC0A42B7 /* AppDelegate.swift */; };
 		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
+		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
+		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
+		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
+		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
-		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
-		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
-		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
-		A7C0010220260801A7C00102 /* SleepContinuityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepContinuityModels.swift; sourceTree = "<group>"; };
-		A7C0020220260801A7C00202 /* DailyBriefingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefingModels.swift; sourceTree = "<group>"; };
 		056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
 		08D6C75DD02E38AA10033162 /* MedicationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationModels.swift; sourceTree = "<group>"; };
 		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
@@ -172,6 +168,7 @@
 		9B1F4A2C5E6D7089ABCDEF0C /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportViewModel.swift; sourceTree = "<group>"; };
 		9D4A2E6B1F0A4B7CB6C1E3D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnsolvedCasesViewModel.swift; sourceTree = "<group>"; };
 		9FCDEABE829D5B4188733280 /* ExamEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamEntryForm.swift; sourceTree = "<group>"; };
 		A057223BD13A5592F8E7E5E0 /* api.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = api.md; sourceTree = "<group>"; };
 		A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugSearchSheet.swift; sourceTree = "<group>"; };
@@ -181,6 +178,8 @@
 		A260AC61F3C8A7585B32E365 /* ExamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamService.swift; sourceTree = "<group>"; };
 		A64708648392ADFC66B4F219 /* MedicationReminderService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationReminderService.swift; sourceTree = "<group>"; };
 		A6CD792D584532E3D8E37153 /* HRVAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisView.swift; sourceTree = "<group>"; };
+		A7C0010220260801A7C00102 /* SleepContinuityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepContinuityModels.swift; sourceTree = "<group>"; };
+		A7C0020220260801A7C00202 /* DailyBriefingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefingModels.swift; sourceTree = "<group>"; };
 		B295B8910D1FE32FEFB12781 /* DayDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayDetailSheet.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamped.swift"; sourceTree = "<group>"; };
 		B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisViewModel.swift; sourceTree = "<group>"; };
@@ -188,18 +187,23 @@
 		BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventModels.swift; sourceTree = "<group>"; };
 		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
-		C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisView.swift; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
+		C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisView.swift; sourceTree = "<group>"; };
 		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListView.swift; sourceTree = "<group>"; };
 		D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RRIntervalExportViewModel.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnsolvedCasesView.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdMonitorService.swift; sourceTree = "<group>"; };
 		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
+		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
+		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
+		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
 		FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventEntryForm.swift; sourceTree = "<group>"; };
 		FB3F76D2A4694A2F654A1B62 /* ui-style.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "ui-style.md"; sourceTree = "<group>"; };
 		FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderEntryForm.swift; sourceTree = "<group>"; };
@@ -343,6 +347,7 @@
 				D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */,
 				7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */,
 				983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */,
+				9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -416,6 +421,7 @@
 				4BCE4AEE9A3EA049D41D1DE3 /* RRIntervalExportView.swift */,
 				CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */,
 				FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */,
+				E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -628,6 +634,8 @@
 				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,
 				06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */,
 				EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */,
+				C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */,
+				20827A64B5C8AD04830F3692 /* UnsolvedCasesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

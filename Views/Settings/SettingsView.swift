@@ -17,6 +17,12 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    UnsolvedCasesView()
+                } label: {
+                    Label("장기 미제 사건", systemImage: "magnifyingglass")
+                }
+
+                NavigationLink {
                     MedicationManagementView()
                 } label: {
                     Label("약 등록", systemImage: "pills.fill")
