@@ -8,6 +8,8 @@ final class RMSSDLocalStore {
     static let aggregationVersion = 1
 
     private let container: ModelContainer
+    private var isPerformingOperation = false
+    private var operationWaiters: [CheckedContinuation<Void, Never>] = []
 
     private init() {
         do {
@@ -39,6 +41,8 @@ final class RMSSDLocalStore {
     }
 
     func samples(start: Date?, end: Date?) async throws -> [(date: Date, value: Double)] {
+        await acquireOperation()
+        defer { releaseOperation() }
         let queryStart = start ?? .distantPast
         let queryEnd = end ?? Date()
         try await synchronize(start: queryStart, end: queryEnd)
@@ -46,9 +50,31 @@ final class RMSSDLocalStore {
     }
 
     func dailySummaries(start: Date, end: Date) async throws -> [DailyRMSSDSummaryDTO] {
+        await acquireOperation()
+        defer { releaseOperation() }
         try await synchronize(start: start, end: end)
         try await rebuildSummaries(start: start, end: end)
         return try fetchSummaries(start: start, end: end)
+    }
+
+    // @MainActor는 컨텍스트 접근 자체를 보호하지만 await 지점에서는 다른 요청이 재진입할 수 있다.
+    // 동기화와 집계를 하나의 작업 단위로 직렬화해 동일 UUID의 중복 계산과 경쟁 저장을 함께 막는다.
+    private func acquireOperation() async {
+        guard isPerformingOperation else {
+            isPerformingOperation = true
+            return
+        }
+        await withCheckedContinuation { continuation in
+            operationWaiters.append(continuation)
+        }
+    }
+
+    private func releaseOperation() {
+        if operationWaiters.isEmpty {
+            isPerformingOperation = false
+        } else {
+            operationWaiters.removeFirst().resume()
+        }
     }
 
     private func synchronize(start: Date, end: Date) async throws {

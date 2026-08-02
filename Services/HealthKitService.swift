@@ -246,12 +246,10 @@ enum HealthKitService {
         end: Date,
         excluding cachedUUIDs: Set<String>
     ) async throws -> CalculatedRMSSDBatch {
-        let predicate: HKSamplePredicate<HKHeartbeatSeriesSample>
-        if let start {
-            predicate = .heartbeatSeries(HKQuery.predicateForSamples(withStart: start, end: end, options: []))
-        } else {
-            predicate = .heartbeatSeries()
-        }
+        // 시작일이 없더라도 종료일은 반드시 적용한다. 호출자가 과거 특정 시점까지의 캐시를
+        // 재구성할 때 미래 샘플까지 섞이지 않도록 nil 시작일을 열린 구간으로 취급한다.
+        let datePredicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        let predicate: HKSamplePredicate<HKHeartbeatSeriesSample> = .heartbeatSeries(datePredicate)
         let descriptor = HKSampleQueryDescriptor(
             predicates: [predicate],
             sortDescriptors: [SortDescriptor(\.startDate, order: .forward)]

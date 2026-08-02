@@ -259,10 +259,8 @@ final class HomeViewModel {
             briefingDate = currentNight
             briefingClues = BriefingClueBuilder.build(from: input)
         } catch {
-            // 사건명 분석 실패는 기존 간편 입력의 오류 영역과 동작에 영향을 주지 않는다.
-            clearDailyBriefing()
-            todayBriefingClues = []
-            recoveryScore = nil
+            // HealthKit의 일시적 조회 실패로 마지막 정상 브리핑이 화면에서 사라지지 않게 보존한다.
+            // 다음 홈 진입 때 다시 조회하며, 정상 조회에서 데이터가 실제로 없을 때만 위 guard에서 비운다.
         }
     }
 
