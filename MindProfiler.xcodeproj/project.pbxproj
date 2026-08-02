@@ -27,6 +27,7 @@
 		2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F284356300A4D1000CE1C47 /* RootTabView.swift */; };
 		2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F284358300A4D1100CE1C47 /* Assets.xcassets */; };
 		2F284360300A596100CE1C47 /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2F28435F300A596100CE1C47 /* AGENTS.md */; };
+		38FAA7765B60301DA53AC1DF /* WeekStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF79381217C0C3402ABD4A62 /* WeekStrip.swift */; };
 		3C332F9973A910F1A9C171AB /* RRIntervalExportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */; };
 		3C5833101B57E583B6CDF217 /* MedicationReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E071FB538B96C94C29D5255 /* MedicationReminderModels.swift */; };
 		4154723F090A2390BC67FF3E /* ui-style.md in Resources */ = {isa = PBXBuildFile; fileRef = FB3F76D2A4694A2F654A1B62 /* ui-style.md */; };
@@ -195,6 +196,7 @@
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
 		DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		DF79381217C0C3402ABD4A62 /* WeekStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeekStrip.swift; sourceTree = "<group>"; };
 		E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnsolvedCasesView.swift; sourceTree = "<group>"; };
 		E48F6DDAC8977311FEEA3765 /* MoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodModels.swift; sourceTree = "<group>"; };
 		E5BE33AE78C1925C431DA5CE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
@@ -407,6 +409,7 @@
 				139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */,
 				F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */,
 				92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */,
+				DF79381217C0C3402ABD4A62 /* WeekStrip.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -636,6 +639,7 @@
 				EA4EC03D28C7F9487B8A7BB1 /* BadgeFlowLayout.swift in Sources */,
 				C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */,
 				20827A64B5C8AD04830F3692 /* UnsolvedCasesView.swift in Sources */,
+				38FAA7765B60301DA53AC1DF /* WeekStrip.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 
 @MainActor
 @Observable
@@ -9,6 +10,7 @@ final class HomeViewModel {
     private(set) var briefingDate: Date?
     private(set) var briefingClues: [BriefingClue] = []
     private(set) var todayBriefingClues: [BriefingClue] = []
+    private(set) var dailySummaryHighlights: [DailySummaryHighlight] = []
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?
@@ -24,32 +26,60 @@ final class HomeViewModel {
     private var hasCheckedCoffee = false
     private var hasCheckedMedicationLogs = false
     private var isLoadingDailyBriefing = false
+    // 로딩 도중 다른 날짜가 또 선택되면(주 스트립을 빠르게 스와이프/탭) 그 요청을 잃어버리지 않고
+    // 기억해뒀다가, 지금 로드가 끝나는 즉시 이어서 그 날짜로 다시 로드한다 — 항상 마지막으로 선택한
+    // 날짜가 최종적으로 반영된다.
+    private var latestRequestedBriefingDate: Date?
 
-    func loadDailyBriefing() async {
-        // Apple Watch → iPhone HealthKit 동기화는 앱을 연 뒤 완료될 수 있으므로 홈에 들어올 때마다
-        // 최신 수면을 다시 읽는다. 동시에 여러 번 실행되는 것만 막는다.
+    func loadDailyBriefing(for selectedDate: Date = Date()) async {
+        latestRequestedBriefingDate = selectedDate
         guard !isLoadingDailyBriefing else { return }
         isLoadingDailyBriefing = true
         defer { isLoadingDailyBriefing = false }
 
+        var dateToLoad = selectedDate
+        while true {
+            await performDailyBriefingLoad(for: dateToLoad)
+            guard let latest = latestRequestedBriefingDate,
+                  !Calendar.current.isDate(latest, inSameDayAs: dateToLoad)
+            else { break }
+            dateToLoad = latest
+        }
+    }
+
+    private func performDailyBriefingLoad(for selectedDate: Date) async {
+        // Apple Watch → iPhone HealthKit 동기화는 앱을 연 뒤 완료될 수 있으므로 홈에 들어올 때마다
+        // 최신 수면을 다시 읽는다.
         do {
             try await HealthKitService.requestAuthorization()
             let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date())
+            let today = calendar.startOfDay(for: selectedDate)
             let latestNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
             let fetchDayCount = DailyBriefingConfiguration.sleepBaselineNightCount
                 + DailyBriefingConfiguration.sleepFetchBufferDays
             let fetchStart = calendar.date(byAdding: .day, value: -fetchDayCount, to: latestNight) ?? latestNight
             let fetchEnd = calendar.date(byAdding: .day, value: 2, to: today) ?? Date()
+            // 선택한 날짜가 오늘이면 지금 이 순간까지, 과거 날짜면 그날 23:59:59까지를 "그날 하루"의
+            // 끝으로 본다 — 과거 날짜 전체를 다 포함하면서도 달력 날짜 판정(calendar.startOfDay)이
+            // 다음 날로 밀리지 않게 한다.
+            let now: Date = calendar.isDateInToday(selectedDate)
+                ? Date()
+                : (calendar.date(byAdding: .day, value: 1, to: today)
+                    .flatMap { calendar.date(byAdding: .second, value: -1, to: $0) } ?? today)
+            let recentStart = calendar.date(byAdding: .day, value: -30, to: now) ?? fetchStart
 
             async let sleepTask = HealthKitService.fetchSleepStageSamples(start: fetchStart, end: fetchEnd)
             async let timelineTask = HealthKitService.fetchSleepTimelineSamples(start: fetchStart, end: fetchEnd)
             async let rmssdTask = HealthKitService.fetchRMSSDSamples(start: fetchStart, end: fetchEnd)
-            let (sleepSamples, timeline, rmssdSamples) = try await (sleepTask, timelineTask, rmssdTask)
+            // 오전 회복(기상 후 2시간)·심박수·하루 rMSSD·운동 시간 지표를 위해 추가로 조회한다.
+            async let heartRateTask = HealthKitService.fetchHeartRateSamples(start: fetchStart, end: fetchEnd)
+            async let dailyRMSSDSummaryTask = RMSSDLocalStore.shared.dailySummaries(start: recentStart, end: now)
+            async let healthWorkoutsForSummaryTask = HealthKitService.fetchWorkoutRanges(start: recentStart, end: now)
+            let (sleepSamples, timeline, rmssdSamples, heartRateSamples, dailyRMSSDSummaries, healthWorkoutsForSummary) = try await (
+                sleepTask, timelineTask, rmssdTask, heartRateTask, dailyRMSSDSummaryTask, healthWorkoutsForSummaryTask
+            )
 
             let ranges = SleepAnalysisService.buildSleepRanges(sleepSamples)
-            let now = Date()
-            let recentStart = calendar.date(byAdding: .day, value: -30, to: now) ?? fetchStart
             let recentRMSSD = rmssdSamples.filter { $0.date >= recentStart && $0.date <= now }
             let recentSleepRanges = ranges.filter { $0.end >= recentStart && $0.start <= now }
             let recentBaseline = RMSSDThreshold.makeRecentBaseline(
@@ -74,8 +104,11 @@ final class HomeViewModel {
                 day: now
             )
 
+            // 선택한 날짜 바로 전날 밤과 정확히 일치하는 수면만 사건으로 삼는다. 예전엔 이전
+            // 밤까지 넘어가며 찾았는데(<=), 그러면 그 밤 수면 기록이 없을 때 훨씬 이전 날짜의
+            // 수면이 "사건 일자"로 표시돼 사용자가 고른 날짜와 어긋나 보였다.
             guard let currentRange = ranges.last(where: {
-                SleepAnalysisService.nightLabel(for: $0.start) <= latestNight
+                SleepAnalysisService.nightLabel(for: $0.start) == latestNight
             }) else {
                 clearDailyBriefing()
                 return
@@ -187,6 +220,24 @@ final class HomeViewModel {
             briefingCaseType = caseType
             briefingDate = currentNight
             briefingClues = BriefingClueBuilder.build(from: input)
+
+            dailySummaryHighlights = DailySummaryBuilder.build(from: Self.dailySummaryInput(
+                current: current,
+                previous: previous,
+                currentRange: currentRange,
+                previousRanges: Array(previousRanges),
+                sleepDurationMedian: sleepDurationMedian,
+                awakeRatioMedian: awakeRatioMedian,
+                rmssdMedian: rmssdMedian,
+                heartRateSamples: heartRateSamples,
+                rmssdSamples: rmssdSamples,
+                dailyRMSSDSummaries: dailyRMSSDSummaries,
+                healthWorkouts: healthWorkoutsForSummary,
+                manualExercises: exerciseEntries ?? [],
+                recentStart: recentStart,
+                now: now,
+                calendar: calendar
+            ))
         } catch {
             // HealthKit의 일시적 조회 실패로 마지막 정상 브리핑이 화면에서 사라지지 않게 보존한다.
             // 다음 홈 진입 때 다시 조회하며, 정상 조회에서 데이터가 실제로 없을 때만 위 guard에서 비운다.
@@ -197,6 +248,7 @@ final class HomeViewModel {
         briefingCaseType = nil
         briefingDate = nil
         briefingClues = []
+        dailySummaryHighlights = []
     }
 
     func loadTodayMoodIfNeeded() async {
@@ -353,5 +405,118 @@ final class HomeViewModel {
             return current > 0 ? .infinity : -.infinity
         }
         return ((current - baseline) / baseline) * 100
+    }
+
+    // "수사 기록하기" 위에 보여줄 오늘 하루 요약 문구(DailySummaryBuilder)에 필요한 변화율을 계산한다.
+    // 운동 강도 지표는 제외하기로 해서 여기 포함하지 않는다.
+    private static func dailySummaryInput(
+        current: BriefingNight,
+        previous: [BriefingNight],
+        currentRange: SleepRange,
+        previousRanges: [SleepRange],
+        sleepDurationMedian: Double,
+        awakeRatioMedian: Double,
+        rmssdMedian: Double,
+        heartRateSamples: [(date: Date, value: Double)],
+        rmssdSamples: [(date: Date, value: Double)],
+        dailyRMSSDSummaries: [DailyRMSSDSummaryDTO],
+        healthWorkouts: [(start: Date, end: Date, activityType: HKWorkoutActivityType, energyBurnedKcal: Double?, distanceMeters: Double?)],
+        manualExercises: [ExerciseLogEntry],
+        recentStart: Date,
+        now: Date,
+        calendar: Calendar
+    ) -> DailySummaryInput {
+        // 수면 시간: 2시간 미만인 밤(낮잠 등)은 오늘/기준 양쪽에서 제외한다.
+        let minimumSeconds = DailySummaryConfiguration.minimumSleepDurationMinutes * 60
+        let sleepDurationChangePercent: Double? = current.sleepDuration >= minimumSeconds
+            ? previous.map(\.sleepDuration).filter { $0 >= minimumSeconds }.median
+                .map { percentChange(current: current.sleepDuration, baseline: $0) }
+            : nil
+
+        let sleepRecoveryRMSSDChangePercent: Double? = current.rmssd.flatMap { currentValue in
+            previous.compactMap(\.rmssd).median.map { percentChange(current: currentValue, baseline: $0) }
+        }
+
+        let awakeRatioChangePercent = percentChange(current: current.awakeRatio, baseline: awakeRatioMedian)
+
+        // 취침 시각: 자정을 넘나드는 비교를 위해 정오 기준으로 밀어서(분 단위) 비교한다.
+        let currentBedtimeMinutes = SleepAnalysisService.bedtimeMinutesSinceNoon(currentRange.start)
+        let bedtimeChangeMinutes = previousRanges
+            .map { SleepAnalysisService.bedtimeMinutesSinceNoon($0.start) }
+            .median
+            .map { currentBedtimeMinutes - $0 }
+
+        // 휴식 심박수: 수면 구간 내 평균(median이 아니라 평균) 심박수.
+        func averageHeartRate(in range: SleepRange) -> Double? {
+            let values = heartRateSamples.filter { $0.date >= range.start && $0.date <= range.end }.map(\.value)
+            guard !values.isEmpty else { return nil }
+            return values.reduce(0, +) / Double(values.count)
+        }
+        let restingHeartRateChangePercent: Double? = averageHeartRate(in: currentRange).flatMap { currentValue in
+            previousRanges.compactMap(averageHeartRate).median.map { percentChange(current: currentValue, baseline: $0) }
+        }
+
+        // 하루 rMSSD: 오늘의 하루 중앙값 vs 최근 30일(오늘 제외) 하루 중앙값들의 중앙값.
+        let todayKey = calendar.startOfDay(for: now)
+        let todayDailyRMSSD = dailyRMSSDSummaries
+            .first { calendar.isDate($0.date, inSameDayAs: todayKey) }?
+            .wholeDayMedian
+        let dailyRMSSDChangePercent: Double? = todayDailyRMSSD.flatMap { currentValue in
+            dailyRMSSDSummaries
+                .filter { !calendar.isDate($0.date, inSameDayAs: todayKey) }
+                .compactMap(\.wholeDayMedian)
+                .median
+                .map { percentChange(current: currentValue, baseline: $0) }
+        }
+
+        // 운동 시간: 오늘 총 운동 시간(HealthKit 운동 + 수동 기록) vs 최근 30일(오늘 제외) 일별 총합의 중앙값.
+        var exerciseMinutesByDay: [Date: Double] = [:]
+        for workout in healthWorkouts {
+            let day = calendar.startOfDay(for: workout.start)
+            exerciseMinutesByDay[day, default: 0] += workout.end.timeIntervalSince(workout.start) / 60
+        }
+        for entry in manualExercises {
+            guard let entryStart = DateKey.parseISODate(entry.startedAt),
+                  let entryEnd = DateKey.parseISODate(entry.endedAt),
+                  entryEnd > entryStart,
+                  entryStart >= recentStart, entryStart <= now
+            else { continue }
+            let day = calendar.startOfDay(for: entryStart)
+            exerciseMinutesByDay[day, default: 0] += entryEnd.timeIntervalSince(entryStart) / 60
+        }
+        let todayExerciseMinutes = exerciseMinutesByDay[todayKey] ?? 0
+        let exerciseDurationChangePercent = exerciseMinutesByDay
+            .filter { $0.key != todayKey }
+            .map(\.value)
+            .median
+            .map { percentChange(current: todayExerciseMinutes, baseline: $0) }
+        // 오늘이면 아직 운동할 시간이 남아있으니 지정한 시각 이후에만 "적었다"고 말한다. 지난
+        // 날짜는 now가 그날 23:59:59이라 항상 이 시각을 넘긴다.
+        let canShowLowActivityMessage = calendar.component(.hour, from: now)
+            >= DailySummaryConfiguration.lowActivityMessageEarliestHour
+
+        // 오전 회복(기상 후 2시간 rMSSD): 오늘 기상 시각 이후 2시간 vs 최근 30일 같은 구간 중앙값들의 중앙값.
+        func morningRecoveryRMSSD(wakeTime: Date) -> Double? {
+            let window = wakeTime...wakeTime.addingTimeInterval(2 * 60 * 60)
+            return rmssdSamples.filter { window.contains($0.date) }.map(\.value).median
+        }
+        let morningRecoveryChangePercent: Double? = morningRecoveryRMSSD(wakeTime: currentRange.end).flatMap { currentValue in
+            previousRanges
+                .compactMap { morningRecoveryRMSSD(wakeTime: $0.end) }
+                .median
+                .map { percentChange(current: currentValue, baseline: $0) }
+        }
+
+        return DailySummaryInput(
+            sleepDurationChangePercent: sleepDurationChangePercent,
+            sleepRecoveryRMSSDChangePercent: sleepRecoveryRMSSDChangePercent,
+            awakeRatioChangePercent: awakeRatioChangePercent,
+            bedtimeChangeMinutes: bedtimeChangeMinutes,
+            restingHeartRateChangePercent: restingHeartRateChangePercent,
+            dailyRMSSDChangePercent: dailyRMSSDChangePercent,
+            exerciseDurationChangePercent: exerciseDurationChangePercent,
+            canShowLowActivityMessage: canShowLowActivityMessage,
+            morningRecoveryChangePercent: morningRecoveryChangePercent
+        )
     }
 }

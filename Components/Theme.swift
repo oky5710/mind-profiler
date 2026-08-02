@@ -273,7 +273,6 @@ extension View {
             Rectangle()
                 .stroke(Theme.primary100, lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.10), radius: 4, x: 0, y: 2)
     }
 }
 

@@ -101,6 +101,118 @@ enum RecoveryScoreBuilder {
     }
 }
 
+// 수사 기록하기 위에 보여줄 오늘 하루 요약 문구. 각 지표를 최근 30일 기준과 비교해 조건에 맞을 때만
+// 고정된 문장 하나를 붙인다 — 구체적 수치는 보여주지 않는다. 단서/사건명과 달리 개수 제한이나
+// 우선순위가 없고, 조건에 안 걸리면 그 지표는 조용히 건너뛴다.
+enum DailySummaryConfiguration {
+    static let sleepDurationThresholdPercent = 20.0
+    static let sleepRecoveryThresholdPercent = 20.0
+    static let awakeRatioThresholdPercent = 20.0
+    static let bedtimeThresholdMinutes = 120.0
+    static let restingHeartRateThresholdPercent = 15.0
+    static let dailyRMSSDThresholdPercent = 20.0
+    static let exerciseDurationThresholdPercent = 30.0
+    static let morningRecoveryThresholdPercent = 20.0
+    // 2시간 미만은 낮잠 등으로 보고 "수면 시간" 지표 집계에서 제외한다.
+    static let minimumSleepDurationMinutes = 120.0
+    // 하루가 아직 많이 남았을 때 "활동량이 적은 하루"라고 성급히 판단하지 않도록, 오늘 기준으로는
+    // 이 시각 이후에만 이 문구를 보여준다. 지난 날짜는 하루가 이미 끝났으니 시간과 무관하게 보여준다.
+    static let lowActivityMessageEarliestHour = 18
+}
+
+struct DailySummaryHighlight: Identifiable {
+    let id = UUID()
+    let message: String
+}
+
+struct DailySummaryInput {
+    let sleepDurationChangePercent: Double?
+    let sleepRecoveryRMSSDChangePercent: Double?
+    let awakeRatioChangePercent: Double?
+    // 절대 시간(분) 차이 — 취침 시각은 비율이 아니라 "2시간 이상 차이"로 판정한다.
+    let bedtimeChangeMinutes: Double?
+    let restingHeartRateChangePercent: Double?
+    let dailyRMSSDChangePercent: Double?
+    let exerciseDurationChangePercent: Double?
+    // 오늘이면 아직 하루가 남아있어 "활동량이 적었다"고 성급히 말하지 않도록, 이 값이 false면
+    // 활동량이 적다는 문구는 건너뛴다(많았다는 문구는 시간과 무관하게 보여준다).
+    let canShowLowActivityMessage: Bool
+    let morningRecoveryChangePercent: Double?
+}
+
+enum DailySummaryBuilder {
+    static func build(from input: DailySummaryInput) -> [DailySummaryHighlight] {
+        var messages: [String] = []
+
+        if let change = input.sleepDurationChangePercent {
+            if change <= -DailySummaryConfiguration.sleepDurationThresholdPercent {
+                messages.append("🛌 수면 시간이 평소보다 짧았어요.")
+            } else if change >= DailySummaryConfiguration.sleepDurationThresholdPercent {
+                messages.append("🛌 충분한 수면을 취했어요.")
+            }
+        }
+
+        if let change = input.sleepRecoveryRMSSDChangePercent {
+            if change <= -DailySummaryConfiguration.sleepRecoveryThresholdPercent {
+                messages.append("🌿 수면 중 회복이 평소보다 느렸어요.")
+            } else if change >= DailySummaryConfiguration.sleepRecoveryThresholdPercent {
+                messages.append("🌿 수면 중 회복이 평소보다 잘 이루어졌어요.")
+            }
+        }
+
+        if let change = input.awakeRatioChangePercent {
+            if change >= DailySummaryConfiguration.awakeRatioThresholdPercent {
+                messages.append("🌙 밤사이 잠이 평소보다 자주 끊겼어요.")
+            } else if change <= -DailySummaryConfiguration.awakeRatioThresholdPercent {
+                messages.append("🌙 밤사이 잠이 안정적으로 이어졌어요.")
+            }
+        }
+
+        if let change = input.bedtimeChangeMinutes {
+            if change >= DailySummaryConfiguration.bedtimeThresholdMinutes {
+                messages.append("🌃 평소보다 늦게 잠들었어요.")
+            } else if change <= -DailySummaryConfiguration.bedtimeThresholdMinutes {
+                messages.append("🌃 평소보다 일찍 잠들었어요.")
+            }
+        }
+
+        if let change = input.restingHeartRateChangePercent {
+            if change >= DailySummaryConfiguration.restingHeartRateThresholdPercent {
+                messages.append("❤️ 심장이 평소보다 조금 바빴어요.")
+            } else if change <= -DailySummaryConfiguration.restingHeartRateThresholdPercent {
+                messages.append("❤️ 몸이 편안하게 쉬고 있었어요.")
+            }
+        }
+
+        if let change = input.dailyRMSSDChangePercent {
+            if change <= -DailySummaryConfiguration.dailyRMSSDThresholdPercent {
+                messages.append("🌿 회복 신호가 평소보다 약했어요.")
+            } else if change >= DailySummaryConfiguration.dailyRMSSDThresholdPercent {
+                messages.append("🌿 회복 신호가 평소보다 좋았어요.")
+            }
+        }
+
+        if let change = input.exerciseDurationChangePercent {
+            if change >= DailySummaryConfiguration.exerciseDurationThresholdPercent {
+                messages.append("💪 몸을 많이 사용한 하루였어요.")
+            } else if change <= -DailySummaryConfiguration.exerciseDurationThresholdPercent,
+                      input.canShowLowActivityMessage {
+                messages.append("🪫 활동량이 적은 하루였어요.")
+            }
+        }
+
+        if let change = input.morningRecoveryChangePercent {
+            if change <= -DailySummaryConfiguration.morningRecoveryThresholdPercent {
+                messages.append("☀️ 아침에 몸이 천천히 깨어났어요.")
+            } else if change >= DailySummaryConfiguration.morningRecoveryThresholdPercent {
+                messages.append("☀️ 아침부터 회복 신호가 좋았어요.")
+            }
+        }
+
+        return messages.map { DailySummaryHighlight(message: $0) }
+    }
+}
+
 enum LongTermCaseConfiguration {
     static let analysisDays = 90
     static let minimumSampleCount = 10
@@ -402,7 +514,7 @@ enum TodayBriefingClueBuilder {
             .note.trimmingCharacters(in: .whitespacesAndNewlines)
         let suffix = matchedNote.flatMap { $0.isEmpty ? nil : $0 }
             .map { ", \($0)" }
-            ?? ", rMSSD \(Int(candidate.sample.value.rounded()))ms"
+            ?? ", HRV \(Int(candidate.sample.value.rounded()))"
         return BriefingClue(
             category: .hrv,
             type: type,

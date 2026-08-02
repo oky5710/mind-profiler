@@ -134,7 +134,7 @@ enum SleepAnalysisService {
 
     // 취침 시각은 자정을 넘나들어서(23:30 vs 00:15) 단순 시:분 비교로는 안 되고, 정오를 기준으로
     // 밀어서(자정=720분) 비교해야 자정 전후 취침 시각들이 가깝게 계산된다.
-    nonisolated private static func bedtimeMinutesSinceNoon(_ date: Date) -> Double {
+    nonisolated static func bedtimeMinutesSinceNoon(_ date: Date) -> Double {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let minutesSinceMidnight = Double((components.hour ?? 0) * 60 + (components.minute ?? 0))
         let shifted = minutesSinceMidnight - 12 * 60
