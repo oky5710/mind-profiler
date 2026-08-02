@@ -69,6 +69,7 @@ struct HomeView: View {
                 }
                 .padding(.bottom)
             }
+            .background(Theme.primary.ignoresSafeArea())
             .navigationTitle("오늘의 수사 노트")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -214,11 +215,9 @@ struct HomeView: View {
 
     private var briefingBody: some View {
         VStack(alignment: .leading, spacing: 0) {
-            briefingSection(title: "오늘 확보한 단서", includesTopPadding: false) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if viewModel.todayBriefingClues.isEmpty {
-                        clueRow("오늘의 비수면 rMSSD 단서를 수집하는 중이에요.")
-                    } else {
+            if !viewModel.todayBriefingClues.isEmpty {
+                briefingSection(title: "오늘 확보한 단서", includesTopPadding: false) {
+                    VStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.todayBriefingClues) { clue in
                             clueRow(clue.message)
                         }
@@ -226,7 +225,10 @@ struct HomeView: View {
                 }
             }
 
-            briefingSection(title: "어제 확보한 단서") {
+            briefingSection(
+                title: "어제 확보한 단서",
+                includesTopPadding: !viewModel.todayBriefingClues.isEmpty
+            ) {
                 VStack(alignment: .leading, spacing: 12) {
                     if viewModel.briefingClues.isEmpty {
                         clueRow("평소와 크게 다른 단서는 발견되지 않았어요.")
