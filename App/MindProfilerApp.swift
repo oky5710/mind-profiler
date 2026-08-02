@@ -12,6 +12,7 @@ struct MindProfilerApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var toastCenter = ToastCenter()
     @State private var rmssdThresholdAlertCenter = RMSSDThresholdAlertCenter()
+    @State private var sleepUpdateNavigationCenter = SleepUpdateNavigationCenter()
     @State private var isShowingSplash = true
 
     init() {
@@ -48,6 +49,7 @@ struct MindProfilerApp: App {
             .environment(authViewModel)
             .environment(toastCenter)
             .environment(rmssdThresholdAlertCenter)
+            .environment(sleepUpdateNavigationCenter)
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }

@@ -125,6 +125,24 @@ enum HealthKitService {
         try await store.enableBackgroundDelivery(for: HKQuantityType(.heartRateVariabilitySDNN), frequency: .immediate)
     }
 
+    // 수면 단계는 한 번의 밤에도 코어/깊은 수면/REM 샘플이 여러 건 들어온다. 관찰자는 "수면 데이터가
+    // 바뀌었다"는 신호만 전달하고, 실제로 새 밤인지와 중복 여부는 SleepUpdateMonitorService가 판정한다.
+    @discardableResult
+    static func observeSleepUpdates(onUpdate: @escaping () async -> Void) -> HKObserverQuery {
+        let query = HKObserverQuery(sampleType: HKCategoryType(.sleepAnalysis), predicate: nil) { _, completionHandler, _ in
+            Task {
+                await onUpdate()
+                completionHandler()
+            }
+        }
+        store.execute(query)
+        return query
+    }
+
+    static func enableBackgroundDeliveryForSleepUpdates() async throws {
+        try await store.enableBackgroundDelivery(for: HKCategoryType(.sleepAnalysis), frequency: .immediate)
+    }
+
     // rMSSD보다 덜 중요한 참고값이라 화면에서는 옅게(회색 반투명) 보여주기만 한다.
     // start/end를 주면 그 구간만 조회한다 — "오늘의 패턴"이 보이는 구간의 5배만 불러오는 용도.
     // 기본값(nil)은 기존처럼 전체 이력을 조회한다(보고서 등 다른 화면은 그대로 전체가 필요).
@@ -207,8 +225,29 @@ enum HealthKitService {
     // start/end를 주면 그 구간의 시리즈만 조회한다 — 시리즈 하나하나가 박동 전체를 순회하는 값비싼
     // 계산이라, "오늘의 패턴"에서는 전체 이력이 아니라 보이는 구간의 5배만 계산하면 된다.
     static func fetchRMSSDSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
+        try await RMSSDLocalStore.shared.samples(start: start, end: end)
+    }
+
+    struct CalculatedRMSSD: Sendable {
+        let healthKitUUID: String
+        let measuredAt: Date
+        let value: Double
+        let validIntervalCount: Int
+        let totalBeatCount: Int
+    }
+
+    struct CalculatedRMSSDBatch: Sendable {
+        let healthKitUUIDs: Set<String>
+        let calculated: [CalculatedRMSSD]
+    }
+
+    static func fetchCalculatedRMSSDBatch(
+        start: Date?,
+        end: Date,
+        excluding cachedUUIDs: Set<String>
+    ) async throws -> CalculatedRMSSDBatch {
         let predicate: HKSamplePredicate<HKHeartbeatSeriesSample>
-        if let start, let end {
+        if let start {
             predicate = .heartbeatSeries(HKQuery.predicateForSamples(withStart: start, end: end, options: []))
         } else {
             predicate = .heartbeatSeries()
@@ -218,23 +257,30 @@ enum HealthKitService {
             sortDescriptors: [SortDescriptor(\.startDate, order: .forward)]
         )
         let seriesSamples = try await descriptor.result(for: store)
+        let healthKitUUIDs = Set(seriesSamples.map { $0.uuid.uuidString })
+        let missing = seriesSamples.filter { !cachedUUIDs.contains($0.uuid.uuidString) }
 
-        return try await withThrowingTaskGroup(of: (date: Date, value: Double)?.self) { group in
-            for series in seriesSamples {
+        let calculated = try await withThrowingTaskGroup(of: CalculatedRMSSD?.self) { group in
+            for series in missing {
                 group.addTask {
-                    guard let value = try await rMSSD(for: series) else { return nil }
-                    return (date: series.startDate, value: value)
+                    guard let result = try await rMSSD(for: series) else { return nil }
+                    return CalculatedRMSSD(
+                        healthKitUUID: series.uuid.uuidString,
+                        measuredAt: series.startDate,
+                        value: result.value,
+                        validIntervalCount: result.validIntervalCount,
+                        totalBeatCount: result.totalBeatCount
+                    )
                 }
             }
 
-            var results: [(date: Date, value: Double)] = []
+            var results: [CalculatedRMSSD] = []
             for try await result in group {
-                if let result {
-                    results.append(result)
-                }
+                if let result { results.append(result) }
             }
-            return results.sorted { $0.date < $1.date }
+            return results.sorted { $0.measuredAt < $1.measuredAt }
         }
+        return CalculatedRMSSDBatch(healthKitUUIDs: healthKitUUIDs, calculated: calculated)
     }
 
     struct RawBeat {
@@ -285,14 +331,19 @@ enum HealthKitService {
     // 외부 앱과 원시 계산값을 직접 비교할 수 있도록 범위 안 RR에는 상대변화율 필터를 적용하지 않는다.
     // gap이나 범위 밖 RR은 해당 간격만 건너뛰고, 다음 정상 RR은 마지막 정상 RR과 비교한다.
     // 데이터 품질은 계산값에서 임의로 제거하지 않고 추후 별도 신뢰도 지표로 표현한다.
-    private static func rMSSD(for series: HKHeartbeatSeriesSample) async throws -> Double? {
+    private static func rMSSD(
+        for series: HKHeartbeatSeriesSample
+    ) async throws -> (value: Double, validIntervalCount: Int, totalBeatCount: Int)? {
         let descriptor = HKHeartbeatSeriesQueryDescriptor(series)
         var previousBeatTime: TimeInterval?
         var previousInterval: Double?
         var sumOfSquaredDiffs = 0.0
         var diffCount = 0
+        var validIntervalCount = 0
+        var totalBeatCount = 0
 
         for try await beat in descriptor.results(for: store) {
+            totalBeatCount += 1
             defer { previousBeatTime = beat.timeIntervalSinceStart }
 
             guard let previousBeatTime else { continue }
@@ -300,6 +351,7 @@ enum HealthKitService {
 
             let interval = (beat.timeIntervalSinceStart - previousBeatTime) * 1000
             guard plausibleIntervalRangeMs.contains(interval) else { continue }
+            validIntervalCount += 1
 
             if let previousInterval {
                 let diff = interval - previousInterval
@@ -310,7 +362,11 @@ enum HealthKitService {
         }
 
         guard diffCount > 0 else { return nil }
-        return (sumOfSquaredDiffs / Double(diffCount)).squareRoot()
+        return (
+            value: (sumOfSquaredDiffs / Double(diffCount)).squareRoot(),
+            validIntervalCount: validIntervalCount,
+            totalBeatCount: totalBeatCount
+        )
     }
 
     static func fetchWorkoutRanges(start: Date? = nil, end: Date? = nil) async throws -> [

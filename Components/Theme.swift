@@ -153,6 +153,20 @@ enum Theme {
         blue: 0.0000
     ) // yellow #eda100
 
+    // 오늘의 패턴 수면 타임라인은 비수면과 코어 수면이 인접한 행이라, 빨강과 혼동하기 쉬운
+    // 마젠타 대신 노랑을 코어에 사용하고 비수면은 Ruby 빨강으로 명확히 구분한다.
+    static let sleepTimelineCore = Color(
+        red: 0.9294,
+        green: 0.6314,
+        blue: 0.0000
+    ) // yellow #eda100
+
+    static let sleepTimelineAwake = Color(
+        red: 0.8980,
+        green: 0.2745,
+        blue: 0.4000
+    ) // ruby-9 #e54666
+
     // MARK: - Apple System Colors
 
     // Apple HIG 표준 시스템 색상.

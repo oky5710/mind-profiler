@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 import UserNotifications
 
-// SDNN 측정이 들어올 때마다 rMSSD를 다시 계산해서 최근 30일 중앙값과 비교하고, 급격히 낮아지거나
+// SDNN 측정이 들어올 때마다 rMSSD를 다시 계산해서 최근 30일의 해당 시간대 중앙값과 비교하고, 급격히 낮아지거나
 // 높아졌으면(RMSSDThreshold) 로컬 알림을 보낸다. HKObserverQuery를 계속 들고 있어야 해서(참조가
 // 사라지면 관찰이 끊긴다) enum이 아니라 class다.
 @MainActor
@@ -59,12 +59,13 @@ final class RMSSDThresholdMonitorService {
             let todaysSamples = try await HealthKitService.fetchRMSSDSamples(start: startOfToday, end: now)
                 .sorted { $0.date < $1.date }
             guard !todaysSamples.isEmpty else { return }
-            guard let median = try await RMSSDThreshold.fetchRecentThirtyDayMedian(asOf: now) else { return }
+            let baseline = try await RMSSDThreshold.fetchRecentThirtyDayBaseline(asOf: now)
 
             let occurrenceStoreKey = "rmssdThresholdNotifiedOccurrences.\(DateKey.string(from: now))"
             var notifiedOccurrences = Set(UserDefaults.standard.stringArray(forKey: occurrenceStoreKey) ?? [])
 
             for sample in todaysSamples {
+                guard let median = RMSSDThreshold.periodMedian(at: sample.date, baseline: baseline) else { continue }
                 guard let direction = RMSSDThreshold.direction(value: sample.value, median: median) else { continue }
 
                 // observer 콜백은 오늘의 기존 샘플을 다시 포함할 수 있다. 하루 전체를 방향별로 한 번만

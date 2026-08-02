@@ -47,6 +47,7 @@ extension HRVAnalysisView {
         // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
         let showRMSSDPointMarkers = currentRMSSDPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
         let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+        let recentMedianSegments = viewModel.recentMedianSegments(start: visibleStart, end: visibleEnd)
 
         return Chart {
             // SDNN은 rMSSD와의 값 차이를 참고만 하려는 용도라, 시간별 모드에서만 눈에 덜 띄게
@@ -110,7 +111,7 @@ extension HRVAnalysisView {
                             // 최근 30일 중앙값의 50% 미만/150% 이상으로 급격히 변한 값은 눈에 띄게
                             // 원 테두리를 빨강/초록으로 — 백그라운드 급격한 변화 알림(RMSSDThreshold)과
                             // 같은 기준을 쓴다.
-                            let direction = viewModel.recentThirtyDayRMSSDMedian.flatMap {
+                            let direction = viewModel.recentPeriodMedian(at: point.date).flatMap {
                                 RMSSDThreshold.direction(value: point.value, median: $0)
                             }
                             let ringColor: Color = switch direction {
@@ -148,10 +149,26 @@ extension HRVAnalysisView {
                 }
             }
 
-            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayRMSSDMedian {
-                RuleMark(y: .value("최근 30일 중앙값", median))
-                    .foregroundStyle(.gray)
+            if !hiddenSeries.contains(.median) {
+                ForEach(Array(recentMedianSegments.enumerated()), id: \.offset) { index, segment in
+                    RuleMark(
+                        xStart: .value("기준 시작", segment.start),
+                        xEnd: .value("기준 끝", segment.end),
+                        y: .value("최근 30일 시간대별 중앙값", segment.value)
+                    )
+                    .foregroundStyle(sleepColor)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    if index > 0 {
+                        RuleMark(
+                            x: .value("기준 변경", segment.start),
+                            yStart: .value("이전 중앙값", recentMedianSegments[index - 1].value),
+                            yEnd: .value("현재 중앙값", segment.value)
+                        )
+                        .foregroundStyle(sleepColor)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    }
+                }
             }
 
             if visibleDateRange.contains(Date()) {
@@ -571,11 +588,6 @@ extension HRVAnalysisView {
                 }
             }
 
-            if !hiddenSeries.contains(.median), let median = viewModel.recentThirtyDayRMSSDMedian {
-                RuleMark(y: .value("최근 30일 중앙값", median))
-                    .foregroundStyle(.gray)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            }
         }
         .frame(height: lineChartHeight)
         .chartXScale(domain: visibleDateRange)

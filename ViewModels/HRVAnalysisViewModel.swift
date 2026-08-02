@@ -24,6 +24,13 @@ final class HRVAnalysisViewModel {
         var id: Date { date }
     }
 
+    struct RMSSDBaselineSegment: Identifiable {
+        let start: Date
+        let end: Date
+        let value: Double
+        var id: Date { start }
+    }
+
     struct MonthlyHRVStat: Identifiable {
         let monthStart: Date
         let min: Double
@@ -89,6 +96,8 @@ final class HRVAnalysisViewModel {
     private(set) var wearableSDNNPointsHourly: [HRVPoint] = []
     // 최근 30일 rMSSD 중앙값 — 라인 차트에 점선으로 표시.
     private(set) var recentThirtyDayRMSSDMedian: Double?
+    // 최근 30일 rMSSD를 수면 중/비수면 오전/비수면 오후로 나눈 중앙값.
+    private(set) var recentThirtyDayPeriodMedians: RMSSDPeriodMedians?
     private(set) var exerciseRanges: [WorkoutRange] = []
     private(set) var sleepRanges: [SleepRange] = []
     private(set) var isHealthKitAuthorized = false
@@ -243,20 +252,57 @@ final class HRVAnalysisViewModel {
         isLoading = false
     }
 
-    // 최근 30일 중앙값은 스크롤 위치와 무관하게 항상 "오늘 기준"이어야 해서, 아래 windowed 로딩과
-    // 별도로 그 30일 구간만 따로 가볍게 조회한다 — 사용자가 몇 달/몇 년 전으로 스크롤해도 이 값은
-    // 계속 최신을 유지한다.
+    // 최근 30일 기준값은 스크롤 위치와 무관하게 항상 "오늘 기준"이어야 해서 별도로 조회한다.
     func loadRecentThirtyDayMedianIfNeeded() async {
         guard !hasCheckedRecentMedian else { return }
         hasCheckedRecentMedian = true
 
         do {
             try await HealthKitService.requestAuthorization()
-            recentThirtyDayRMSSDMedian = try await RMSSDThreshold.fetchRecentThirtyDayMedian()
+            let baseline = try await RMSSDThreshold.fetchRecentThirtyDayBaseline()
+            recentThirtyDayRMSSDMedian = baseline.overallMedian
+            recentThirtyDayPeriodMedians = baseline.periodMedians
         } catch {
             healthKitErrorMessage = error.localizedDescription
             hasCheckedRecentMedian = false
         }
+    }
+
+    // 실제 수면 시작/종료와 정오를 경계로 보이는 구간을 잘라, 세 중앙값이 한 계단형 선으로 이어지게 한다.
+    func recentMedianSegments(start: Date, end: Date) -> [RMSSDBaselineSegment] {
+        guard let medians = recentThirtyDayPeriodMedians, end > start else { return [] }
+        let calendar = Calendar.current
+        var boundaries = [start, end]
+        var day = calendar.startOfDay(for: start)
+        while day < end {
+            if let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day), noon > start, noon < end {
+                boundaries.append(noon)
+            }
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            if nextDay > start, nextDay < end { boundaries.append(nextDay) }
+            day = nextDay
+        }
+        for range in sleepRanges where range.end > start && range.start < end {
+            boundaries.append(max(range.start, start))
+            boundaries.append(min(range.end, end))
+        }
+        let sorted = Array(Set(boundaries)).sorted()
+        return zip(sorted, sorted.dropFirst()).compactMap { segmentStart, segmentEnd in
+            let midpoint = segmentStart.addingTimeInterval(segmentEnd.timeIntervalSince(segmentStart) / 2)
+            let isSleeping = sleepRanges.contains { midpoint >= $0.start && midpoint <= $0.end }
+            let value = isSleeping
+                ? medians.sleep
+                : (calendar.component(.hour, from: midpoint) < 12 ? medians.morning : medians.afternoon)
+            return value.map { RMSSDBaselineSegment(start: segmentStart, end: segmentEnd, value: $0) }
+        }
+    }
+
+    func recentPeriodMedian(at date: Date) -> Double? {
+        guard let medians = recentThirtyDayPeriodMedians else { return nil }
+        if sleepRanges.contains(where: { date >= $0.start && date <= $0.end }) {
+            return medians.sleep
+        }
+        return Calendar.current.component(.hour, from: date) < 12 ? medians.morning : medians.afternoon
     }
 
     // rMSSD 알림에 응답해 기록한 기분 — 스크롤 위치와 무관하게 항상 전체 이력을 불러온다(30일
@@ -388,6 +434,7 @@ final class HRVAnalysisViewModel {
             async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
             async let restingHR = HealthKitService.fetchRestingHeartRateSamples(start: windowStart, end: windowEnd)
             let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples, restingHRSamples) = try await (workouts, sleep, rmssd, sdnn, restingHR)
+            let rmssdSummaries = try await RMSSDLocalStore.shared.dailySummaries(start: windowStart, end: windowEnd)
 
             // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
             // 표시는 막지 않도록 별도로 무시 가능한 에러 처리.
@@ -397,7 +444,10 @@ final class HRVAnalysisViewModel {
             wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
             // 연속 날짜는 이어 그리되 두 측정일의 달력 날짜 차이가 2일 이상이면 선을 끊는다.
             // 초 단위 간격으로 판단하면 DST나 시각 정규화 차이의 영향을 받을 수 있어 날짜로 비교한다.
-            wearableRMSSDPointsDaily = Self.segmentDailyByDateGap(Self.dailyMedian(rawRMSSDSamples))
+            let dailyRMSSD = rmssdSummaries.compactMap { summary in
+                summary.wholeDayMedian.map { (summary.date, $0) }
+            }
+            wearableRMSSDPointsDaily = Self.segmentDailyByDateGap(dailyRMSSD)
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
             wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)

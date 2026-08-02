@@ -114,6 +114,9 @@ Primary는 **브랜드를 위한 색**이며, 개별 건강 지표의 의미를 
 | 미상 | `Theme.sleepStageUnspecified` |
 | Awake | Gray |
 
+`오늘의 패턴 > 수면` 타임라인은 인접 행을 더 분명히 구분하기 위해 코어 수면에
+`Theme.sleepTimelineCore`(yellow), 비수면에 `Theme.sleepTimelineAwake`(ruby red)를 사용한다.
+
 이 팔레트는 `dataviz`에서 검증된 카테고리 팔레트를 그대로 사용하며,
 색각 이상(CVD) 테스트를 통과한 조합이다.
 
@@ -291,7 +294,7 @@ Typography.caption
 | 토큰 | 크기 | Weight | 용도 |
 |------|------:|--------|------|
 | `Typography.largeTitle` | 28pt | Bold | 페이지 대표 제목 |
-| `Typography.screenTitle` | 24pt | Bold | 화면 제목 |
+| `Typography.screenTitle` | 18pt | Bold | 화면 제목 |
 | `Typography.sectionTitle` | 20pt | Bold | 섹션 제목 |
 | `Typography.reportSectionTitle` | 19pt | Bold | 여러 패널이 반복되는 보고서 섹션 제목 |
 | `Typography.cardTitle` | 16pt | Semibold | 카드 제목 |

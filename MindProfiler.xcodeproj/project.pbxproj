@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
+		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
+		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
+		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
 		A7C0010120260801A7C00101 /* SleepContinuityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0010220260801A7C00102 /* SleepContinuityModels.swift */; };
 		A7C0020120260801A7C00201 /* DailyBriefingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0020220260801A7C00202 /* DailyBriefingModels.swift */; };
 		00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */; };
@@ -103,6 +107,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
+		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
+		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
+		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
 		A7C0010220260801A7C00102 /* SleepContinuityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepContinuityModels.swift; sourceTree = "<group>"; };
 		A7C0020220260801A7C00202 /* DailyBriefingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefingModels.swift; sourceTree = "<group>"; };
 		056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
@@ -358,6 +366,7 @@
 		8CE86D4F5CD682548D6E23EB /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F00200042026080200000004 /* RMSSDLocalStore.swift */,
 				49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */,
 				3C79742243835DC0370C6F78 /* KeychainService.swift */,
 				51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */,
@@ -378,6 +387,7 @@
 				3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */,
 				59D553D84925EA368698C8FF /* RMSSDEventService.swift */,
 				EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */,
+				F00100022026080200000002 /* SleepUpdateMonitorService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -392,6 +402,7 @@
 				B2C3D4E5F6A7B8C9D0E1F4A5 /* Comparable+Clamped.swift */,
 				EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */,
 				139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */,
+				F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */,
 				92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */,
 			);
 			path = Components;
@@ -433,6 +444,7 @@
 		F284FA692084B9E317AC5A00 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				F00200022026080200000002 /* RMSSDCacheModels.swift */,
 				4CE7ECB87862084848E2504A /* AuthModels.swift */,
 				59B5AB45E929438E760BA513 /* CatPhoto.swift */,
 				E48F6DDAC8977311FEEA3765 /* MoodModels.swift */,
@@ -535,6 +547,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */,
+				F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */,
 				2F284357300A4D1000CE1C47 /* RootTabView.swift in Sources */,
 				2F284355300A4D1000CE1C47 /* MindProfilerApp.swift in Sources */,
 				0597FA5FDF95129924F0FF08 /* HomeView.swift in Sources */,
@@ -612,6 +626,8 @@
 				5E015D1143986F1FF8934207 /* RMSSDEventService.swift in Sources */,
 				9B1DD9B8EBD1BEE0C68067F4 /* RMSSDThresholdMonitorService.swift in Sources */,
 				00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */,
+				F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */,
+				F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */,
 				1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */,
 				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,
 				06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */,

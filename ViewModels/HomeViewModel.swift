@@ -5,6 +5,12 @@ import Foundation
 final class HomeViewModel {
     private(set) var errorMessage: String?
     private(set) var briefingCaseType: BriefingCaseType?
+    private(set) var recoveryScore: RecoveryScore?
+    private(set) var briefingDate: Date?
+    private(set) var briefingClues: [BriefingClue] = []
+    private(set) var todayBriefingClues: [BriefingClue] = []
+    private(set) var unsolvedCaseResults: [UnsolvedCaseResult] = []
+    private(set) var isLoadingUnsolvedCases = false
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?
@@ -19,18 +25,89 @@ final class HomeViewModel {
 
     private var hasCheckedCoffee = false
     private var hasCheckedMedicationLogs = false
-    private var hasLoadedDailyBriefing = false
+    private var isLoadingDailyBriefing = false
+    private var hasLoadedUnsolvedCases = false
 
-    func loadDailyBriefingIfNeeded() async {
-        guard !hasLoadedDailyBriefing else { return }
-        hasLoadedDailyBriefing = true
+    func loadUnsolvedCasesIfNeeded() async {
+        guard !hasLoadedUnsolvedCases, !isLoadingUnsolvedCases else { return }
+        isLoadingUnsolvedCases = true
+        defer { isLoadingUnsolvedCases = false }
+
+        do {
+            try await HealthKitService.requestAuthorization()
+            let calendar = Calendar.current
+            let end = Date()
+            let start = calendar.date(byAdding: .day, value: -LongTermCaseConfiguration.analysisDays, to: end) ?? end
+            async let rmssdSummaryTask = RMSSDLocalStore.shared.dailySummaries(start: start, end: end)
+            async let sleepTask = HealthKitService.fetchSleepStageSamples(start: start, end: end)
+            async let healthWorkoutsTask = HealthKitService.fetchWorkoutRanges(start: start, end: end)
+            async let coffeesTask: [CoffeeLogEntry]? = try? CoffeeService.allCoffees()
+            async let manualWorkoutsTask: [ExerciseLogEntry]? = try? ExerciseService.allExercises()
+            let (rmssdSummaries, sleepSamples, healthWorkouts, coffeeEntries, manualEntries) = try await (
+                rmssdSummaryTask, sleepTask, healthWorkoutsTask, coffeesTask, manualWorkoutsTask
+            )
+
+            let sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
+            // 같은 밤이 긴 각성으로 여러 SleepRange로 나뉘어도 분석에서는 하루 한 건이어야 한다.
+            let rangesByNight = Dictionary(grouping: sleepRanges) {
+                calendar.startOfDay(for: SleepAnalysisService.nightLabel(for: $0.start))
+            }
+            let sleeps = rangesByNight.map { night, ranges in
+                LongTermNightSleepRecord(
+                    nightDate: night,
+                    sleepMinutes: ranges.flatMap { $0.stageDurations.values }.reduce(0, +) / 60
+                )
+            }
+            let coffees = (coffeeEntries ?? []).compactMap { entry -> LongTermCoffeeRecord? in
+                guard let date = DateKey.parseISODate(entry.date), date >= start, date <= end else { return nil }
+                return LongTermCoffeeRecord(date: date)
+            }
+            let healthWorkoutRecords = healthWorkouts.map {
+                LongTermWorkoutRecord(start: $0.start, durationMinutes: $0.end.timeIntervalSince($0.start) / 60)
+            }
+            let manualWorkouts = (manualEntries ?? []).compactMap { entry -> LongTermWorkoutRecord? in
+                guard let workoutStart = DateKey.parseISODate(entry.startedAt),
+                      let workoutEnd = DateKey.parseISODate(entry.endedAt),
+                      workoutStart >= start, workoutEnd > workoutStart else { return nil }
+                return LongTermWorkoutRecord(start: workoutStart, durationMinutes: workoutEnd.timeIntervalSince(workoutStart) / 60)
+            }
+            let daily = rmssdSummaries.compactMap { summary in
+                summary.wholeDayMedian.map { LongTermDailyRMSSD(date: summary.date, median: $0) }
+            }
+            let morning = rmssdSummaries.compactMap { summary in
+                summary.morningMedian.map { LongTermDailyRMSSD(date: summary.date, median: $0) }
+            }
+            let commuteStatuses = await Self.fetchCommuteStatuses(start: start, end: end)
+
+            unsolvedCaseResults = LongTermCaseAnalyzer.analyze(
+                coffees: coffees,
+                workouts: healthWorkoutRecords + manualWorkouts,
+                sleeps: sleeps,
+                morningRMSSD: morning,
+                dailyRMSSD: daily,
+                commuteStatusByDay: commuteStatuses
+            )
+            hasLoadedUnsolvedCases = true
+        } catch {
+            unsolvedCaseResults = []
+        }
+    }
+
+    func loadDailyBriefing() async {
+        // Apple Watch → iPhone HealthKit 동기화는 앱을 연 뒤 완료될 수 있으므로 홈에 들어올 때마다
+        // 최신 수면을 다시 읽는다. 동시에 여러 번 실행되는 것만 막는다.
+        guard !isLoadingDailyBriefing else { return }
+        isLoadingDailyBriefing = true
+        defer { isLoadingDailyBriefing = false }
 
         do {
             try await HealthKitService.requestAuthorization()
             let calendar = Calendar.current
             let today = calendar.startOfDay(for: Date())
             let latestNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
-            let fetchStart = calendar.date(byAdding: .day, value: -38, to: latestNight) ?? latestNight
+            let fetchDayCount = DailyBriefingConfiguration.sleepBaselineNightCount
+                + DailyBriefingConfiguration.sleepFetchBufferDays
+            let fetchStart = calendar.date(byAdding: .day, value: -fetchDayCount, to: latestNight) ?? latestNight
             let fetchEnd = calendar.date(byAdding: .day, value: 2, to: today) ?? Date()
 
             async let sleepTask = HealthKitService.fetchSleepStageSamples(start: fetchStart, end: fetchEnd)
@@ -39,18 +116,45 @@ final class HomeViewModel {
             let (sleepSamples, timeline, rmssdSamples) = try await (sleepTask, timelineTask, rmssdTask)
 
             let ranges = SleepAnalysisService.buildSleepRanges(sleepSamples)
+            let now = Date()
+            let recentStart = calendar.date(byAdding: .day, value: -30, to: now) ?? fetchStart
+            let recentRMSSD = rmssdSamples.filter { $0.date >= recentStart && $0.date <= now }
+            let recentSleepRanges = ranges.filter { $0.end >= recentStart && $0.start <= now }
+            let recentBaseline = RMSSDThreshold.makeRecentBaseline(
+                samples: recentRMSSD,
+                sleepRanges: recentSleepRanges
+            )
+            recoveryScore = RecoveryScoreBuilder.build(
+                samples: recentRMSSD,
+                sleepRanges: recentSleepRanges,
+                day: now
+            )
+            let todayNotes = ((try? await RMSSDEventService.allEvents()) ?? []).compactMap { entry -> (Date, String)? in
+                guard let date = DateKey.parseISODate(entry.occurredAt),
+                      calendar.isDate(date, inSameDayAs: now),
+                      let note = entry.note else { return nil }
+                return (date, note)
+            }
+            todayBriefingClues = TodayBriefingClueBuilder.build(
+                samples: rmssdSamples,
+                baseline: recentBaseline,
+                notes: todayNotes,
+                day: now
+            )
+
             guard let currentRange = ranges.last(where: {
-                calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: latestNight)
+                SleepAnalysisService.nightLabel(for: $0.start) <= latestNight
             }) else {
-                briefingCaseType = nil
+                clearDailyBriefing()
                 return
             }
+            let currentNight = SleepAnalysisService.nightLabel(for: currentRange.start)
 
             let previousRanges = ranges
-                .filter { SleepAnalysisService.nightLabel(for: $0.start) < latestNight }
-                .suffix(30)
+                .filter { SleepAnalysisService.nightLabel(for: $0.start) < currentNight }
+                .suffix(DailyBriefingConfiguration.sleepBaselineNightCount)
             guard !previousRanges.isEmpty else {
-                briefingCaseType = nil
+                clearDailyBriefing()
                 return
             }
 
@@ -60,32 +164,112 @@ final class HomeViewModel {
             }
             guard
                 let sleepDurationMedian = previous.map(\.sleepDuration).median,
+                let awakeDurationMedian = previous.map(\.awakeDuration).median,
                 let awakeRatioMedian = previous.map(\.awakeRatio).median,
                 let longestContinuousSleepMedian = previous.map(\.longestContinuousSleep).median,
                 let currentRMSSD = current.rmssd,
                 let rmssdMedian = previous.compactMap(\.rmssd).median,
                 rmssdMedian > 0
             else {
-                briefingCaseType = nil
+                clearDailyBriefing()
                 return
             }
 
+            let evidenceStart = calendar.date(
+                byAdding: .day,
+                value: -(max(DailyBriefingConfiguration.evidenceLookbackDays, 1) - 1),
+                to: currentNight
+            ) ?? currentNight
+            let behaviorEnd = currentRange.start
+            let observationEnd = currentRange.end
+
+            // 부가 기록 하나가 실패해도 수면·HRV 단서는 계속 만든다.
+            async let coffeeEntriesTask: [CoffeeLogEntry]? = try? CoffeeService.allCoffees()
+            async let exerciseEntriesTask: [ExerciseLogEntry]? = try? ExerciseService.allExercises()
+            async let schedulesTask = Self.fetchSchedules(start: evidenceStart, end: behaviorEnd)
+            async let noteEntriesTask: [RMSSDEventEntry]? = try? RMSSDEventService.allEvents()
+            let (coffeeEntries, exerciseEntries, schedules, noteEntries) = await (
+                coffeeEntriesTask,
+                exerciseEntriesTask,
+                schedulesTask,
+                noteEntriesTask
+            )
+
+            let coffees = (coffeeEntries ?? []).compactMap { entry -> BriefingCoffeeRecord? in
+                guard let date = DateKey.parseISODate(entry.date), date >= evidenceStart, date < behaviorEnd else {
+                    return nil
+                }
+                return BriefingCoffeeRecord(date: date, title: entry.type)
+            }
+            let workouts = (exerciseEntries ?? []).compactMap { entry -> BriefingWorkoutRecord? in
+                guard
+                    let start = DateKey.parseISODate(entry.startedAt),
+                    let end = DateKey.parseISODate(entry.endedAt),
+                    start >= evidenceStart,
+                    start < behaviorEnd,
+                    end > start
+                else { return nil }
+                return BriefingWorkoutRecord(
+                    start: start,
+                    durationMinutes: end.timeIntervalSince(start) / 60,
+                    intensity: entry.intensity.map(Double.init),
+                    title: entry.type
+                )
+            }
+            let hrvNotes = (noteEntries ?? []).compactMap { entry -> BriefingHRVNote? in
+                guard
+                    let date = DateKey.parseISODate(entry.occurredAt),
+                    date >= evidenceStart,
+                    date <= observationEnd,
+                    let note = entry.note,
+                    let direction = RMSSDThresholdDirection(rawValue: entry.direction)
+                else { return nil }
+                return BriefingHRVNote(
+                    date: date,
+                    rmssdValue: entry.rmssdValue,
+                    note: note,
+                    emotion: RMSSDEmotion(rawValue: entry.emotion)?.label,
+                    direction: direction
+                )
+            }
+            let priorRMSSDValues = previous.compactMap(\.rmssd)
+            let rmssdPercentile = priorRMSSDValues.isEmpty ? nil :
+                Double(priorRMSSDValues.filter { $0 <= currentRMSSD }.count) / Double(priorRMSSDValues.count) * 100
+            let rmssdChangePercent = Self.percentChange(current: currentRMSSD, baseline: rmssdMedian)
+
             let input = DailyBriefingInput(
                 sleepDurationChangeMinutes: (current.sleepDuration - sleepDurationMedian) / 60,
+                awakeDurationChangeMinutes: (current.awakeDuration - awakeDurationMedian) / 60,
                 awakeRatioChangePercent: Self.percentChange(
                     current: current.awakeRatio,
                     baseline: awakeRatioMedian
                 ),
                 longestContinuousSleepChangeMinutes:
                     (current.longestContinuousSleep - longestContinuousSleepMedian) / 60,
-                rmssdChangePercent: Self.percentChange(current: currentRMSSD, baseline: rmssdMedian)
+                rmssdValue: currentRMSSD,
+                rmssdChangePercent: rmssdChangePercent,
+                rmssdPercentile30Days: rmssdPercentile,
+                coffees: coffees,
+                workouts: workouts,
+                schedules: schedules,
+                hrvNotes: hrvNotes
             )
-            briefingCaseType = BriefingCaseDetector.detect(from: input)
+            let caseType = BriefingCaseDetector.detect(from: input)
+            briefingCaseType = caseType
+            briefingDate = currentNight
+            briefingClues = BriefingClueBuilder.build(from: input)
         } catch {
             // 사건명 분석 실패는 기존 간편 입력의 오류 영역과 동작에 영향을 주지 않는다.
-            briefingCaseType = nil
-            hasLoadedDailyBriefing = false
+            clearDailyBriefing()
+            todayBriefingClues = []
+            recoveryScore = nil
         }
+    }
+
+    private func clearDailyBriefing() {
+        briefingCaseType = nil
+        briefingDate = nil
+        briefingClues = []
     }
 
     func loadTodayMoodIfNeeded() async {
@@ -178,6 +362,7 @@ final class HomeViewModel {
 
     private struct BriefingNight {
         let sleepDuration: TimeInterval
+        let awakeDuration: TimeInterval
         let awakeRatio: Double
         let longestContinuousSleep: TimeInterval
         let rmssd: Double?
@@ -205,6 +390,7 @@ final class HomeViewModel {
 
         return BriefingNight(
             sleepDuration: range.stageDurations.values.reduce(0, +),
+            awakeDuration: awakeDuration,
             awakeRatio: windowDuration > 0 ? awakeDuration / windowDuration : 0,
             longestContinuousSleep: max(0, longestContinuousSleep),
             rmssd: rmssd
@@ -212,6 +398,70 @@ final class HomeViewModel {
                 .map(\.value)
                 .median
         )
+    }
+
+    private static func fetchSchedules(
+        start: Date,
+        end: Date
+    ) async -> [BriefingScheduleRecord] {
+        do {
+            try await CalendarEventService.requestAuthorization()
+            return await CalendarEventService.fetchEvents(start: start, end: end).compactMap { event in
+                let clippedStart = max(event.start, start)
+                let clippedEnd = min(event.end, end)
+                guard clippedEnd > clippedStart else { return nil }
+                let category: String = switch event.category {
+                case .holiday: "공휴일"
+                case .vacation: "휴가"
+                case .general: "일반"
+                }
+                return BriefingScheduleRecord(
+                    start: clippedStart,
+                    end: clippedEnd,
+                    title: event.title,
+                    category: category
+                )
+            }
+        } catch {
+            return []
+        }
+    }
+
+    private static func fetchCommuteStatuses(start: Date, end: Date) async -> [Date: LongTermCommuteStatus] {
+        let calendar = Calendar.current
+        var statuses: [Date: LongTermCommuteStatus] = [:]
+        var day = calendar.startOfDay(for: start)
+        let finalDay = calendar.startOfDay(for: end)
+        while day <= finalDay {
+            let weekday = calendar.component(.weekday, from: day)
+            statuses[day] = (weekday == 1 || weekday == 7) ? .nonWorkday : .workday
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+
+        do {
+            try await CalendarEventService.requestAuthorization()
+            let events = await CalendarEventService.fetchEvents(start: start, end: end)
+            for event in events {
+                let isNonWorkday = event.category == .holiday
+                    || (event.category == .vacation && event.isAllDay)
+                guard isNonWorkday else { continue }
+
+                var eventDay = calendar.startOfDay(for: max(event.start, start))
+                // EventKit 종일 일정의 end는 마지막 날 다음 날 자정인 배타적 경계다.
+                let effectiveEnd = event.isAllDay ? event.end.addingTimeInterval(-1) : event.end
+                let lastDay = calendar.startOfDay(for: min(effectiveEnd, end))
+                while eventDay <= lastDay {
+                    statuses[eventDay] = .nonWorkday
+                    guard let next = calendar.date(byAdding: .day, value: 1, to: eventDay) else { break }
+                    eventDay = next
+                }
+            }
+            return statuses
+        } catch {
+            // 캘린더 권한이 없어도 토·일요일은 비출근, 평일은 출근으로 분석한다.
+            return statuses
+        }
     }
 
     private static func mergeIntervals(

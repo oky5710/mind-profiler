@@ -7,6 +7,20 @@ enum RMSSDThresholdDirection: String, Codable {
     case high = "HIGH"
 }
 
+struct RMSSDPeriodMedians {
+    let morning: Double?
+    let afternoon: Double?
+    let sleep: Double?
+
+    var values: [Double] { [morning, afternoon, sleep].compactMap { $0 } }
+}
+
+struct RMSSDRecentBaseline {
+    let overallMedian: Double?
+    let periodMedians: RMSSDPeriodMedians
+    let sleepRanges: [SleepRange]
+}
+
 enum RMSSDThreshold {
     // 기존 "오늘의 패턴" 차트에서 쓰던 급격한 저하 기준(최근 30일 중앙값의 50% 미만)을 그대로 쓴다.
     static let lowMultiplier = 0.5
@@ -23,5 +37,55 @@ enum RMSSDThreshold {
         let thirtyDaysAgo = now.addingTimeInterval(-30 * 24 * 60 * 60)
         let samples = try await HealthKitService.fetchRMSSDSamples(start: thirtyDaysAgo, end: now)
         return samples.isEmpty ? nil : HRVStatistics.median(samples.map(\.value))
+    }
+
+    static func fetchRecentThirtyDayBaseline(asOf now: Date = Date()) async throws -> RMSSDRecentBaseline {
+        let start = now.addingTimeInterval(-30 * 24 * 60 * 60)
+        async let rmssdRequest = HealthKitService.fetchRMSSDSamples(start: start, end: now)
+        async let sleepRequest = HealthKitService.fetchSleepStageSamples(start: start, end: now)
+        let (samples, sleepSamples) = try await (rmssdRequest, sleepRequest)
+        return makeRecentBaseline(samples: samples, sleepRanges: SleepAnalysisService.buildSleepRanges(sleepSamples))
+    }
+
+    static func makeRecentBaseline(
+        samples: [(date: Date, value: Double)],
+        sleepRanges: [SleepRange]
+    ) -> RMSSDRecentBaseline {
+        var morning: [Double] = []
+        var afternoon: [Double] = []
+        var sleeping: [Double] = []
+        let calendar = Calendar.current
+
+        for sample in samples {
+            if sleepRanges.contains(where: { sample.date >= $0.start && sample.date <= $0.end }) {
+                sleeping.append(sample.value)
+            } else if calendar.component(.hour, from: sample.date) < 12 {
+                morning.append(sample.value)
+            } else {
+                afternoon.append(sample.value)
+            }
+        }
+
+        return RMSSDRecentBaseline(
+            overallMedian: samples.isEmpty ? nil : HRVStatistics.median(samples.map(\.value)),
+            periodMedians: RMSSDPeriodMedians(
+                morning: morning.isEmpty ? nil : HRVStatistics.median(morning),
+                afternoon: afternoon.isEmpty ? nil : HRVStatistics.median(afternoon),
+                sleep: sleeping.isEmpty ? nil : HRVStatistics.median(sleeping)
+            ),
+            sleepRanges: sleepRanges
+        )
+    }
+
+    static func periodMedian(
+        at date: Date,
+        baseline: RMSSDRecentBaseline
+    ) -> Double? {
+        if baseline.sleepRanges.contains(where: { date >= $0.start && date <= $0.end }) {
+            return baseline.periodMedians.sleep
+        }
+        return Calendar.current.component(.hour, from: date) < 12
+            ? baseline.periodMedians.morning
+            : baseline.periodMedians.afternoon
     }
 }

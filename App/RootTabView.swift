@@ -2,32 +2,44 @@ import SwiftUI
 
 struct RootTabView: View {
     @Environment(RMSSDThresholdAlertCenter.self) private var rmssdThresholdAlertCenter
+    @Environment(SleepUpdateNavigationCenter.self) private var sleepUpdateNavigationCenter
     @Environment(\.scenePhase) private var scenePhase
+    @State private var selectedTab: RootTab = .home
+    @State private var homeRefreshRequestID: UUID?
+
+    private enum RootTab: Hashable {
+        case home, calendar, report, pattern, settings
+    }
 
     var body: some View {
         @Bindable var rmssdThresholdAlertCenter = rmssdThresholdAlertCenter
-        TabView {
-            HomeView()
+        TabView(selection: $selectedTab) {
+            HomeView(refreshRequestID: homeRefreshRequestID)
+                .tag(RootTab.home)
                 .tabItem {
                     Label("홈", systemImage: "house")
                 }
 
             CalendarView()
+                .tag(RootTab.calendar)
                 .tabItem {
                     Label("캘린더", systemImage: "calendar")
                 }
 
             ReportView()
+                .tag(RootTab.report)
                 .tabItem {
                     Label("보고서", systemImage: "doc.text.magnifyingglass")
                 }
 
             HRVAnalysisView()
+                .tag(RootTab.pattern)
                 .tabItem {
                     Label("오늘의 패턴", systemImage: "waveform.path.ecg")
                 }
 
             SettingsView()
+                .tag(RootTab.settings)
                 .tabItem {
                     Label("설정", systemImage: "gearshape")
                 }
@@ -45,6 +57,12 @@ struct RootTabView: View {
                 _ = try? await ReminderNotificationService.shared.resync()
             }
         }
+        .onChange(of: sleepUpdateNavigationCenter.openHomeRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            selectedTab = .home
+            homeRefreshRequestID = UUID()
+            sleepUpdateNavigationCenter.consumeOpenHomeRequest()
+        }
         .fullScreenCover(item: $rmssdThresholdAlertCenter.pendingEvent) { pendingEvent in
             RMSSDEventEntryForm(pendingEvent: pendingEvent) {
                 rmssdThresholdAlertCenter.pendingEvent = nil
@@ -57,4 +75,5 @@ struct RootTabView: View {
     RootTabView()
         .environment(ToastCenter())
         .environment(RMSSDThresholdAlertCenter())
+        .environment(SleepUpdateNavigationCenter())
 }

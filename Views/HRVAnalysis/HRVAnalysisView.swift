@@ -49,7 +49,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .medication: "약 복용"
         case .symptom: "증상"
         case .lifeEvent: "이벤트"
-        case .median: "최근 30일 중앙값"
+        case .median: "최근 30일 시간대별 중앙값"
         case .sdnn: "SDNN"
         case .calendarEvent: "캘린더"
         case .cv: "변동계수 (CV)"
@@ -76,7 +76,8 @@ enum HRVSeries: String, CaseIterable, Identifiable {
     // 영향을 주는 지표만 범례에 노출한다 — 안 그러면 토글해도 아무 변화가 없는 항목이 보인다.
     func appliesTo(_ mode: HRVChartMode) -> Bool {
         switch self {
-        case .rmssd, .examRmssd, .median: true
+        case .rmssd, .examRmssd: true
+        case .median: mode == .hourly
         case .sdnn: mode == .hourly
         case .restingHeartRate: mode == .daily
         case .sleep: mode != .monthly
@@ -290,6 +291,7 @@ struct HRVAnalysisView: View {
         }
         .task {
             await viewModel.loadRecentThirtyDayMedianIfNeeded()
+            recomputeRange()
         }
         .task {
             await viewModel.loadCalendarEventsIfNeeded()
@@ -373,6 +375,8 @@ struct HRVAnalysisView: View {
 
     private func recomputeRange() {
         var values = viewModel.examPoints.map(\.rmssd)
+        if let median = viewModel.recentThirtyDayRMSSDMedian { values.append(median) }
+        values += viewModel.recentThirtyDayPeriodMedians?.values ?? []
         switch chartMode {
         case .hourly:
             values += currentRMSSDPoints.map(\.value)
@@ -766,7 +770,7 @@ struct HRVAnalysisView: View {
                     id: series.id,
                     series: series,
                     label: series == .sleep && chartMode == .daily ? "야간 수면시간" : series.label,
-                    boldValue: series == .median ? medianLegendValue : nil,
+                    boldValue: legendValue(for: series),
                     swatch: AnyView(
                         Image(systemName: series.symbol)
                             .font(.system(size: 8))
@@ -778,26 +782,67 @@ struct HRVAnalysisView: View {
     }
 
     private var legend: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
-            ForEach(legendItems) { item in
-                Button {
-                    toggleSeries(item.series)
-                    tooltipCalendarEvent = nil
-                    tooltipSleepRange = nil
-                    tooltipWorkoutRange = nil
-                } label: {
-                    legendRow(label: item.label, boldValue: item.boldValue) { item.swatch }
-                        .opacity(hiddenSeries.contains(item.series) ? 0.35 : 1)
+        let items = legendItems
+        let regularItems = items.filter { $0.series != .median }
+        let medianItem = items.first { $0.series == .median }
+
+        return VStack(alignment: .leading, spacing: 6) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
+                ForEach(regularItems) { item in
+                    legendButton(item)
                 }
-                .buttonStyle(.plain)
+            }
+
+            if let medianItem {
+                legendButton(medianItem)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.top, 4)
     }
 
-    private var medianLegendValue: String? {
-        guard let median = viewModel.recentThirtyDayRMSSDMedian else { return nil }
-        return "\(Int(median.rounded()))ms"
+    private func legendButton(_ item: LegendItem) -> some View {
+        Button {
+            toggleSeries(item.series)
+            tooltipCalendarEvent = nil
+            tooltipSleepRange = nil
+            tooltipWorkoutRange = nil
+        } label: {
+            if item.series == .median {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        item.swatch
+                        Text(item.label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let value = item.boldValue {
+                        Text(value)
+                            .font(.caption2.bold())
+                            .foregroundStyle(.primary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .opacity(hiddenSeries.contains(item.series) ? 0.35 : 1)
+            } else {
+                legendRow(label: item.label, boldValue: item.boldValue) { item.swatch }
+                    .opacity(hiddenSeries.contains(item.series) ? 0.35 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func legendValue(for series: HRVSeries) -> String? {
+        switch series {
+        case .median:
+            guard let values = viewModel.recentThirtyDayPeriodMedians else { return nil }
+            let morning = values.morning.map { "오전 \(Int($0.rounded()))" }
+            let afternoon = values.afternoon.map { "오후 \(Int($0.rounded()))" }
+            let sleep = values.sleep.map { "수면 \(Int($0.rounded()))" }
+            return [morning, afternoon, sleep].compactMap { $0 }.joined(separator: " · ") + "ms"
+        default:
+            return nil
+        }
     }
 
     private func legendRow<Swatch: View>(
@@ -837,7 +882,7 @@ struct HRVAnalysisView: View {
         case .medication: Theme.hourlyMedicationMarker
         case .symptom: Theme.systemRed
         case .lifeEvent: calendarEventColor
-        case .median: .gray
+        case .median: sleepColor
         case .sdnn: Theme.systemGray4
         case .calendarEvent: calendarEventColor
         case .cv: Theme.systemTeal
@@ -897,6 +942,11 @@ private final class SleepOverviewViewModel {
 
     var totalSleepDuration: TimeInterval? {
         sleepRange.map { $0.stageDurations.values.reduce(0, +) }
+    }
+
+    var sleepRMSSDAverage: Double? {
+        guard !rmssdPoints.isEmpty else { return nil }
+        return rmssdPoints.map(\.value).reduce(0, +) / Double(rmssdPoints.count)
     }
 
     var currentContinuityMetrics: SleepContinuityMetrics {
@@ -1159,14 +1209,17 @@ private struct SleepOverviewView: View {
                     )
                     .frame(minHeight: 260)
                 } else {
-                    continuitySummaryCard
                     VStack(spacing: 0) {
-                        sleepStageChart
-                        rmssdChart
-                        heartRateChart
-                        respiratoryRateChart
+                        continuitySummaryCard
+                        VStack(spacing: 0) {
+                            sleepStageChart
+                            rmssdChart
+                            heartRateChart
+                            respiratoryRateChart
+                        }
+                        .padding(.top, 20)
+                        .sleepConnectedTimeGrid(domain: viewModel.chartDomain)
                     }
-                    .sleepConnectedTimeGrid(domain: viewModel.chartDomain)
                 }
             }
             .padding()
@@ -1201,17 +1254,21 @@ private struct SleepOverviewView: View {
             .padding(.vertical, 2)
 
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible()), count: 3),
+                columns: Array(repeating: GridItem(.flexible()), count: 2),
                 spacing: 8
             ) {
                 wakeMetric(
                     "총 수면 시간",
                     value: viewModel.totalSleepDuration.map { Self.formattedDuration($0) } ?? "—"
                 )
-                wakeMetric("총 각성 시간", value: Self.formattedDuration(metrics.totalAwakeDuration))
                 wakeMetric(
                     "가장 긴 연속 수면",
                     value: Self.formattedDuration(metrics.longestContinuousSleep)
+                )
+                wakeMetric("총 각성 시간", value: Self.formattedDuration(metrics.totalAwakeDuration))
+                wakeMetric(
+                    "수면 중 rMSSD 평균",
+                    value: viewModel.sleepRMSSDAverage.map { "\(Int($0.rounded()))ms" } ?? "—"
                 )
             }
         }
@@ -1438,9 +1495,9 @@ private struct SleepOverviewView: View {
     private func stageColor(_ stage: HealthKitService.SleepTimelineStage) -> Color {
         switch stage {
         case .deep: Theme.sleepStageDeep
-        case .core: Theme.sleepStageCore
+        case .core: Theme.sleepTimelineCore
         case .rem: Theme.sleepStageREM
-        case .awake: Theme.systemGray3
+        case .awake: Theme.sleepTimelineAwake
         }
     }
 

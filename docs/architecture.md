@@ -36,13 +36,33 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 - HRV(SDNN)는 HealthKit 제약상 `HKSeriesType.heartbeat()`(원시 박동) 읽기 권한과 반드시 같이 요청해야 해서
   (안 하면 앱이 즉시 크래시) 읽기는 하지만, 화면에서는 rMSSD와의 값 차이를 참고만 하도록 옅게(시간별 모드,
   `Theme.systemGray4`) 보여주기만 한다.
-- HealthKit 데이터는 백엔드에 저장하지 않고, 매번 기기에서 읽어와 화면에서만 사용한다 (검사 기록(SDNN·rMSSD 등)·기분·커피 등 사용자가 직접 입력하는 기록만 백엔드에 저장).
+- HealthKit 데이터는 백엔드에 저장하지 않는다. 계산 비용이 큰 rMSSD만 기기 내부 SwiftData에
+  `RMSSDMeasurement`(측정별 계산 캐시)와 `DailyRMSSDSummary`(날짜·수면·기상 후 오전·오후별 중앙값)로
+  저장한다. 저장소는 iCloud/기기 백업에서 제외하고 Data Protection을 적용하며 원시 RR 간격은 보관하지
+  않는다. 검사 기록·기분·커피 등 사용자가 직접 입력하는 기존 기록만 백엔드에 저장한다.
 - 애플 워치가 Health 앱에 보여주는 "수면 점수"는 HealthKit 공개 API로 노출되지 않는다 — 수면 상세
   패널(`SleepDetailPanel`)에 보이는 추정 점수는 애플이 공개한 가중치 구성을 흉내 낸 자체 계산값이다
   (`SleepAnalysisService`). 자세한 내용은 [features.md](features.md) 참고.
 - 원시 HealthKit 샘플(수면 단계, rMSSD 등)을 화면에 쓸 모양으로 가공하는 순수 계산 로직은
   `SleepAnalysisService`(수면 구간·추정 점수)와 `HRVStatistics`(중앙값·일별 중앙값·Pearson 상관계수)로
   분리해뒀다 — "오늘의 패턴"과 "보고서" 화면이 이 계산을 그대로 공유해서 쓴다.
+
+### 로컬 rMSSD 캐시 흐름
+
+```
+HealthKit HeartbeatSeries
+  → RMSSDLocalStore (UUID별 신규/변경 측정만 계산)
+  → RMSSDMeasurement
+  → DailyRMSSDSummary
+  → HRV Trend / Recovery / 오늘 단서 / 장기 미제 사건 / 보고서
+```
+
+- `calculationVersion`은 RR 필터·rMSSD 공식 변경 시 측정 캐시를 다시 계산하기 위한 버전이고,
+  `aggregationVersion`은 수면·오전·오후 분류 변경 시 일별 Summary만 다시 만들기 위한 버전이다.
+- 일별 오전값은 자정~정오가 아니라 마지막 기상 후~정오의 비수면 측정만 포함한다. 수면 여부를 먼저
+  판정하므로 수면 중 측정은 `sleepMedian`에만 포함된다.
+- 공개 `HealthKitService.fetchRMSSDSamples`가 로컬 저장소를 경유하므로 시간별 차트와 기존 분석 코드도
+  같은 측정 캐시를 공유한다. 일별 HRV Trend와 장기 미제 사건은 `DailyRMSSDSummary`를 직접 사용한다.
 
 ## 백그라운드 HealthKit 관찰
 

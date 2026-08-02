@@ -42,6 +42,7 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     // UNUserNotificationCenter의 delegate는 앱 전체에 하나뿐이라(iOS 제약), rMSSD 알림도 별도
     // delegate를 새로 만들지 않고 이 델리게이트에 카테고리만 하나 더 등록한다.
     nonisolated(unsafe) static var onRMSSDThresholdTapped: (@Sendable ([AnyHashable: Any]) -> Void)?
+    nonisolated(unsafe) static var onSleepUpdateTapped: (@MainActor @Sendable () -> Void)?
 
     private override init() {
         super.init()
@@ -63,7 +64,17 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
             intentIdentifiers: [],
             options: []
         )
-        UNUserNotificationCenter.current().setNotificationCategories([medicationCategory, rmssdCategory])
+        let sleepUpdateCategory = UNNotificationCategory(
+            identifier: SleepUpdateMonitorService.categoryIdentifier,
+            actions: [],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([
+            medicationCategory,
+            rmssdCategory,
+            sleepUpdateCategory,
+        ])
     }
 
     func requestAuthorization() async throws {
@@ -194,7 +205,9 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
     ) {
         // rMSSD 알림은 예약 전에 이미 하루 한 번 중복 방지를 거쳤으니, 뜨는 시점에 따로 확인할
         // 서버 상태가 없다 — 그냥 보여준다.
-        guard notification.request.content.categoryIdentifier != RMSSDThresholdMonitorService.categoryIdentifier else {
+        let category = notification.request.content.categoryIdentifier
+        guard category != RMSSDThresholdMonitorService.categoryIdentifier,
+              category != SleepUpdateMonitorService.categoryIdentifier else {
             completionHandler([.banner, .sound])
             return
         }
@@ -218,6 +231,14 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
         if response.notification.request.content.categoryIdentifier == RMSSDThresholdMonitorService.categoryIdentifier {
             Self.onRMSSDThresholdTapped?(response.notification.request.content.userInfo)
             completionHandler()
+            return
+        }
+
+        if response.notification.request.content.categoryIdentifier == SleepUpdateMonitorService.categoryIdentifier {
+            Task { @MainActor in
+                Self.onSleepUpdateTapped?()
+                completionHandler()
+            }
             return
         }
 

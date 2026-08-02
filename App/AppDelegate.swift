@@ -14,7 +14,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         ReminderNotificationService.shared.registerCategories()
         // 이 시점에만 등록한다(뷰의 .task 등에서 또 부르지 않음) — 여기가 백그라운드로 깨어난
         // 실행 경로를 포함해 유일하게 보장되는 시점이라, 중복 등록 걱정 없이 한 번만 실행된다.
-        Task { await RMSSDThresholdMonitorService.shared.start() }
+        Task {
+            await RMSSDThresholdMonitorService.shared.start()
+            await SleepUpdateMonitorService.shared.start()
+        }
         return true
     }
 }

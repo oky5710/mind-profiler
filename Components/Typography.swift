@@ -5,8 +5,8 @@ import SwiftUI
 enum Typography {
     // 34pt Bold — 페이지 대표 제목.
     static let largeTitle = Font.system(size: 28, weight: .bold)
-    // 28pt Bold — 화면 제목(탭 상단 타이틀 등).
-    static let screenTitle = Font.system(size: 24, weight: .bold)
+    // 18pt Bold — 화면 제목(탭 상단 타이틀 등).
+    static let screenTitle = Font.system(size: 18, weight: .bold)
     // 22pt Bold — 섹션 제목.
     static let sectionTitle = Font.system(size: 20, weight: .bold)
     // 19pt Bold — 한 화면에 여러 패널 제목이 반복되는 보고서용 섹션 제목.
