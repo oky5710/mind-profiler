@@ -27,9 +27,23 @@ enum SleepAnalysisService {
         }
     }
 
-    static func formattedDuration(_ interval: TimeInterval) -> String {
+    nonisolated static func formattedDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = Int(interval) / 60
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
+    }
+
+    static func mergeIntervals(
+        _ intervals: [(start: Date, end: Date)]
+    ) -> [(start: Date, end: Date)] {
+        var merged: [(start: Date, end: Date)] = []
+        for interval in intervals.sorted(by: { $0.start < $1.start }) {
+            if let last = merged.last, interval.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, interval.end)
+            } else {
+                merged.append(interval)
+            }
+        }
+        return merged
     }
 
     // 오후 9시(21시) 이후에 시작해서 다음날 오전 10시 이전에 끝나는 수면을 그날 밤으로 본다 —
@@ -120,7 +134,7 @@ enum SleepAnalysisService {
 
     // 취침 시각은 자정을 넘나들어서(23:30 vs 00:15) 단순 시:분 비교로는 안 되고, 정오를 기준으로
     // 밀어서(자정=720분) 비교해야 자정 전후 취침 시각들이 가깝게 계산된다.
-    private static func bedtimeMinutesSinceNoon(_ date: Date) -> Double {
+    nonisolated private static func bedtimeMinutesSinceNoon(_ date: Date) -> Double {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let minutesSinceMidnight = Double((components.hour ?? 0) * 60 + (components.minute ?? 0))
         let shifted = minutesSinceMidnight - 12 * 60

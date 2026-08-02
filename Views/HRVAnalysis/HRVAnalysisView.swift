@@ -1119,7 +1119,7 @@ private final class SleepOverviewViewModel {
             let awakeIntervals = timeline
                 .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
                 .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
-            let mergedAwake = mergeIntervals(awakeIntervals)
+            let mergedAwake = SleepAnalysisService.mergeIntervals(awakeIntervals)
             let awakeDurations = mergedAwake.map { $0.end.timeIntervalSince($0.start) }
             totalAwakeDuration += awakeDurations.reduce(0, +)
             awakeningCount += awakeDurations.filter { $0 >= 60 }.count
@@ -1146,21 +1146,6 @@ private final class SleepOverviewViewModel {
             longestContinuousSleep: longestContinuousSleep,
             sleepWindowDuration: sleepWindowDuration
         )
-    }
-
-    private static func mergeIntervals(
-        _ intervals: [(start: Date, end: Date)]
-    ) -> [(start: Date, end: Date)] {
-        let sorted = intervals.sorted { $0.start < $1.start }
-        var merged: [(start: Date, end: Date)] = []
-        for interval in sorted {
-            if let last = merged.last, interval.start <= last.end {
-                merged[merged.count - 1].end = max(last.end, interval.end)
-            } else {
-                merged.append(interval)
-            }
-        }
-        return merged
     }
 
 }

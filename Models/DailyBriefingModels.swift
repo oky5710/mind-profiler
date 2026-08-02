@@ -1,5 +1,15 @@
 import Foundation
 
+private enum BriefingFormatters {
+    static let time: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = .current
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+}
+
 // 오늘의 수사 노트 튜닝값. 표시 개수와 조회 기간을 바꾸려면 이곳만 수정한다.
 enum DailyBriefingConfiguration {
     static let maximumDisplayedClues = 10
@@ -346,14 +356,6 @@ enum LongTermCaseAnalyzer {
 }
 
 enum TodayBriefingClueBuilder {
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.timeZone = .current
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-
     static func build(
         samples: [(date: Date, value: Double)],
         baseline: RMSSDRecentBaseline,
@@ -404,7 +406,7 @@ enum TodayBriefingClueBuilder {
         return BriefingClue(
             category: .hrv,
             type: type,
-            message: "\(label): \(timeFormatter.string(from: candidate.sample.date))\(suffix)",
+            message: "\(label): \(BriefingFormatters.time.string(from: candidate.sample.date))\(suffix)",
             severity: abs(candidate.ratio - 1),
             occurredAt: candidate.sample.date
         )
@@ -434,28 +436,22 @@ struct DailyBriefingInput {
 
 struct BriefingCoffeeRecord {
     let date: Date
-    let title: String?
 }
 
 struct BriefingWorkoutRecord {
     let start: Date
     let durationMinutes: Double
     let intensity: Double?
-    let title: String
 }
 
 struct BriefingScheduleRecord {
     let start: Date
     let end: Date
-    let title: String
-    let category: String?
 }
 
 struct BriefingHRVNote {
     let date: Date
-    let rmssdValue: Double
     let note: String
-    let emotion: String?
     let direction: RMSSDThresholdDirection
 }
 
@@ -671,14 +667,6 @@ enum ScheduleClueBuilder {
 }
 
 enum NoteClueBuilder {
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.timeZone = .current
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-
     static func build(from input: DailyBriefingInput) -> [BriefingClue] {
         guard let note = input.hrvNotes.max(by: { $0.date < $1.date }) else { return [] }
         let trimmed = note.note.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -687,7 +675,7 @@ enum NoteClueBuilder {
         case .high: "스트레스가 낮은 순간"
         case .low: "스트레스가 높은 순간"
         }
-        let time = timeFormatter.string(from: note.date)
+        let time = BriefingFormatters.time.string(from: note.date)
         return [BriefingClue(
             category: .note,
             type: .neutral,

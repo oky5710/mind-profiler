@@ -199,7 +199,7 @@ final class HomeViewModel {
                 guard let date = DateKey.parseISODate(entry.date), date >= evidenceStart, date < behaviorEnd else {
                     return nil
                 }
-                return BriefingCoffeeRecord(date: date, title: entry.type)
+                return BriefingCoffeeRecord(date: date)
             }
             let workouts = (exerciseEntries ?? []).compactMap { entry -> BriefingWorkoutRecord? in
                 guard
@@ -212,8 +212,7 @@ final class HomeViewModel {
                 return BriefingWorkoutRecord(
                     start: start,
                     durationMinutes: end.timeIntervalSince(start) / 60,
-                    intensity: entry.intensity.map(Double.init),
-                    title: entry.type
+                    intensity: entry.intensity.map(Double.init)
                 )
             }
             let hrvNotes = (noteEntries ?? []).compactMap { entry -> BriefingHRVNote? in
@@ -226,9 +225,7 @@ final class HomeViewModel {
                 else { return nil }
                 return BriefingHRVNote(
                     date: date,
-                    rmssdValue: entry.rmssdValue,
                     note: note,
-                    emotion: RMSSDEmotion(rawValue: entry.emotion)?.label,
                     direction: direction
                 )
             }
@@ -374,7 +371,7 @@ final class HomeViewModel {
         let awakeIntervals = timeline
             .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
             .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
-        let mergedAwake = mergeIntervals(awakeIntervals)
+        let mergedAwake = SleepAnalysisService.mergeIntervals(awakeIntervals)
         let windowDuration = max(0, range.end.timeIntervalSince(range.start))
         let awakeDuration = mergedAwake.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
 
@@ -408,16 +405,9 @@ final class HomeViewModel {
                 let clippedStart = max(event.start, start)
                 let clippedEnd = min(event.end, end)
                 guard clippedEnd > clippedStart else { return nil }
-                let category: String = switch event.category {
-                case .holiday: "공휴일"
-                case .vacation: "휴가"
-                case .general: "일반"
-                }
                 return BriefingScheduleRecord(
                     start: clippedStart,
-                    end: clippedEnd,
-                    title: event.title,
-                    category: category
+                    end: clippedEnd
                 )
             }
         } catch {
@@ -460,20 +450,6 @@ final class HomeViewModel {
             // 캘린더 권한이 없어도 토·일요일은 비출근, 평일은 출근으로 분석한다.
             return statuses
         }
-    }
-
-    private static func mergeIntervals(
-        _ intervals: [(start: Date, end: Date)]
-    ) -> [(start: Date, end: Date)] {
-        var merged: [(start: Date, end: Date)] = []
-        for interval in intervals.sorted(by: { $0.start < $1.start }) {
-            if let last = merged.last, interval.start <= last.end {
-                merged[merged.count - 1].end = max(last.end, interval.end)
-            } else {
-                merged.append(interval)
-            }
-        }
-        return merged
     }
 
     private static func percentChange(current: Double, baseline: Double) -> Double {

@@ -46,6 +46,8 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 - 원시 HealthKit 샘플(수면 단계, rMSSD 등)을 화면에 쓸 모양으로 가공하는 순수 계산 로직은
   `SleepAnalysisService`(수면 구간·추정 점수)와 `HRVStatistics`(중앙값·일별 중앙값·Pearson 상관계수)로
   분리해뒀다 — "오늘의 패턴"과 "보고서" 화면이 이 계산을 그대로 공유해서 쓴다.
+- 겹치거나 맞닿은 시간 구간을 합치는 로직도 `SleepAnalysisService.mergeIntervals`를 공통으로 사용해
+  홈 브리핑과 수면 연속성 분석의 각성 시간 계산 기준이 달라지지 않게 한다.
 
 ### 로컬 rMSSD 캐시 흐름
 

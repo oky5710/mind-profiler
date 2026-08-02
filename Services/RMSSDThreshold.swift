@@ -33,12 +33,6 @@ enum RMSSDThreshold {
         return nil
     }
 
-    static func fetchRecentThirtyDayMedian(asOf now: Date = Date()) async throws -> Double? {
-        let thirtyDaysAgo = now.addingTimeInterval(-30 * 24 * 60 * 60)
-        let samples = try await HealthKitService.fetchRMSSDSamples(start: thirtyDaysAgo, end: now)
-        return samples.isEmpty ? nil : HRVStatistics.median(samples.map(\.value))
-    }
-
     static func fetchRecentThirtyDayBaseline(asOf now: Date = Date()) async throws -> RMSSDRecentBaseline {
         let start = now.addingTimeInterval(-30 * 24 * 60 * 60)
         async let rmssdRequest = HealthKitService.fetchRMSSDSamples(start: start, end: now)
