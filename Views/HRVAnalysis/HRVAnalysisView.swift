@@ -91,6 +91,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
 }
 
 struct HRVAnalysisView: View {
+    static let maximumRMSSDChartValue = 150.0
     // 핀치 줌 배율 범위. 1.0이 chartMode의 기본 visibleDomain이고, 배율이 커질수록(최대 5배)
     // 화면에 보이는 기간이 좁아지고(확대), 작아질수록(최소 0.5배) 넓어진다(축소).
     static let minZoomScale: CGFloat = 0.5

@@ -47,7 +47,10 @@ extension HRVAnalysisView {
         // currentRMSSDPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
         // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
         let showRMSSDPointMarkers = currentRMSSDPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
-        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+        let yAxisUpperBound = min(
+            max(ceil(range.max / 50) * 50, 50),
+            Self.maximumRMSSDChartValue
+        )
         let recentMedianSegments = viewModel.recentMedianSegments(start: visibleStart, end: visibleEnd)
 
         return Chart {
@@ -181,6 +184,7 @@ extension HRVAnalysisView {
         .frame(height: lineChartHeight)
         .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
+        .chartPlotStyle { $0.clipped() }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
@@ -595,9 +599,11 @@ extension HRVAnalysisView {
 
     private var monthlyCandlestickChart: some View {
         let range = cachedRange
-        // 이상치 하나가 몇 백ms로 튀면 나머지 달들이 축 아래쪽에 짜부라져 보이므로, 200에서 자른다 —
-        // 200을 넘는 값은 그 위쪽이 잘려 보이는 채로 두고(clipped) 축은 항상 200을 넘지 않는다.
-        let yAxisUpperBound = min(max(ceil(range.max / 50) * 50, 50), 200)
+        // 이상치 하나가 몇 백ms로 튀면 나머지 달들이 축 아래쪽에 짜부라져 보이므로, 150에서 자른다.
+        let yAxisUpperBound = min(
+            max(ceil(range.max / 50) * 50, 50),
+            Self.maximumRMSSDChartValue
+        )
 
         return Chart {
             if !hiddenSeries.contains(.rmssd) {
@@ -650,6 +656,7 @@ extension HRVAnalysisView {
         .frame(height: lineChartHeight)
         .chartXScale(domain: visibleDateRange)
         .chartYScale(domain: 0...yAxisUpperBound)
+        .chartPlotStyle { $0.clipped() }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartOverlay { proxy in
