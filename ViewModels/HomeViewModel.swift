@@ -371,10 +371,7 @@ final class HomeViewModel {
         timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)],
         rmssd: [(date: Date, value: Double)]
     ) -> BriefingNight {
-        let awakeIntervals = timeline
-            .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
-            .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
-        let mergedAwake = SleepAnalysisService.mergeIntervals(awakeIntervals)
+        let mergedAwake = SleepAnalysisService.awakeIntervals(within: range, timeline: timeline)
         let windowDuration = max(0, range.end.timeIntervalSince(range.start))
         let awakeDuration = mergedAwake.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
 

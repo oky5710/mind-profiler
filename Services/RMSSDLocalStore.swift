@@ -10,11 +10,32 @@ final class RMSSDLocalStore {
 
     private let container: ModelContainer
     private var isPerformingOperation = false
-    private var operationWaiters: [CheckedContinuation<Void, Never>] = []
+    private var operationWaiters: [OperationWaiter] = []
+
+    private struct OperationWaiter {
+        let id: UUID
+        let continuation: CheckedContinuation<Void, Error>
+    }
+
+    // 디스크 저장소를 만들 수 없을 때(손상된 파일, 디스크 공간 부족 등) 이번 실행에서는 캐시가
+    // 유지되지 않고 매번 다시 계산되지만, 최소한 앱은 계속 쓸 수 있다는 걸 호출부가 알 수 있게 남긴다.
+    private(set) var isUsingInMemoryFallback = false
 
     private init() {
+        let schema = Schema([RMSSDMeasurement.self, DailyRMSSDSummary.self])
+        if let onDiskContainer = Self.makeOnDiskContainer(schema: schema) {
+            container = onDiskContainer
+        } else {
+            // 디스크 저장소는 그냥 다시 계산해서 채우는 캐시일 뿐이라, 열 수 없다고 앱을 못 쓰게
+            // 만들 이유가 없다 — 메모리 전용 컨테이너로 내려가 이번 실행 동안만 캐시 없이 동작한다.
+            // 스키마 자체는 고정돼 있어 메모리 전용 생성은 실패할 일이 없다.
+            container = try! ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+            isUsingInMemoryFallback = true
+        }
+    }
+
+    private static func makeOnDiskContainer(schema: Schema, allowsRetryAfterReset: Bool = true) -> ModelContainer? {
         do {
-            let schema = Schema([RMSSDMeasurement.self, DailyRMSSDSummary.self])
             let support = try FileManager.default.url(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask,
@@ -35,14 +56,30 @@ final class RMSSDLocalStore {
                 allowsSave: true,
                 cloudKitDatabase: .none
             )
-            container = try ModelContainer(for: schema, configurations: [configuration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            fatalError("로컬 rMSSD 저장소를 만들 수 없습니다: \(error.localizedDescription)")
+            guard allowsRetryAfterReset else { return nil }
+            // 손상된 저장소일 수 있으니 한 번 비우고 새로 만들어본다 — 디스크가 아예 꽉 찼거나
+            // 디렉토리 권한 문제라면 이 재시도도 실패하고, 그때는 메모리 전용으로 내려간다.
+            // 어차피 다시 계산해서 채우는 캐시라 지우고 다시 만드는 쪽이 안전하다.
+            removeOnDiskStore()
+            return makeOnDiskContainer(schema: schema, allowsRetryAfterReset: false)
         }
     }
 
+    private static func removeOnDiskStore() {
+        guard let support = try? FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        ) else { return }
+        let directory = support.appending(path: "RMSSDLocalCache", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: directory)
+    }
+
     func samples(start: Date?, end: Date?) async throws -> [(date: Date, value: Double)] {
-        await acquireOperation()
+        try await acquireOperation()
         defer { releaseOperation() }
         let queryStart = start ?? .distantPast
         let queryEnd = end ?? Date()
@@ -55,7 +92,7 @@ final class RMSSDLocalStore {
     }
 
     func window(start: Date, end: Date) async throws -> RMSSDWindowDTO {
-        await acquireOperation()
+        try await acquireOperation()
         defer { releaseOperation() }
         let affectedDays = try await synchronize(start: start, end: end)
         let cachedMeasurements = try measurements(start: start, end: end)
@@ -76,21 +113,47 @@ final class RMSSDLocalStore {
 
     // @MainActor는 컨텍스트 접근 자체를 보호하지만 await 지점에서는 다른 요청이 재진입할 수 있다.
     // 동기화와 집계를 하나의 작업 단위로 직렬화해 동일 UUID의 중복 계산과 경쟁 저장을 함께 막는다.
-    private func acquireOperation() async {
+    private func acquireOperation() async throws {
+        try Task.checkCancellation()
         guard isPerformingOperation else {
             isPerformingOperation = true
             return
         }
-        await withCheckedContinuation { continuation in
-            operationWaiters.append(continuation)
+
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                operationWaiters.append(OperationWaiter(id: id, continuation: continuation))
+            }
+        } onCancel: {
+            // onCancel은 대기 중인 스레드/컨텍스트에서 곧바로(동기적으로) 호출될 수 있어, MainActor에
+            // 격리된 operationWaiters를 직접 건드릴 수 없다 — MainActor 작업으로 넘겨서 처리한다.
+            Task { @MainActor in self.cancelWaiter(id: id) }
         }
+
+        // 대기열에서는 정상적으로 깨어났지만, 그 사이(막 깨어난 바로 그 순간) 취소됐다면 — 위
+        // cancelWaiter가 이미 대기열에서 빼내 처리한 경우와 경합해 이 시점엔 이미 늦었을 수 있다 —
+        // 실제 작업은 하지 않고 바로 다음 대기자에게 넘긴다.
+        if Task.isCancelled {
+            releaseOperation()
+            throw CancellationError()
+        }
+    }
+
+    // 대기 중 취소된 요청은 자기 차례가 올 때까지 기다렸다가 그제서야 취소를 반영하는 대신, 대기열에서
+    // 바로 빼서 실패로 깨운다 — 그래야 뒤에 줄 서 있는(아직 취소되지 않은) 요청이 그만큼 더 기다리지
+    // 않는다. releaseOperation()의 removeFirst()가 이미 이 대기자를 가져갔다면(경합) 여기서는 더
+    // 할 일이 없다.
+    private func cancelWaiter(id: UUID) {
+        guard let index = operationWaiters.firstIndex(where: { $0.id == id }) else { return }
+        operationWaiters.remove(at: index).continuation.resume(throwing: CancellationError())
     }
 
     private func releaseOperation() {
         if operationWaiters.isEmpty {
             isPerformingOperation = false
         } else {
-            operationWaiters.removeFirst().resume()
+            operationWaiters.removeFirst().continuation.resume()
         }
     }
 

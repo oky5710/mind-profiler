@@ -92,7 +92,7 @@ private struct SplashView: View {
                 .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
         }
         .task {
-            if let image = CatPhotoService.randomPhoto() {
+            if let image = await CatPhotoService.randomPhoto() {
                 photo = Image(decorative: image, scale: 1)
             }
         }

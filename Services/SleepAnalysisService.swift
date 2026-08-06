@@ -47,6 +47,90 @@ enum SleepAnalysisService {
         return merged
     }
 
+    // 여러 소스(예: 아이폰+워치)가 같은 시간대에 각각 단계 샘플을 남기면 단순 합산은 그 겹치는 시간을
+    // 두 번 센다 — 겹치는 구간은 더 구체적인 단계 쪽에만 귀속시켜 실제 경과 시간을 넘지 않게 한다.
+    // stageDisplayOrder(표시 순서)와 값은 같지만, 이건 "우선순위" 목적의 별도 정의다 — 표시 순서를
+    // 바꿔도 이 겹침 해소 규칙이 조용히 같이 바뀌면 안 된다.
+    private static let stageOverlapPriority: [HealthKitService.SleepStage] = [.deep, .rem, .core, .unspecified]
+
+    private static func nonOverlappingStageDurations(
+        _ samples: [(start: Date, end: Date, stage: HealthKitService.SleepStage)]
+    ) -> [HealthKitService.SleepStage: TimeInterval] {
+        var durations: [HealthKitService.SleepStage: TimeInterval] = [:]
+        var claimed: [(start: Date, end: Date)] = []
+
+        for stage in stageOverlapPriority {
+            let ownIntervals = samples
+                .filter { $0.stage == stage }
+                .map { (start: $0.start, end: $0.end) }
+            guard !ownIntervals.isEmpty else { continue }
+
+            let merged = mergeIntervals(ownIntervals)
+            let uncovered = subtractIntervals(merged, removing: claimed)
+            let duration = uncovered.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
+            if duration > 0 {
+                durations[stage] = duration
+            }
+            claimed = mergeIntervals(claimed + merged)
+        }
+
+        return durations
+    }
+
+    // `intervals`에서 `removal`과 겹치는 부분을 잘라내고 남은 조각들을 돌려준다. `removal`은 이미
+    // mergeIntervals를 거쳐 겹치지 않는 상태라고 가정한다.
+    private static func subtractIntervals(
+        _ intervals: [(start: Date, end: Date)],
+        removing removal: [(start: Date, end: Date)]
+    ) -> [(start: Date, end: Date)] {
+        guard !removal.isEmpty else { return intervals }
+
+        var result: [(start: Date, end: Date)] = []
+        for interval in intervals {
+            var pieces: [(start: Date, end: Date)] = [interval]
+            for cut in removal {
+                pieces = pieces.flatMap { piece -> [(start: Date, end: Date)] in
+                    guard cut.end > piece.start, cut.start < piece.end else { return [piece] }
+                    var remaining: [(start: Date, end: Date)] = []
+                    if cut.start > piece.start {
+                        remaining.append((start: piece.start, end: cut.start))
+                    }
+                    if cut.end < piece.end {
+                        remaining.append((start: cut.end, end: piece.end))
+                    }
+                    return remaining
+                }
+            }
+            result.append(contentsOf: pieces)
+        }
+        return result
+    }
+
+    // range 안에서 "각성"으로 볼 구간 = 명시적 .awake 타임라인 샘플 + 샘플이 전혀 없는 빈 구간(공백).
+    // buildSleepRanges가 두 수면 구간을 최대 2시간까지 하나로 합치는데, 그 사이(예: 워치를 벗어둔 시간)
+    // 어떤 카테고리 샘플도 없다면 그 공백은 실제로 잠들어 있었는지 알 수 없다 — 그런 미확인 시간을
+    // 수면으로 잡아 총 수면시간을 부풀리는 대신 각성으로 본다(문서(features.md)에 쓴 그대로).
+    static func awakeIntervals(
+        within range: SleepRange,
+        timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)]
+    ) -> [(start: Date, end: Date)] {
+        guard range.end > range.start else { return [] }
+
+        let explicitAwake = timeline
+            .filter { $0.stage == .awake && $0.end > range.start && $0.start < range.end }
+            .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
+
+        let covered = timeline
+            .filter { $0.end > range.start && $0.start < range.end }
+            .map { (start: max($0.start, range.start), end: min($0.end, range.end)) }
+        let uncoveredGaps = subtractIntervals(
+            [(start: range.start, end: range.end)],
+            removing: mergeIntervals(covered)
+        )
+
+        return mergeIntervals(explicitAwake + uncoveredGaps)
+    }
+
     // 오후 9시(21시) 이후에 시작해서 다음날 오전 10시 이전에 끝나는 수면을 그날 밤으로 본다 —
     // 세션이 속하는 "밤 날짜"는 시작 시각의 시(hour)가 10시 이전이면 전날로 당기고, 그 외엔 시작한
     // 날짜 그대로 쓴다. 보고서의 수면 차트(x축 날짜 배정)와 전날 수면시간 상관계수(날짜별 키)가
@@ -72,10 +156,7 @@ enum SleepAnalysisService {
 
         func flushGroup() {
             guard let start = currentGroup.map(\.start).min(), let end = currentGroupEnd else { return }
-            var durations: [HealthKitService.SleepStage: TimeInterval] = [:]
-            for sample in currentGroup {
-                durations[sample.stage, default: 0] += sample.end.timeIntervalSince(sample.start)
-            }
+            let durations = nonOverlappingStageDurations(currentGroup)
             // 취침시간 일관성 점수는 이 밤 이전의 밤들과 비교해야 해서, 지금까지 쌓인 ranges(과거 밤들)를
             // 그대로 넘긴다 — samples가 시간순 정렬이라 ranges는 항상 currentGroup보다 앞선 밤들이다.
             let score = estimatedSleepScore(start: start, end: end, stageDurations: durations, previousNights: ranges)
