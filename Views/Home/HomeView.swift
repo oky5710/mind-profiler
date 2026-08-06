@@ -17,9 +17,9 @@ struct HomeView: View {
         return formatter
     }()
 
-    // 헤더(Recovery/사건 일자)는 회복 점수나 사건명이 있을 때만 보인다.
+    // 선택한 날짜는 항상 사건 일자로 보여준다. 회복 지수는 계산할 수 있을 때만 해당 행을 추가한다.
     private var hasBriefingHeader: Bool {
-        viewModel.briefingCaseType != nil || viewModel.recoveryScore != nil
+        viewModel.briefingDate != nil
     }
 
     var body: some View {
@@ -83,13 +83,13 @@ struct HomeView: View {
                 }
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                briefingHeaderLabel("회복 지수")
+            if let score {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    briefingHeaderLabel("회복 지수")
 
-                Text(score.map { String($0.value) } ?? "—")
-                    .font(Typography.sectionTitle.weight(.bold))
+                    Text(String(score.value))
+                        .font(Typography.sectionTitle.weight(.bold))
 
-                if let score {
                     Text(score.label)
                         .font(Typography.secondary)
                         .foregroundStyle(.secondary)
@@ -98,7 +98,8 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 20)
-        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .padding(.horizontal, 24)
     }
 
     private func briefingHeaderLabel(_ title: String) -> some View {
@@ -118,17 +119,13 @@ struct HomeView: View {
     }
 
     private var summaryStatsRow: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             summaryStat(
                 title: "전날 수면시간",
                 value: viewModel.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration)
             )
-            summaryStat(
-                title: "가장 최근 HRV(rMSSD)",
-                value: viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))ms" }
-            )
+            latestHRVStat
         }
-        .padding(.bottom, 20)
     }
 
     private func summaryStat(title: String, value: String?) -> some View {
@@ -140,6 +137,40 @@ struct HomeView: View {
                 .font(Typography.sectionTitle.weight(.bold))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 72, alignment: .topLeading)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var latestHRVStat: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("가장 최근 HRV")
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
+                    .font(Typography.sectionTitle.weight(.bold))
+                if viewModel.latestRMSSDValue != nil {
+                    Text("ms")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let comparison = viewModel.latestRMSSDComparison {
+                let roundedDifference = Int(abs(comparison.difference).rounded())
+                Text("\(comparison.difference >= 0 ? "↑" : "↓") \(roundedDifference)ms · \(comparison.status.label)")
+                    .font(Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 72, alignment: .topLeading)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var briefingBody: some View {
@@ -149,7 +180,10 @@ struct HomeView: View {
             }
 
             if !viewModel.todayBriefingClues.isEmpty {
-                briefingSection(title: "오늘 확보한 단서") {
+                briefingSection(
+                    title: "오늘 확보한 단서",
+                    showsTopDivider: !hasSummaryStats
+                ) {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.todayBriefingClues) { clue in
                             clueRow(clue.message)
@@ -159,7 +193,10 @@ struct HomeView: View {
             }
 
             if !viewModel.dailySummaryHighlights.isEmpty {
-                briefingSection(title: "오늘의 신호") {
+                briefingSection(
+                    title: "오늘의 신호",
+                    showsTopDivider: !hasSummaryStats || !viewModel.todayBriefingClues.isEmpty
+                ) {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.dailySummaryHighlights) { highlight in
                             highlightRow(highlight.message)
@@ -210,17 +247,23 @@ struct HomeView: View {
     // 추가 top padding을 주지 않아야 이 20pt가 이중으로 겹쳐 보이지 않는다.
     private func briefingSection<Content: View>(
         title: String,
+        showsTopDivider: Bool = true,
         @ViewBuilder content: () -> Content
     ) -> some View {
         // spacing을 0으로 두고 각 여백을 직접 지정한다 — VStack spacing과 padding이 겹쳐서
         // 선 아래쪽만 위쪽보다 더 떨어져 보이던 문제(spacing 10 + padding 20 = 30)를 막는다.
         VStack(alignment: .leading, spacing: 0) {
-            // 기본 Divider()보다 한 단계 진한 회색.
-            Rectangle()
-                .fill(Theme.systemGray4)
-                .frame(height: 1)
-                .padding(.top, 20)
-                .padding(.bottom, 20)
+            if showsTopDivider {
+                // 기본 Divider()보다 한 단계 진한 회색.
+                Rectangle()
+                    .fill(Theme.systemGray4)
+                    .frame(height: 1)
+                    .padding(.top, 20)
+                    .padding(.bottom, 20)
+            } else {
+                Spacer()
+                    .frame(height: 20)
+            }
 
             Text(title)
                 .font(Typography.body.weight(.bold))

@@ -1,6 +1,25 @@
 import Foundation
 import HealthKit
 
+struct LatestRMSSDComparison {
+    enum Status {
+        case stable
+        case good
+        case overload
+
+        var label: String {
+            switch self {
+            case .stable: "안정"
+            case .good: "좋음"
+            case .overload: "과부하"
+            }
+        }
+    }
+
+    let difference: Double
+    let status: Status
+}
+
 @MainActor
 @Observable
 final class HomeViewModel {
@@ -14,6 +33,7 @@ final class HomeViewModel {
     // "오늘 확보한 단서" 위 요약 수치 두 개. recoveryScore처럼 사건 판정 가드와 무관하게 구할 수 있는
     // 값이라 그 가드가 실패해도(previousNightSleepDuration은 전날 밤 수면 자체가 없을 때만 예외) 계속 보여준다.
     private(set) var latestRMSSDValue: Double?
+    private(set) var latestRMSSDComparison: LatestRMSSDComparison?
     private(set) var previousNightSleepDuration: TimeInterval?
 
     private(set) var todayMoodScore: Int?
@@ -100,10 +120,18 @@ final class HomeViewModel {
                 sleepRanges: recentSleepRanges,
                 day: now
             )
-            latestRMSSDValue = rmssdSamples
+            let latestRMSSDSample = rmssdSamples
                 .filter { $0.date <= now }
-                .max { $0.date < $1.date }?
-                .value
+                .max { $0.date < $1.date }
+            latestRMSSDValue = latestRMSSDSample?.value
+            latestRMSSDComparison = latestRMSSDSample.flatMap {
+                Self.latestRMSSDComparison(
+                    for: $0,
+                    samples: recentRMSSD,
+                    sleepRanges: recentSleepRanges,
+                    calendar: calendar
+                )
+            }
             let todayNotes = ((try? await RMSSDEventService.allEvents()) ?? []).compactMap { entry -> (Date, String)? in
                 guard let date = DateKey.parseISODate(entry.occurredAt),
                       calendar.isDate(date, inSameDayAs: now),
@@ -268,6 +296,42 @@ final class HomeViewModel {
         briefingCaseType = nil
         briefingClues = []
         dailySummaryHighlights = []
+    }
+
+    // 가장 최근 측정과 같은 시간대(수면 중/비수면 오전/비수면 오후)의 이전 30일 값만 비교한다.
+    // 오늘 값은 "평소" 분포를 움직이지 않도록 기준에서 제외한다.
+    private static func latestRMSSDComparison(
+        for latest: (date: Date, value: Double),
+        samples: [(date: Date, value: Double)],
+        sleepRanges: [SleepRange],
+        calendar: Calendar
+    ) -> LatestRMSSDComparison? {
+        let latestIsSleeping = sleepRanges.contains { latest.date >= $0.start && latest.date <= $0.end }
+        let latestIsMorning = !latestIsSleeping && calendar.component(.hour, from: latest.date) < 12
+        let latestDay = calendar.startOfDay(for: latest.date)
+
+        let baselineValues = samples.compactMap { sample -> Double? in
+            guard sample.date < latestDay else { return nil }
+            let isSleeping = sleepRanges.contains { sample.date >= $0.start && sample.date <= $0.end }
+            if latestIsSleeping { return isSleeping ? sample.value : nil }
+            guard !isSleeping else { return nil }
+            let isMorning = calendar.component(.hour, from: sample.date) < 12
+            return isMorning == latestIsMorning ? sample.value : nil
+        }
+        guard baselineValues.count >= 2 else { return nil }
+
+        let median = HRVStatistics.median(baselineValues)
+        let standardDeviation = HRVStatistics.standardDeviation(baselineValues)
+        let difference = latest.value - median
+        let status: LatestRMSSDComparison.Status
+        if difference > standardDeviation {
+            status = .good
+        } else if difference < -standardDeviation {
+            status = .overload
+        } else {
+            status = .stable
+        }
+        return LatestRMSSDComparison(difference: difference, status: status)
     }
 
     func loadTodayMoodIfNeeded() async {
