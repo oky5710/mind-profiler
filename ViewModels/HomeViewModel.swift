@@ -54,6 +54,11 @@ final class HomeViewModel {
             try await HealthKitService.requestAuthorization()
             let calendar = Calendar.current
             let today = calendar.startOfDay(for: selectedDate)
+            // "사건 일자"는 회복 지수(recoveryScore, 최근 30일 데이터로 아래에서 계산)와 달리 이 함수
+            // 아래쪽의 엄격한 조건(전날 밤 수면 일치·기준 밤 존재·중앙값 계산 성공)에 걸려 정상적으로
+            // 실패할 수 있다 — 그 실패로 clearDailyBriefing이 호출돼도 헤더는 recoveryScore만으로도
+            // 뜨므로, 사용자가 고른 날짜는 그 실패 여부와 무관하게 항상 먼저 반영해 둔다.
+            briefingDate = today
             let latestNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
             let fetchDayCount = DailyBriefingConfiguration.sleepBaselineNightCount
                 + DailyBriefingConfiguration.sleepFetchBufferDays
@@ -218,9 +223,6 @@ final class HomeViewModel {
             )
             let caseType = BriefingCaseDetector.detect(from: input)
             briefingCaseType = caseType
-            // "사건 일자"는 분석 대상인 전날 밤(currentNight)이 아니라 사용자가 주간 스트립에서
-            // 고른 날짜 그 자체를 보여준다 — 실제로 보여주는 수면 기록은 그 전날 밤 것이다.
-            briefingDate = today
             briefingClues = BriefingClueBuilder.build(from: input)
 
             dailySummaryHighlights = DailySummaryBuilder.build(from: Self.dailySummaryInput(
@@ -246,9 +248,10 @@ final class HomeViewModel {
         }
     }
 
+    // briefingDate는 여기서 지우지 않는다 — 선택한 날짜를 항상 그대로 보여주고, 사건 브리핑
+    // 자체(단서·신호)만 조사 근거 부족으로 비운다(위 performDailyBriefingLoad의 briefingDate 주석 참고).
     private func clearDailyBriefing() {
         briefingCaseType = nil
-        briefingDate = nil
         briefingClues = []
         dailySummaryHighlights = []
     }
