@@ -65,29 +65,15 @@ struct MindProfilerApp: App {
 }
 
 private struct SplashView: View {
-    @State private var photoURL: URL?
-    @State private var didFailToLoadPhoto = false
+    @State private var photo: Image?
 
     var body: some View {
         ZStack {
             Group {
-                if let photoURL {
-                    AsyncImage(url: photoURL) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure:
-                            fallbackPhoto
-                        default:
-                            loadingBackground
-                        }
-                    }
+                if let photo {
+                    photo.resizable().scaledToFill()
                 } else {
-                    if didFailToLoadPhoto {
-                        fallbackPhoto
-                    } else {
-                        loadingBackground
-                    }
+                    fallbackPhoto
                 }
             }
             .ignoresSafeArea()
@@ -106,10 +92,8 @@ private struct SplashView: View {
                 .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
         }
         .task {
-            do {
-                photoURL = try await PixabayService.fetchRandomCatPhotoURL()
-            } catch {
-                didFailToLoadPhoto = true
+            if let image = CatPhotoService.randomPhoto() {
+                photo = Image(decorative: image, scale: 1)
             }
         }
     }
@@ -118,9 +102,5 @@ private struct SplashView: View {
         Image("FallbackCatPhoto")
             .resizable()
             .scaledToFill()
-    }
-
-    private var loadingBackground: some View {
-        Color.black
     }
 }

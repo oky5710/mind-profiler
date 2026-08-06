@@ -5,7 +5,7 @@
 - **Views** — SwiftUI 화면/컴포넌트. 비즈니스 로직 없이 ViewModel이 노출한 상태만 그림.
 - **ViewModels** — `@Observable` + `@MainActor` 클래스. 화면 하나당 하나. `async/await`로 Service를 호출하고 결과를 `@State`로 노출.
 - **Models** — API 요청/응답 Codable 구조체 (`ExamModels`, `MoodModels`, `CoffeeModels`, `AuthModels` 등).
-- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In, Pixabay)와의 실제 통신. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음. 대부분 상태 없는 enum 네임스페이스지만, `ReminderNotificationService`(`UNUserNotificationCenterDelegate` 구현, 예약된 알림 캐시)와 `RMSSDThresholdMonitorService`(`HKObserverQuery` 참조 보관)는 예외로 class다 — 둘 다 참조 타입으로 뭔가를 계속 들고 있어야 해서다.
+- **Services** — 외부 세계(백엔드 API, HealthKit, EventKit, Keychain, Google Sign-In)와 번들 리소스의 실제 접근. ViewModel은 Service만 알고 URLSession/HealthKit/EventKit 등을 직접 다루지 않음. 대부분 상태 없는 enum 네임스페이스지만, `ReminderNotificationService`(`UNUserNotificationCenterDelegate` 구현, 예약된 알림 캐시)와 `RMSSDThresholdMonitorService`(`HKObserverQuery` 참조 보관)는 예외로 class다 — 둘 다 참조 타입으로 뭔가를 계속 들고 있어야 해서다.
 - **Components** — 여러 화면에서 재사용하는 View/디자인 토큰 (`Theme.swift`, `HeartLoader`, `SleepDetailPanel`).
 
 View 파일 하나가 너무 커지면(대략 500줄 이상) `extension`으로 여러 파일에 나눠 담는다 — 새 타입/프로토콜을

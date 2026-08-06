@@ -27,10 +27,12 @@
   앱이 종료돼도 다음 실행에서 안내를 다시 표시한다.
 
 ### 스플래시 / 홈 (`App/MindProfilerApp.swift`, `Views/Home`)
-- 로그인 상태와 관계없이 앱 진입 시 1.5초간 `SplashView`를 표시한다. Pixabay 랜덤 고양이 사진 위에
+- 로그인 상태와 관계없이 앱 진입 시 1.5초간 `SplashView`를 표시한다. 앱 번들의 `Resources/CatPhotos`
+  전체 카테고리에서 무작위로 고른 고양이 사진 위에
   "Track your mind. Find the patterns." 태그라인을 오버레이(볼드, 흰색 90% 불투명도, 그림자)한다.
-  Pixabay 요청 중에는 검은 배경을 유지해 기본 사진에서 랜덤 사진으로 교체되는 모습이 보이지 않게
-  하고, 요청이나 이미지 로딩이 실패한 경우에만 `Assets.xcassets`의 `FallbackCatPhoto`를 보여준다.
+  번들 이미지 로딩에 실패한 경우에만 `Assets.xcassets`의 `FallbackCatPhoto`를 보여준다. 사진 선택에는
+  네트워크와 외부 API 키를 사용하지 않는다. 번들 사진은 긴 변 최대 1600px의 JPEG로 압축해 시작 화면
+  품질을 유지하면서 앱 설치 용량을 제한한다.
   사진 요청은 스플래시 표시 시간과 동시에 실행하므로 화면 전환을 1.5초보다 늦추지 않는다.
 - 홈은 고양이 사진과 태그라인 없이 상단에 일~토 요일과 날짜를 보여주는 주간 스트립(`Components/WeekStrip.swift`)을
   두고, 그 아래 `오늘의 수사 노트` 제목과 함께 Recovery 점수·등급, 사건 일자, `오늘 확보한 단서` 위에

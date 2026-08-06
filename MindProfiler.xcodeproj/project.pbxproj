@@ -45,7 +45,8 @@
 		67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */; };
 		6D57DF092916206B7C46BDEF /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 228203F978C4084F09581D10 /* architecture.md */; };
 		74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */; };
-		756383A51162B80D589630D8 /* PixabayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */; };
+		C47000022026080700000002 /* CatPhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47000012026080700000001 /* CatPhotoService.swift */; };
+		C47000042026080700000004 /* CatPhotos in Resources */ = {isa = PBXBuildFile; fileRef = C47000032026080700000003 /* CatPhotos */; };
 		75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */; };
 		76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */; };
 		76ECCF2EF2222FA3CD2C7379 /* EntryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156BA80323127255242AD216 /* EntryType.swift */; };
@@ -84,7 +85,6 @@
 		B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC3 /* LoginView.swift */; };
 		B4FC20525F341F604B1B7E6C /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F7EE3749D826B753973FC4 /* OnboardingView.swift */; };
 		B6A91F2DE5514D4AA603298E /* MedicationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68DBBE4CFFC691126AEB83B /* MedicationService.swift */; };
-		BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B5AB45E929438E760BA513 /* CatPhoto.swift */; };
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
 		C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */; };
 		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
@@ -131,7 +131,8 @@
 		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
-		32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixabayService.swift; sourceTree = "<group>"; };
+		C47000012026080700000001 /* CatPhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhotoService.swift; sourceTree = "<group>"; };
+		C47000032026080700000003 /* CatPhotos */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CatPhotos; sourceTree = "<group>"; };
 		3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThreshold.swift; sourceTree = "<group>"; };
 		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
@@ -143,7 +144,6 @@
 		4CE7ECB87862084848E2504A /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
 		51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInConfig.swift; sourceTree = "<group>"; };
 		59197C66879A601A9A0A99AF /* ExerciseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseModels.swift; sourceTree = "<group>"; };
-		59B5AB45E929438E760BA513 /* CatPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhoto.swift; sourceTree = "<group>"; };
 		59D553D84925EA368698C8FF /* RMSSDEventService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventService.swift; sourceTree = "<group>"; };
 		661F32A272362CA8CF1CA9C9 /* ExamModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamModels.swift; sourceTree = "<group>"; };
 		6A28FD29167293ED732541EB /* MedicationLogEditForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MedicationLogEditForm.swift; sourceTree = "<group>"; };
@@ -375,7 +375,7 @@
 				49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */,
 				3C79742243835DC0370C6F78 /* KeychainService.swift */,
 				51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */,
-				32C6FFBE7052BCDB01B5A8D8 /* PixabayService.swift */,
+				C47000012026080700000001 /* CatPhotoService.swift */,
 				8296BF009909079BC325B648 /* MoodService.swift */,
 				0933E651496C8E1E00026E6A /* CoffeeService.swift */,
 				441617D9A1D63082D4432F0C /* DateKey.swift */,
@@ -444,6 +444,7 @@
 		EC88DF084C96613A6AE20F51 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				C47000032026080700000003 /* CatPhotos */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -453,7 +454,6 @@
 			children = (
 				F00200022026080200000002 /* RMSSDCacheModels.swift */,
 				4CE7ECB87862084848E2504A /* AuthModels.swift */,
-				59B5AB45E929438E760BA513 /* CatPhoto.swift */,
 				E48F6DDAC8977311FEEA3765 /* MoodModels.swift */,
 				2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */,
 				156BA80323127255242AD216 /* EntryType.swift */,
@@ -543,6 +543,7 @@
 				9CCDF3F0ADBA1417FEDAE8BA /* features.md in Resources */,
 				C0AD659C6217B774BCD74C30 /* api.md in Resources */,
 				2F284359300A4D1100CE1C47 /* Assets.xcassets in Resources */,
+				C47000042026080700000004 /* CatPhotos in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,8 +571,7 @@
 				75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */,
 				B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */,
 				B4FC20525F341F604B1B7E6C /* OnboardingView.swift in Sources */,
-				BC55F4FC3E54A9F617B052BD /* CatPhoto.swift in Sources */,
-				756383A51162B80D589630D8 /* PixabayService.swift in Sources */,
+				C47000022026080700000002 /* CatPhotoService.swift in Sources */,
 				B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */,
 				ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */,
 				52BB7DA46728F0487CEB8154 /* MoodService.swift in Sources */,
