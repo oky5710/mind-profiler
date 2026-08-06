@@ -110,8 +110,44 @@ struct HomeView: View {
             .background(Theme.systemGray6, in: Capsule())
     }
 
+    // recoveryScore/사건 일자와 별개로, "오늘 확보한 단서" 위에 전날 밤 수면시간·가장 최근 rMSSD를
+    // 큰 글씨로 먼저 보여준다 — 둘 중 하나만 있어도(예: 전날 밤 수면 기록이 없어도 rMSSD는 있을 수
+    // 있음) 그 값만 보이고, 둘 다 없으면 이 줄 자체를 그리지 않는다.
+    private var hasSummaryStats: Bool {
+        viewModel.previousNightSleepDuration != nil || viewModel.latestRMSSDValue != nil
+    }
+
+    private var summaryStatsRow: some View {
+        HStack(alignment: .top, spacing: 12) {
+            summaryStat(
+                title: "전날 수면시간",
+                value: viewModel.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration)
+            )
+            summaryStat(
+                title: "가장 최근 HRV(rMSSD)",
+                value: viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))ms" }
+            )
+        }
+        .padding(.bottom, 20)
+    }
+
+    private func summaryStat(title: String, value: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+            Text(value ?? "—")
+                .font(Typography.sectionTitle.weight(.bold))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var briefingBody: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if hasSummaryStats {
+                summaryStatsRow
+            }
+
             if !viewModel.todayBriefingClues.isEmpty {
                 briefingSection(title: "오늘 확보한 단서") {
                     VStack(alignment: .leading, spacing: 12) {

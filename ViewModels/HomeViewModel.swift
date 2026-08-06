@@ -11,6 +11,10 @@ final class HomeViewModel {
     private(set) var briefingClues: [BriefingClue] = []
     private(set) var todayBriefingClues: [BriefingClue] = []
     private(set) var dailySummaryHighlights: [DailySummaryHighlight] = []
+    // "오늘 확보한 단서" 위 요약 수치 두 개. recoveryScore처럼 사건 판정 가드와 무관하게 구할 수 있는
+    // 값이라 그 가드가 실패해도(previousNightSleepDuration은 전날 밤 수면 자체가 없을 때만 예외) 계속 보여준다.
+    private(set) var latestRMSSDValue: Double?
+    private(set) var previousNightSleepDuration: TimeInterval?
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?
@@ -96,6 +100,10 @@ final class HomeViewModel {
                 sleepRanges: recentSleepRanges,
                 day: now
             )
+            latestRMSSDValue = rmssdSamples
+                .filter { $0.date <= now }
+                .max { $0.date < $1.date }?
+                .value
             let todayNotes = ((try? await RMSSDEventService.allEvents()) ?? []).compactMap { entry -> (Date, String)? in
                 guard let date = DateKey.parseISODate(entry.occurredAt),
                       calendar.isDate(date, inSameDayAs: now),
@@ -115,9 +123,15 @@ final class HomeViewModel {
             guard let currentRange = ranges.last(where: {
                 SleepAnalysisService.nightLabel(for: $0.start) == latestNight
             }) else {
+                // 그 밤 수면 기록 자체가 없으면 전날 수면시간도 진짜로 없는 것이므로 비운다 —
+                // clearDailyBriefing()은 이 값을 건드리지 않아서(아래 참고) 여기서 직접 비운다.
+                previousNightSleepDuration = nil
                 clearDailyBriefing()
                 return
             }
+            // 사건 판정용 기준 밤이나 중앙값 계산이 이후에 실패해도(clearDailyBriefing 호출) 전날 밤
+            // 수면 자체는 이미 확인됐으므로 계속 보여준다.
+            previousNightSleepDuration = currentRange.stageDurations.values.reduce(0, +)
             let currentNight = SleepAnalysisService.nightLabel(for: currentRange.start)
 
             let previousRanges = ranges
