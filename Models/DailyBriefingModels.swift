@@ -144,9 +144,13 @@ enum DailySummaryBuilder {
     static func build(from input: DailySummaryInput) -> [DailySummaryHighlight] {
         var messages: [String] = []
 
+        // 수면 시간 부족은 회복에 가장 직접적으로 영향을 주는 지표라, 다른 신호가 같이 뜨는 날에도
+        // 항상 맨 위에 오도록 따로 빼서 맨 끝에 앞으로 꽂는다. "충분한 수면"은 부족만큼 급하게 알 필요는
+        // 없어서 다른 지표처럼 평범한 순서로 둔다.
+        var isSleepDurationShort = false
         if let change = input.sleepDurationChangePercent {
             if change <= -DailySummaryConfiguration.sleepDurationThresholdPercent {
-                messages.append("🛌 수면 시간이 평소보다 짧았어요.")
+                isSleepDurationShort = true
             } else if change >= DailySummaryConfiguration.sleepDurationThresholdPercent {
                 messages.append("🛌 충분한 수면을 취했어요.")
             }
@@ -207,6 +211,10 @@ enum DailySummaryBuilder {
             } else if change >= DailySummaryConfiguration.morningRecoveryThresholdPercent {
                 messages.append("☀️ 아침부터 회복 신호가 좋았어요.")
             }
+        }
+
+        if isSleepDurationShort {
+            messages.insert("🛌 수면 시간이 평소보다 짧았어요.", at: 0)
         }
 
         return messages.map { DailySummaryHighlight(message: $0) }
