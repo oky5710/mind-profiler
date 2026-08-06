@@ -926,6 +926,10 @@ private final class SleepOverviewViewModel {
     private(set) var sleepRange: SleepRange?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
+    // 30일 연속성 기준선은 밤 하나씩 옮겨 다닐 때마다(moveDay/selectNight) 그 30일 전체를 처음부터
+    // 다시 계산하면 무겁다 — RMSSDLocalStore.summaryDaysToRebuild와 같은 정책으로, 최근 이틀을 뺀
+    // 나머지 밤들의 연속성 지표는 한 번 계산한 뒤 세션 동안 재사용한다(강제 새로고침 시 비움).
+    private var continuityMetricsCache: [Date: SleepContinuityMetrics] = [:]
 
     var chartDomain: ClosedRange<Date> {
         if let sleepRange, sleepRange.end > sleepRange.start {
@@ -1002,10 +1006,13 @@ private final class SleepOverviewViewModel {
         await load()
     }
 
-    func load() async {
+    func load(force: Bool = false) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        // 당겨서 새로고침 등 강제 새로고침일 때는 워치에서 새로 동기화됐을 수 있는 과거 밤의 수정까지
+        // 반영해야 하므로, 평소엔 신뢰하고 재사용하는 캐시도 이번만은 비우고 전부 다시 계산한다.
+        if force { continuityMetricsCache.removeAll() }
 
         do {
             try await HealthKitService.requestAuthorization()
@@ -1070,7 +1077,7 @@ private final class SleepOverviewViewModel {
             dailyRestingHeartRate = restingHeartRates.isEmpty
                 ? nil
                 : restingHeartRates.map(\.value).reduce(0, +) / Double(restingHeartRates.count)
-            continuityBaseline = Self.makeContinuityBaseline(
+            continuityBaseline = makeContinuityBaseline(
                 ranges: SleepAnalysisService.buildSleepRanges(sleepSamples),
                 timeline: thirtyDayTimeline,
                 from: calendar.startOfDay(for: contextStart),
@@ -1090,7 +1097,7 @@ private final class SleepOverviewViewModel {
         }
     }
 
-    private static func makeContinuityBaseline(
+    private func makeContinuityBaseline(
         ranges: [SleepRange],
         timeline: [(start: Date, end: Date, stage: HealthKitService.SleepTimelineStage)],
         from startNight: Date,
@@ -1103,8 +1110,23 @@ private final class SleepOverviewViewModel {
         let rangesByNight = Dictionary(grouping: eligibleRanges) {
             SleepAnalysisService.nightLabel(for: $0.start)
         }
-        let nights = rangesByNight.values.map {
-            makeContinuityMetrics(ranges: $0, timeline: timeline)
+        // RMSSDLocalStore.summaryDaysToRebuild와 같은 정책 — 최근 이틀 밤은 수면 데이터가 늦게
+        // 확정될 수 있어 캐시하지 않고 매번 새로 계산하고, 그보다 이전 밤은 한 번 계산해서 캐시에
+        // 남겨 다음 호출(하루씩 옮겨 다닐 때마다)에서 재사용한다.
+        let recentCutoff = Calendar.current.date(
+            byAdding: .day,
+            value: -2,
+            to: Calendar.current.startOfDay(for: Date())
+        ) ?? endNight
+        let nights = rangesByNight.map { night, nightRanges -> SleepContinuityMetrics in
+            if night < recentCutoff, let cached = continuityMetricsCache[night] {
+                return cached
+            }
+            let metrics = Self.makeContinuityMetrics(ranges: nightRanges, timeline: timeline)
+            if night < recentCutoff {
+                continuityMetricsCache[night] = metrics
+            }
+            return metrics
         }
         return makeSleepContinuityBaseline(from: nights)
     }
@@ -1211,7 +1233,7 @@ private struct SleepOverviewView: View {
             }
             .padding()
         }
-        .refreshable { await viewModel.load() }
+        .refreshable { await viewModel.load(force: true) }
         .simultaneousGesture(daySwipeGesture)
         .task { await viewModel.load() }
         .sheet(isPresented: $showsDatePicker) {
