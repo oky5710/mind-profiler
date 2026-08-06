@@ -215,9 +215,10 @@ final class HRVAnalysisViewModel {
     // 쌓여도 매번 전부 다시 계산하지 않기 위함. 스크롤/핀치로 보이는 구간이 이 범위의 안전 여백
     // (prefetchMarginMultiplier배) 밖으로 나가려고 하면 새 위치를 중심으로 다시 불러온다.
     static let loadWindowMultiplier: Double = 5
-    // 로드된 구간의 양쪽 여유(각각 (loadWindowMultiplier-1)/2배)를 이만큼 다 쓰면 미리 다음 구간을
-    // 불러온다 — 사용자가 실제 가장자리에 닿기 전에 백그라운드 로딩이 끝나 있도록 여유를 준다.
-    static let prefetchMarginMultiplier: Double = 1
+    // 월별은 기본 표시 범위 자체가 약 6개월이므로 5배를 적용하면 한 번에 약 2.3년을 조회한다.
+    // 월별 수준의 긴 범위는 2배만 미리 읽어 탭 전환 비용을 제한한다.
+    static let longRangeLoadWindowMultiplier: Double = 2
+    private static let longRangeThreshold: TimeInterval = 90 * 24 * 60 * 60
     // 지금까지 불러온 HealthKit 데이터가 커버하는 실제 기간.
     private var loadedHealthKitRange: ClosedRange<Date>?
     private var isLoadingHealthKitWindow = false
@@ -363,7 +364,11 @@ final class HRVAnalysisViewModel {
 
     private func isWithinLoadedRange(start: Date, end: Date) -> Bool {
         guard let loadedHealthKitRange else { return false }
-        let margin = end.timeIntervalSince(start) * Self.prefetchMarginMultiplier
+        let visibleWidth = end.timeIntervalSince(start)
+        let loadedWidth = loadedHealthKitRange.upperBound.timeIntervalSince(loadedHealthKitRange.lowerBound)
+        // 미리 읽은 여유 구간의 절반을 소비했을 때 다음 창을 준비한다. 로드 배수가 5배든 2배든
+        // 같은 비율로 동작하며, 2배 월별 창이 항상 범위 밖으로 판정되는 문제를 피한다.
+        let margin = max(0, (loadedWidth - visibleWidth) / 4)
         let safeStart = loadedHealthKitRange.lowerBound.addingTimeInterval(margin)
         let safeEnd = loadedHealthKitRange.upperBound.addingTimeInterval(-margin)
         return start >= safeStart && end <= safeEnd
@@ -421,7 +426,10 @@ final class HRVAnalysisViewModel {
 
         let visibleDomain = visibleEnd.timeIntervalSince(visibleStart)
         let center = visibleStart.addingTimeInterval(visibleDomain / 2)
-        let windowDomain = visibleDomain * Self.loadWindowMultiplier
+        let multiplier = visibleDomain >= Self.longRangeThreshold
+            ? Self.longRangeLoadWindowMultiplier
+            : Self.loadWindowMultiplier
+        let windowDomain = visibleDomain * multiplier
         let windowStart = center.addingTimeInterval(-windowDomain / 2)
         let windowEnd = center.addingTimeInterval(windowDomain / 2)
 
@@ -430,21 +438,28 @@ final class HRVAnalysisViewModel {
 
             async let workouts = HealthKitService.fetchWorkoutRanges(start: windowStart, end: windowEnd)
             async let sleep = HealthKitService.fetchSleepStageSamples(start: windowStart, end: windowEnd)
-            async let rmssd = HealthKitService.fetchRMSSDSamples(start: windowStart, end: windowEnd)
+            async let rmssdWindow = RMSSDLocalStore.shared.window(start: windowStart, end: windowEnd)
             async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
             async let restingHR = HealthKitService.fetchRestingHeartRateSamples(start: windowStart, end: windowEnd)
-            let (workoutRanges, sleepSamples, rmssdSamples, sdnnSamples, restingHRSamples) = try await (workouts, sleep, rmssd, sdnn, restingHR)
-            let rmssdSummaries = try await RMSSDLocalStore.shared.dailySummaries(start: windowStart, end: windowEnd)
+            let (workoutRanges, sleepSamples, cachedRMSSDWindow, sdnnSamples, restingHRSamples) = try await (
+                workouts,
+                sleep,
+                rmssdWindow,
+                sdnn,
+                restingHR
+            )
 
             // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
             // 표시는 막지 않도록 별도로 무시 가능한 에러 처리.
             let manualRanges = (try? await ExerciseService.allExercises()) ?? []
 
-            let rawRMSSDSamples = rmssdSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
+            let rawRMSSDSamples = cachedRMSSDWindow.measurements
+                .map { ($0.measuredAt, $0.value) }
+                .sorted { $0.0 < $1.0 }
             wearableRMSSDPointsHourly = Self.segmentByGap(rawRMSSDSamples, gapThreshold: Self.hrvGapThresholdHourly)
             // 연속 날짜는 이어 그리되 두 측정일의 달력 날짜 차이가 2일 이상이면 선을 끊는다.
             // 초 단위 간격으로 판단하면 DST나 시각 정규화 차이의 영향을 받을 수 있어 날짜로 비교한다.
-            let dailyRMSSD = rmssdSummaries.compactMap { summary in
+            let dailyRMSSD = cachedRMSSDWindow.summaries.compactMap { summary in
                 summary.wholeDayMedian.map { (summary.date, $0) }
             }
             wearableRMSSDPointsDaily = Self.segmentDailyByDateGap(dailyRMSSD)

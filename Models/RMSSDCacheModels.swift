@@ -78,3 +78,8 @@ struct DailyRMSSDSummaryDTO: Sendable {
     let afternoonMedian: Double?
     let afternoonCount: Int
 }
+
+struct RMSSDWindowDTO: Sendable {
+    let measurements: [RMSSDMeasurementDTO]
+    let summaries: [DailyRMSSDSummaryDTO]
+}

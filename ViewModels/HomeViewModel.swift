@@ -218,7 +218,9 @@ final class HomeViewModel {
             )
             let caseType = BriefingCaseDetector.detect(from: input)
             briefingCaseType = caseType
-            briefingDate = currentNight
+            // "사건 일자"는 분석 대상인 전날 밤(currentNight)이 아니라 사용자가 주간 스트립에서
+            // 고른 날짜 그 자체를 보여준다 — 실제로 보여주는 수면 기록은 그 전날 밤 것이다.
+            briefingDate = today
             briefingClues = BriefingClueBuilder.build(from: input)
 
             dailySummaryHighlights = DailySummaryBuilder.build(from: Self.dailySummaryInput(

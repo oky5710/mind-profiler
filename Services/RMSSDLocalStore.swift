@@ -45,16 +45,32 @@ final class RMSSDLocalStore {
         defer { releaseOperation() }
         let queryStart = start ?? .distantPast
         let queryEnd = end ?? Date()
-        try await synchronize(start: queryStart, end: queryEnd)
+        _ = try await synchronize(start: queryStart, end: queryEnd)
         return try measurements(start: queryStart, end: queryEnd).map { ($0.measuredAt, $0.value) }
     }
 
     func dailySummaries(start: Date, end: Date) async throws -> [DailyRMSSDSummaryDTO] {
+        (try await window(start: start, end: end)).summaries
+    }
+
+    func window(start: Date, end: Date) async throws -> RMSSDWindowDTO {
         await acquireOperation()
         defer { releaseOperation() }
-        try await synchronize(start: start, end: end)
-        try await rebuildSummaries(start: start, end: end)
-        return try fetchSummaries(start: start, end: end)
+        let affectedDays = try await synchronize(start: start, end: end)
+        let cachedMeasurements = try measurements(start: start, end: end)
+        let daysToRebuild = try summaryDaysToRebuild(
+            start: start,
+            end: end,
+            measurements: cachedMeasurements,
+            affectedDays: affectedDays
+        )
+        if !daysToRebuild.isEmpty {
+            try await rebuildSummaries(days: daysToRebuild, measurements: cachedMeasurements)
+        }
+        return RMSSDWindowDTO(
+            measurements: cachedMeasurements,
+            summaries: try fetchSummaries(start: start, end: end)
+        )
     }
 
     // @MainActor는 컨텍스트 접근 자체를 보호하지만 await 지점에서는 다른 요청이 재진입할 수 있다.
@@ -77,7 +93,8 @@ final class RMSSDLocalStore {
         }
     }
 
-    private func synchronize(start: Date, end: Date) async throws {
+    private func synchronize(start: Date, end: Date) async throws -> Set<Date> {
+        let calendar = Calendar.current
         let cached = try measurements(start: start, end: end)
         let currentUUIDs = Set(cached.filter { $0.calculationVersion == Self.calculationVersion }.map(\.healthKitUUID))
         let batch = try await HealthKitService.fetchCalculatedRMSSDBatch(
@@ -86,8 +103,10 @@ final class RMSSDLocalStore {
             excluding: currentUUIDs
         )
         let context = ModelContext(container)
+        var affectedDays = Set<Date>()
 
         for result in batch.calculated {
+            affectedDays.insert(calendar.startOfDay(for: result.measuredAt))
             let uuid = result.healthKitUUID
             let descriptor = FetchDescriptor<RMSSDMeasurement>(predicate: #Predicate { $0.healthKitUUID == uuid })
             if let existing = try context.fetch(descriptor).first {
@@ -111,11 +130,13 @@ final class RMSSDLocalStore {
 
         // 조회 범위에서 HealthKit에 더 이상 존재하지 않는 측정은 로컬 캐시에서도 제거한다.
         for item in cached where !batch.healthKitUUIDs.contains(item.healthKitUUID) {
+            affectedDays.insert(calendar.startOfDay(for: item.measuredAt))
             let uuid = item.healthKitUUID
             let descriptor = FetchDescriptor<RMSSDMeasurement>(predicate: #Predicate { $0.healthKitUUID == uuid })
             if let stored = try context.fetch(descriptor).first { context.delete(stored) }
         }
         if context.hasChanges { try context.save() }
+        return affectedDays
     }
 
     private func measurements(start: Date, end: Date) throws -> [RMSSDMeasurementDTO] {
@@ -137,21 +158,60 @@ final class RMSSDLocalStore {
         }
     }
 
-    private func rebuildSummaries(start: Date, end: Date) async throws {
+    private func summaryDaysToRebuild(
+        start: Date,
+        end: Date,
+        measurements: [RMSSDMeasurementDTO],
+        affectedDays: Set<Date>
+    ) throws -> Set<Date> {
         let calendar = Calendar.current
         let firstDay = calendar.startOfDay(for: start)
         let lastDay = calendar.startOfDay(for: end)
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<DailyRMSSDSummary>(
+            predicate: #Predicate { $0.date >= firstDay && $0.date <= lastDay }
+        )
+        let currentSummaryDays = Set(try context.fetch(descriptor).compactMap {
+            $0.aggregationVersion == Self.aggregationVersion ? calendar.startOfDay(for: $0.date) : nil
+        })
+        let measurementDays = Set(measurements.map { calendar.startOfDay(for: $0.measuredAt) })
+        var days = affectedDays.union(measurementDays.subtracting(currentSummaryDays))
+
+        // 수면 데이터는 늦게 확정될 수 있으므로 오늘과 어제만 매번 다시 분류한다.
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        for recentDay in [yesterday, today] where recentDay >= firstDay && recentDay <= lastDay {
+            days.insert(recentDay)
+        }
+        return days
+    }
+
+    private func rebuildSummaries(
+        days: Set<Date>,
+        measurements: [RMSSDMeasurementDTO]
+    ) async throws {
+        guard let firstDay = days.min(), let lastDay = days.max() else { return }
+        let calendar = Calendar.current
         let sleepStart = calendar.date(byAdding: .day, value: -1, to: firstDay) ?? firstDay
-        let sleepEnd = calendar.date(byAdding: .day, value: 1, to: lastDay) ?? end
+        let sleepEnd = calendar.date(byAdding: .day, value: 2, to: lastDay) ?? lastDay
         let sleepSamples = try await HealthKitService.fetchSleepStageSamples(start: sleepStart, end: sleepEnd)
         let sleepRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
         let context = ModelContext(container)
-        var day = firstDay
+        let descriptor = FetchDescriptor<DailyRMSSDSummary>(
+            predicate: #Predicate { $0.date >= firstDay && $0.date <= lastDay }
+        )
+        var summariesByKey = Dictionary(
+            try context.fetch(descriptor).map { ($0.dayKey, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let valuesByDay = Dictionary(grouping: measurements) {
+            calendar.startOfDay(for: $0.measuredAt)
+        }
 
-        while day <= lastDay {
+        for day in days.sorted() {
             guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: day),
-                  let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) else { break }
-            let values = try measurements(start: day, end: dayEnd.addingTimeInterval(-0.001))
+                  let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) else { continue }
+            let values = valuesByDay[day] ?? []
             let daySleepRanges = sleepRanges.filter { $0.end > day && $0.start < dayEnd }
             let wakeTime = daySleepRanges
                 .filter { SleepAnalysisService.nightLabel(for: $0.start) < day }
@@ -170,10 +230,12 @@ final class RMSSDLocalStore {
             }.map(\.value)
 
             let key = DateKey.string(from: day)
-            let descriptor = FetchDescriptor<DailyRMSSDSummary>(predicate: #Predicate { $0.dayKey == key })
-            let summary = try context.fetch(descriptor).first
+            let summary = summariesByKey[key]
                 ?? DailyRMSSDSummary(dayKey: key, date: day, aggregationVersion: Self.aggregationVersion)
-            if summary.modelContext == nil { context.insert(summary) }
+            if summary.modelContext == nil {
+                context.insert(summary)
+                summariesByKey[key] = summary
+            }
             summary.wholeDayMedian = values.isEmpty ? nil : HRVStatistics.median(values.map(\.value))
             summary.wholeDayCount = values.count
             summary.sleepMedian = sleepValues.isEmpty ? nil : HRVStatistics.median(sleepValues)
@@ -184,7 +246,6 @@ final class RMSSDLocalStore {
             summary.afternoonCount = afternoonValues.count
             summary.aggregationVersion = Self.aggregationVersion
             summary.updatedAt = .now
-            day = dayEnd
         }
         if context.hasChanges { try context.save() }
     }

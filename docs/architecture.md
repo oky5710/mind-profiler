@@ -53,9 +53,9 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 ```
 HealthKit HeartbeatSeries
-  → RMSSDLocalStore (UUID별 신규/변경 측정만 계산)
+  → RMSSDLocalStore (UUID별 신규/변경 측정만 계산, 한 윈도우에서 측정값·일별 요약 동시 반환)
   → RMSSDMeasurement
-  → DailyRMSSDSummary
+  → DailyRMSSDSummary (신규 측정일·버전 변경일·오늘/어제만 증분 재집계)
   → HRV Trend / Recovery / 오늘 단서 / 장기 미제 사건 / 보고서
 ```
 

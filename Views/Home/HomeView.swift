@@ -113,7 +113,7 @@ struct HomeView: View {
     private var briefingBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             if !viewModel.todayBriefingClues.isEmpty {
-                briefingSection(title: "오늘 확보한 단서", includesTopPadding: false) {
+                briefingSection(title: "오늘 확보한 단서") {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.todayBriefingClues) { clue in
                             clueRow(clue.message)
@@ -123,10 +123,7 @@ struct HomeView: View {
             }
 
             if !viewModel.dailySummaryHighlights.isEmpty {
-                briefingSection(
-                    title: "오늘의 신호",
-                    includesTopPadding: !viewModel.todayBriefingClues.isEmpty
-                ) {
+                briefingSection(title: "오늘의 신호") {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(viewModel.dailySummaryHighlights) { highlight in
                             highlightRow(highlight.message)
@@ -146,9 +143,7 @@ struct HomeView: View {
                     .padding(.vertical, 24)
             }
 
-            // 오늘 확보한 단서·오늘의 신호·수사중 플레이스홀더 중 하나는 항상 위에 오므로
-            // 수사 기록하기가 첫 섹션이 되는 경우는 없다.
-            briefingSection(title: "수사 기록하기", includesTopPadding: true) {
+            briefingSection(title: "수사 기록하기") {
                 VStack(alignment: .leading, spacing: 8) {
                     if viewModel.hasCheckedMood && viewModel.todayMoodScore == nil {
                         moodPicker
@@ -171,30 +166,33 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(.top, 32)
         .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // 선(구분선) 위아래 간격이 같아 보이도록 위·아래 모두 20pt로 맞춘다. briefingBody 쪽에서
+    // 추가 top padding을 주지 않아야 이 20pt가 이중으로 겹쳐 보이지 않는다.
     private func briefingSection<Content: View>(
         title: String,
-        includesTopPadding: Bool = true,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // spacing을 0으로 두고 각 여백을 직접 지정한다 — VStack spacing과 padding이 겹쳐서
+        // 선 아래쪽만 위쪽보다 더 떨어져 보이던 문제(spacing 10 + padding 20 = 30)를 막는다.
+        VStack(alignment: .leading, spacing: 0) {
             // 기본 Divider()보다 한 단계 진한 회색.
             Rectangle()
                 .fill(Theme.systemGray4)
                 .frame(height: 1)
-                .padding(.top, includesTopPadding ? 20 : 12)
+                .padding(.top, 20)
+                .padding(.bottom, 20)
 
             Text(title)
                 .font(Typography.body.weight(.bold))
                 .foregroundStyle(Theme.primary800)
-                .padding(.top, 12)
 
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 10)
         }
     }
 
