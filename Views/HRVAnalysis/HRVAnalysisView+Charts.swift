@@ -595,7 +595,9 @@ extension HRVAnalysisView {
 
     private var monthlyCandlestickChart: some View {
         let range = cachedRange
-        let yAxisUpperBound = max(ceil(range.max / 50) * 50, 50)
+        // 이상치 하나가 몇 백ms로 튀면 나머지 달들이 축 아래쪽에 짜부라져 보이므로, 200에서 자른다 —
+        // 200을 넘는 값은 그 위쪽이 잘려 보이는 채로 두고(clipped) 축은 항상 200을 넘지 않는다.
+        let yAxisUpperBound = min(max(ceil(range.max / 50) * 50, 50), 200)
 
         return Chart {
             if !hiddenSeries.contains(.rmssd) {
