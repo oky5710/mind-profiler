@@ -98,6 +98,7 @@ enum HealthKitService {
                 HKQuantityType(.restingHeartRate),
                 HKQuantityType(.heartRate),
                 HKQuantityType(.respiratoryRate),
+                HKQuantityType(.timeInDaylight),
             ]
         )
     }
@@ -180,6 +181,17 @@ enum HealthKitService {
         try await fetchQuantitySamples(
             type: HKQuantityType(.respiratoryRate),
             unit: HKUnit.count().unitDivided(by: .minute()),
+            start: start,
+            end: end
+        )
+    }
+
+    // timeInDaylight은 걸음수처럼 하루 동안 여러 샘플로 누적 기록되는 값이라, 호출부가 날짜별로
+    // 합산해서 써야 한다(다른 fetch*Samples처럼 그 자체로 하루 대표값이 아님).
+    static func fetchTimeInDaylightSamples(start: Date? = nil, end: Date? = nil) async throws -> [(date: Date, value: Double)] {
+        try await fetchQuantitySamples(
+            type: HKQuantityType(.timeInDaylight),
+            unit: .minute(),
             start: start,
             end: end
         )

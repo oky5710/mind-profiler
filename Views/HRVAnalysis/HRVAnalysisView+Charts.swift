@@ -19,6 +19,7 @@ extension HRVAnalysisView {
             if chartMode == .daily {
                 restingHeartRateChart
                 nightlySleepChart
+                daylightChart
             } else {
                 ganttChart
                 hourlyMarkerLane
@@ -149,7 +150,7 @@ extension HRVAnalysisView {
                 }
             }
 
-            if !hiddenSeries.contains(.median) {
+            if chartMode == .hourly, !hiddenSeries.contains(.median) {
                 ForEach(Array(recentMedianSegments.enumerated()), id: \.offset) { index, segment in
                     RuleMark(
                         xStart: .value("기준 시작", segment.start),
@@ -459,7 +460,8 @@ extension HRVAnalysisView {
     }
 
     // 일별 모드 전용 — 오후 9시부터 다음 날 오전 10시까지 실제로 잔 시간만 합산한다.
-    // 안정시 심박수 차트 아래에 두고, 전체 일별 스택의 x축은 이 최하단 차트에서만 표시한다.
+    // 안정시 심박수 차트 아래에 두고, 이 아래에 일광시간 막대 차트가 하나 더 있어서 x축은 그쪽 최하단
+    // 차트에서만 표시한다(안정시 심박수 차트와 같은 방식으로 숨김).
     var nightlySleepChart: some View {
         let points = viewModel.nightlySleepPointsDaily
 
@@ -497,6 +499,60 @@ extension HRVAnalysisView {
                 proxy: proxy,
                 visibleDomain: visibleDomain,
                 yAxisTickValues: [0, 4, 8, 12],
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                showsXAxisLabels: false,
+                showsXAxisBaseline: false,
+                showsYAxisGridLines: false,
+                showsPointTooltip: false,
+                tooltipPoints: currentRMSSDPoints
+            )
+        }
+    }
+
+    // 일별 모드 전용 — 수면 차트 아래에 하루 동안 누적된 일광시간(HKQuantityTypeIdentifier.timeInDaylight)을
+    // 분 단위 막대로 보여준다. 전체 일별 스택의 x축은 여기(최하단)에서만 표시한다.
+    var daylightChart: some View {
+        let points = viewModel.daylightPointsDaily
+        let yAxisUpperBound = max(ceil((points.map(\.minutes).max() ?? 60) / 30) * 30, 30)
+        // 분 단위 값이라 rMSSD/안정시 심박수용 50 간격 눈금(yAxisTicks)은 안 맞아서, 위/아래 두 눈금만
+        // 직접 잡는다.
+        let daylightYAxisTicks = [0, yAxisUpperBound / 2, yAxisUpperBound]
+
+        return Chart {
+            if !hiddenSeries.contains(.daylight) {
+                ForEach(points) { point in
+                    BarMark(
+                        x: .value("날짜", point.date),
+                        y: .value("일광시간", point.minutes),
+                        width: .fixed(8)
+                    )
+                    .foregroundStyle(Theme.systemYellow.opacity(0.7))
+                    .cornerRadius(4)
+                }
+            }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+        }
+        .frame(height: ganttChartHeight * 0.65)
+        .chartXScale(domain: visibleDateRange)
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.gray.opacity(0.4))
+                .frame(height: 1)
+        }
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: daylightYAxisTicks,
                 xAxisTickDates: xAxisTickDates,
                 xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
                 xAxisLabelBelow: true,

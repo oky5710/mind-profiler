@@ -34,7 +34,7 @@ private enum PatternSection: String, CaseIterable, Identifiable {
 
 // 범례에 나오는 지표 단위. 범례를 탭하면 hiddenSeries에 넣고 빼서 차트에서 보이기/숨기기를 토글한다.
 enum HRVSeries: String, CaseIterable, Identifiable {
-    case rmssd, examRmssd, restingHeartRate, sleep, exercise, coffee, medication, symptom, lifeEvent
+    case rmssd, examRmssd, restingHeartRate, sleep, daylight, exercise, coffee, medication, symptom, lifeEvent
     case median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
@@ -44,6 +44,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .examRmssd: "검사 rMSSD"
         case .restingHeartRate: "안정시 심박수"
         case .sleep: "수면"
+        case .daylight: "일광시간"
         case .exercise: "운동"
         case .coffee: "커피"
         case .medication: "약 복용"
@@ -62,6 +63,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .examRmssd: "triangle.fill"
         case .restingHeartRate: "chart.bar.fill"
         case .sleep, .exercise: "square.fill"
+        case .daylight: "sun.max.fill"
         case .coffee, .medication: "circle.fill"
         case .symptom: "exclamationmark.circle.fill"
         case .lifeEvent: "star.fill"
@@ -81,6 +83,7 @@ enum HRVSeries: String, CaseIterable, Identifiable {
         case .sdnn: mode == .hourly
         case .restingHeartRate: mode == .daily
         case .sleep: mode != .monthly
+        case .daylight: mode == .daily
         case .exercise, .coffee, .medication, .symptom, .lifeEvent, .calendarEvent: mode == .hourly
         case .cv: mode == .monthly
         }
@@ -375,10 +378,10 @@ struct HRVAnalysisView: View {
 
     private func recomputeRange() {
         var values = viewModel.examPoints.map(\.rmssd)
-        if let median = viewModel.recentThirtyDayRMSSDMedian { values.append(median) }
-        values += viewModel.recentThirtyDayPeriodMedians?.values ?? []
         switch chartMode {
         case .hourly:
+            if let median = viewModel.recentThirtyDayRMSSDMedian { values.append(median) }
+            values += viewModel.recentThirtyDayPeriodMedians?.values ?? []
             values += currentRMSSDPoints.map(\.value)
             if !hiddenSeries.contains(.sdnn) {
                 values += viewModel.wearableSDNNPointsHourly.map(\.value)
@@ -877,6 +880,7 @@ struct HRVAnalysisView: View {
         case .examRmssd: examRmssdColor
         case .restingHeartRate: Theme.systemMint
         case .sleep: sleepColor
+        case .daylight: Theme.systemYellow
         case .exercise: exerciseColor
         case .coffee: Theme.hourlyCoffeeMarker
         case .medication: Theme.hourlyMedicationMarker

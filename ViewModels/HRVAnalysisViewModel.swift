@@ -24,6 +24,12 @@ final class HRVAnalysisViewModel {
         var id: Date { date }
     }
 
+    struct DailyDaylightPoint: Identifiable {
+        let date: Date
+        let minutes: Double
+        var id: Date { date }
+    }
+
     struct RMSSDBaselineSegment: Identifiable {
         let start: Date
         let end: Date
@@ -119,6 +125,8 @@ final class HRVAnalysisViewModel {
     private(set) var wearableRestingHeartRatePointsDaily: [HRVPoint] = []
     // 오후 9시~다음 날 오전 10시 수면만 날짜별로 합산한 값. 낮잠은 시간 창 밖이라 제외된다.
     private(set) var nightlySleepPointsDaily: [DailySleepPoint] = []
+    // 하루 동안 여러 건으로 누적 기록되는 값이라 날짜별로 합산한다(안정시 심박수처럼 중앙값을 쓰지 않음).
+    private(set) var daylightPointsDaily: [DailyDaylightPoint] = []
 
     // 시간별 모드 아이콘 레인 전용 데이터 — HealthKit 윈도우 로딩과 무관하게(양이 많지 않아) 캘린더
     // 일정처럼 한 번에 전체 이력을 불러온다.
@@ -441,12 +449,14 @@ final class HRVAnalysisViewModel {
             async let rmssdWindow = RMSSDLocalStore.shared.window(start: windowStart, end: windowEnd)
             async let sdnn = HealthKitService.fetchSDNNSamples(start: windowStart, end: windowEnd)
             async let restingHR = HealthKitService.fetchRestingHeartRateSamples(start: windowStart, end: windowEnd)
-            let (workoutRanges, sleepSamples, cachedRMSSDWindow, sdnnSamples, restingHRSamples) = try await (
+            async let daylight = HealthKitService.fetchTimeInDaylightSamples(start: windowStart, end: windowEnd)
+            let (workoutRanges, sleepSamples, cachedRMSSDWindow, sdnnSamples, restingHRSamples, daylightSamples) = try await (
                 workouts,
                 sleep,
                 rmssdWindow,
                 sdnn,
-                restingHR
+                restingHR,
+                daylight
             )
 
             // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
@@ -474,6 +484,7 @@ final class HRVAnalysisViewModel {
                 gapThreshold: Self.hrvGapThresholdDaily
             )
             nightlySleepPointsDaily = Self.nightlySleepDurations(sleepSamples)
+            daylightPointsDaily = Self.dailyDaylightSums(daylightSamples.map { ($0.date, $0.value) })
             let healthKitWorkouts = workoutRanges.map {
                 WorkoutRange(
                     start: $0.start,
@@ -598,6 +609,19 @@ final class HRVAnalysisViewModel {
 
         return durationByNight
             .map { DailySleepPoint(date: $0.key, hours: $0.value / 3_600) }
+            .sorted { $0.date < $1.date }
+    }
+
+    // timeInDaylight은 걸음수처럼 하루 동안 여러 샘플로 누적 기록되므로, 안정시 심박수(중앙값)와
+    // 달리 날짜별 합산이 맞다.
+    private static func dailyDaylightSums(_ samples: [(Date, Double)]) -> [DailyDaylightPoint] {
+        let calendar = Calendar.current
+        var minutesByDay: [Date: Double] = [:]
+        for (date, value) in samples {
+            minutesByDay[calendar.startOfDay(for: date), default: 0] += value
+        }
+        return minutesByDay
+            .map { DailyDaylightPoint(date: $0.key, minutes: $0.value) }
             .sorted { $0.date < $1.date }
     }
 
