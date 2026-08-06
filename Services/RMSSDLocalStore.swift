@@ -5,7 +5,8 @@ import SwiftData
 final class RMSSDLocalStore {
     static let shared = RMSSDLocalStore()
     static let calculationVersion = 1
-    static let aggregationVersion = 1
+    // 수면 세션 병합 기준이 1시간에서 2시간으로 바뀌어 과거 시간대 분류도 다시 만들어야 한다.
+    static let aggregationVersion = 2
 
     private let container: ModelContainer
     private var isPerformingOperation = false

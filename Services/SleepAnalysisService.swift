@@ -13,8 +13,9 @@ struct SleepRange: Identifiable {
 }
 
 enum SleepAnalysisService {
-    // 자다가 잠깐 깨는 것까지 별도 수면으로 쪼개지 않도록, 1시간 이내로 떨어진 수면 구간은 하나로 합친다.
-    static let mergeGapThreshold: TimeInterval = 60 * 60
+    // 자다가 깬 뒤 다시 잠든 경우를 별도 수면으로 쪼개지 않도록, 2시간 이하로 떨어진 수면 구간은
+    // 하나의 밤으로 합친다. 사이의 공백은 수면시간에 더하지 않고 각성 구간으로만 취급한다.
+    static let mergeGapThreshold: TimeInterval = 2 * 60 * 60
 
     // 단계별로 보여줄 순서 — 중요도가 높은 깊은 수면/렘을 앞에 둔다.
     static let stageDisplayOrder: [HealthKitService.SleepStage] = [.deep, .rem, .core, .unspecified]
