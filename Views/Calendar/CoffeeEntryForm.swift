@@ -19,13 +19,6 @@ struct CoffeeEntryForm: View {
     @State private var isLoadingEntries = true
     @State private var entriesErrorMessage: String?
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     var body: some View {
         Form {
             Section("종류") {
@@ -82,7 +75,7 @@ struct CoffeeEntryForm: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.type ?? "커피")
                                     if let entryDate = DateKey.parseISODate(entry.date) {
-                                        Text(Self.timeFormatter.string(from: entryDate))
+                                        Text(DateKey.timeString(from: entryDate))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }

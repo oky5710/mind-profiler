@@ -16,13 +16,6 @@ struct LifeEventEntryForm: View {
     @State private var isLoadingEntries = true
     @State private var entriesErrorMessage: String?
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     var body: some View {
         Form {
             Section("유형") {
@@ -78,7 +71,7 @@ struct LifeEventEntryForm: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.title)
                             if let eventDate = DateKey.parseISODate(entry.date) {
-                                Text(Self.timeFormatter.string(from: eventDate))
+                                Text(DateKey.timeString(from: eventDate))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -159,13 +152,6 @@ struct SymptomEntryForm: View {
     @State private var isLoadingEntries = true
     @State private var entriesErrorMessage: String?
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     var body: some View {
         Form {
             Section("증상") {
@@ -231,7 +217,7 @@ struct SymptomEntryForm: View {
                                     .foregroundStyle(.secondary)
                             }
                             if let eventDate = DateKey.parseISODate(entry.date) {
-                                Text(Self.timeFormatter.string(from: eventDate))
+                                Text(DateKey.timeString(from: eventDate))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

@@ -43,13 +43,6 @@ struct DayDetailSheet: View {
         return formatter
     }()
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     private var isEmpty: Bool {
         mood == nil && coffees.isEmpty && exercises.isEmpty && medicationLogs.isEmpty && events.isEmpty
     }
@@ -91,7 +84,7 @@ struct DayDetailSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.type ?? "커피")
                                     if let entryDate = DateKey.parseISODate(entry.date) {
-                                        Text(Self.timeFormatter.string(from: entryDate))
+                                        Text(DateKey.timeString(from: entryDate))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -119,7 +112,7 @@ struct DayDetailSheet: View {
                                     Text(entry.type)
                                     if let start = DateKey.parseISODate(entry.startedAt),
                                        let end = DateKey.parseISODate(entry.endedAt) {
-                                        Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                        Text("\(DateKey.timeString(from: start)) ~ \(DateKey.timeString(from: end))")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -147,7 +140,7 @@ struct DayDetailSheet: View {
                                 Text(group.timing.flatMap(MedicationTiming.init(rawValue:))?.label ?? "약 복용")
                                 Spacer()
                                 if let takenAt = group.earliestTakenAt {
-                                    Text(Self.timeFormatter.string(from: takenAt))
+                                    Text(DateKey.timeString(from: takenAt))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -174,7 +167,7 @@ struct DayDetailSheet: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 if let eventDate = DateKey.parseISODate(entry.date) {
-                                    Text(Self.timeFormatter.string(from: eventDate))
+                                    Text(DateKey.timeString(from: eventDate))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -199,7 +192,7 @@ struct DayDetailSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.title)
                                     if let eventDate = DateKey.parseISODate(entry.date) {
-                                        Text(Self.timeFormatter.string(from: eventDate))
+                                        Text(DateKey.timeString(from: eventDate))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }

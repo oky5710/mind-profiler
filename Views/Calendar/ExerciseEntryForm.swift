@@ -28,13 +28,6 @@ struct ExerciseEntryForm: View {
     // 꺼서 원래 시작/종료 시각이 그대로 보존되게 한다.
     @State private var isPrefilling = false
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     private var effectiveStart: Date {
         DateKey.combine(date: date, time: startTime)
     }
@@ -123,7 +116,7 @@ struct ExerciseEntryForm: View {
                                 Text(entry.type)
                                 if let start = DateKey.parseISODate(entry.startedAt),
                                    let end = DateKey.parseISODate(entry.endedAt) {
-                                    Text("\(Self.timeFormatter.string(from: start)) ~ \(Self.timeFormatter.string(from: end))")
+                                    Text("\(DateKey.timeString(from: start)) ~ \(DateKey.timeString(from: end))")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }

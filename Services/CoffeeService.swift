@@ -29,14 +29,14 @@ enum CoffeeService {
     static func logCoffee(dateTime: Date, type: String?, memo: String?) async throws {
         let _: CoffeeLogEntry = try await APIClient.shared.post(
             "/coffee",
-            body: CoffeeLogRequest(date: ISO8601DateFormatter().string(from: dateTime), type: type, memo: memo)
+            body: CoffeeLogRequest(date: DateKey.isoString(from: dateTime), type: type, memo: memo)
         )
     }
 
     static func updateCoffee(id: String, dateTime: Date, type: String?, memo: String?) async throws {
         let _: CoffeeLogEntry = try await APIClient.shared.patch(
             "/coffee/\(id)",
-            body: CoffeeLogRequest(date: ISO8601DateFormatter().string(from: dateTime), type: type, memo: memo)
+            body: CoffeeLogRequest(date: DateKey.isoString(from: dateTime), type: type, memo: memo)
         )
     }
 }

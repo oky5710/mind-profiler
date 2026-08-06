@@ -31,13 +31,6 @@ struct ExamEntryForm: View {
     @State private var isLoadingEntries = true
     @State private var entriesErrorMessage: String?
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     var body: some View {
         Form {
             Section("Time Domain Analysis") {
@@ -100,7 +93,7 @@ struct ExamEntryForm: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("RMSSD \(entry.rmssd, specifier: "%.1f")")
                                 if let examinedAt = DateKey.parseISODate(entry.examinedAt) {
-                                    Text(Self.timeFormatter.string(from: examinedAt))
+                                    Text(DateKey.timeString(from: examinedAt))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -174,7 +167,7 @@ struct ExamEntryForm: View {
         isSaving = true
         let examinedAt = DateKey.combine(date: date, time: time)
         let request = ExamRequest(
-            examinedAt: ISO8601DateFormatter().string(from: examinedAt),
+            examinedAt: DateKey.isoString(from: examinedAt),
             hospital: hospital.isEmpty ? nil : hospital,
             memo: memo.isEmpty ? nil : memo,
             mhr: mhrValue,

@@ -12,6 +12,17 @@ enum DateKey {
         ISO8601DateFormatter().string(from: date)
     }
 
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = .current
+        return formatter
+    }()
+
+    static func timeString(from date: Date) -> String {
+        timeFormatter.string(from: date)
+    }
+
     static func parseISODate(_ string: String) -> Date? {
         let withFraction = ISO8601DateFormatter()
         withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

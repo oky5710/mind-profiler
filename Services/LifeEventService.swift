@@ -21,7 +21,7 @@ enum LifeEventService {
         let _: LifeEventEntry = try await APIClient.shared.post(
             "/events",
             body: LifeEventRequest(
-                date: ISO8601DateFormatter().string(from: dateTime),
+                date: DateKey.isoString(from: dateTime),
                 type: type.rawValue,
                 title: title,
                 description: description
@@ -38,7 +38,7 @@ enum LifeEventService {
         let _: LifeEventEntry = try await APIClient.shared.post(
             "/events",
             body: SymptomRequest(
-                date: ISO8601DateFormatter().string(from: dateTime),
+                date: DateKey.isoString(from: dateTime),
                 title: symptom.label,
                 description: description,
                 intensity: intensity
