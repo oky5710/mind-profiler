@@ -254,11 +254,7 @@ extension HRVAnalysisView {
                                 // 바뀌면서 스크롤과 툴팁 갱신이 뒤섞여 산만해지는 걸 막는다. 제자리에 가까운
                                 // 탭(이동량이 작음)일 때만 툴팁을 갱신한다.
                                 guard abs(value.translation.width) <= Self.tooltipDragTolerance else {
-                                    tooltipPoint = nil
-                                    tooltipCalendarEvent = nil
-                                    tooltipSleepRange = nil
-                                    tooltipWorkoutRange = nil
-                                    tooltipDailyMarker = nil
+                                    clearAllTooltips()
                                     return
                                 }
 
@@ -363,11 +359,7 @@ extension HRVAnalysisView {
                     zoomAnchorScale = zoomScale
                     zoomAnchorCenterDate = hrvScrollPosition.addingTimeInterval(visibleDomain / 2)
                     dragAnchorPosition = nil
-                    tooltipPoint = nil
-                    tooltipCalendarEvent = nil
-                    tooltipSleepRange = nil
-                    tooltipWorkoutRange = nil
-                    tooltipDailyMarker = nil
+                    clearAllTooltips()
                 }
                 guard let anchorScale = zoomAnchorScale, let centerDate = zoomAnchorCenterDate else { return }
                 let proposedScale = anchorScale * value

@@ -169,11 +169,18 @@ final class RMSSDLocalStore {
         let context = ModelContext(container)
         var affectedDays = Set<Date>()
 
+        // UUID 하나마다 새 FetchDescriptor를 던지는 대신(N+1), 이 구간에 이미 있는 모델을 한 번에
+        // 가져와 딕셔너리로 찾는다 — batch.calculated와 cached 둘 다 원래 이 [start, end] 구간
+        // 조회에서 나온 값들이라 여기서 찾는 기존 모델도 모두 이 안에 있다.
+        let existingModels = try context.fetch(FetchDescriptor<RMSSDMeasurement>(
+            predicate: #Predicate { $0.measuredAt >= start && $0.measuredAt <= end }
+        ))
+        var existingByUUID = Dictionary(existingModels.map { ($0.healthKitUUID, $0) }, uniquingKeysWith: { first, _ in first })
+
         for result in batch.calculated {
             affectedDays.insert(calendar.startOfDay(for: result.measuredAt))
             let uuid = result.healthKitUUID
-            let descriptor = FetchDescriptor<RMSSDMeasurement>(predicate: #Predicate { $0.healthKitUUID == uuid })
-            if let existing = try context.fetch(descriptor).first {
+            if let existing = existingByUUID[uuid] {
                 existing.measuredAt = result.measuredAt
                 existing.value = result.value
                 existing.validIntervalCount = result.validIntervalCount
@@ -181,23 +188,26 @@ final class RMSSDLocalStore {
                 existing.calculationVersion = Self.calculationVersion
                 existing.updatedAt = .now
             } else {
-                context.insert(RMSSDMeasurement(
+                let inserted = RMSSDMeasurement(
                     healthKitUUID: uuid,
                     measuredAt: result.measuredAt,
                     value: result.value,
                     validIntervalCount: result.validIntervalCount,
                     totalBeatCount: result.totalBeatCount,
                     calculationVersion: Self.calculationVersion
-                ))
+                )
+                context.insert(inserted)
+                existingByUUID[uuid] = inserted
             }
         }
 
         // 조회 범위에서 HealthKit에 더 이상 존재하지 않는 측정은 로컬 캐시에서도 제거한다.
         for item in cached where !batch.healthKitUUIDs.contains(item.healthKitUUID) {
             affectedDays.insert(calendar.startOfDay(for: item.measuredAt))
-            let uuid = item.healthKitUUID
-            let descriptor = FetchDescriptor<RMSSDMeasurement>(predicate: #Predicate { $0.healthKitUUID == uuid })
-            if let stored = try context.fetch(descriptor).first { context.delete(stored) }
+            if let stored = existingByUUID[item.healthKitUUID] {
+                context.delete(stored)
+                existingByUUID.removeValue(forKey: item.healthKitUUID)
+            }
         }
         if context.hasChanges { try context.save() }
         return affectedDays
@@ -241,10 +251,13 @@ final class RMSSDLocalStore {
         let measurementDays = Set(measurements.map { calendar.startOfDay(for: $0.measuredAt) })
         var days = affectedDays.union(measurementDays.subtracting(currentSummaryDays))
 
-        // 수면 데이터는 늦게 확정될 수 있으므로 오늘과 어제만 매번 다시 분류한다.
+        // 수면 데이터는 늦게 확정될 수 있으므로 최근 며칠은 매번 다시 분류한다 — RMSSDLocalStore와
+        // HRVAnalysisView의 수면 연속성 캐시가 공유하는 정책(SleepAnalysisService 참고).
         let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
-        for recentDay in [yesterday, today] where recentDay >= firstDay && recentDay <= lastDay {
+        let recentDays = (0..<SleepAnalysisService.recentDataRecomputeDayCount).compactMap {
+            calendar.date(byAdding: .day, value: -$0, to: today)
+        }
+        for recentDay in recentDays where recentDay >= firstDay && recentDay <= lastDay {
             days.insert(recentDay)
         }
         return days

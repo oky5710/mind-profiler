@@ -17,6 +17,23 @@ enum SleepAnalysisService {
     // 하나의 밤으로 합친다. 사이의 공백은 수면시간에 더하지 않고 각성 구간으로만 취급한다.
     static let mergeGapThreshold: TimeInterval = 2 * 60 * 60
 
+    // 수면 데이터는 워치 동기화 지연 등으로 늦게 확정될 수 있어, 최근 며칠치는 캐시하지 않고 항상
+    // 다시 계산해야 한다 — RMSSDLocalStore.summaryDaysToRebuild(일별 rMSSD 집계 재생성)와
+    // HRVAnalysisView의 30일 수면 연속성 기준선 캐시가 이 정책을 공유한다("오늘과 어제"만 항상
+    // 새로 계산, 그 이전은 캐시해도 안전하다고 본다).
+    static let recentDataRecomputeDayCount = 2
+
+    // day가 "최근"(오늘 포함 recentDataRecomputeDayCount일 이내)인지 — 참이면 캐시하지 말고 항상
+    // 다시 계산해야 한다는 뜻이다.
+    static func isWithinRecentRecomputeWindow(_ day: Date, asOf now: Date = Date()) -> Bool {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        guard let cutoff = calendar.date(byAdding: .day, value: -(recentDataRecomputeDayCount - 1), to: today) else {
+            return true
+        }
+        return calendar.startOfDay(for: day) >= cutoff
+    }
+
     // 단계별로 보여줄 순서 — 중요도가 높은 깊은 수면/렘을 앞에 둔다.
     static let stageDisplayOrder: [HealthKitService.SleepStage] = [.deep, .rem, .core, .unspecified]
 

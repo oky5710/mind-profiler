@@ -262,11 +262,7 @@ struct HRVAnalysisView: View {
                     .onTapGesture {
                         // 차트 자체는 자기 드래그 제스처가 우선 처리하므로, 여기는 차트 바깥(빈 영역)을
                         // 탭했을 때만 걸린다.
-                        tooltipPoint = nil
-                        tooltipCalendarEvent = nil
-                        tooltipSleepRange = nil
-                        tooltipWorkoutRange = nil
-                        tooltipDailyMarker = nil
+                        clearAllTooltips()
                     }
                 }
                 .onAppear { availableHeight = geo.size.height }
@@ -325,11 +321,7 @@ struct HRVAnalysisView: View {
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
-            tooltipPoint = nil
-            tooltipCalendarEvent = nil
-            tooltipSleepRange = nil
-            tooltipWorkoutRange = nil
-            tooltipDailyMarker = nil
+            clearAllTooltips()
             recomputeRange()
         }
         .refreshable {
@@ -375,6 +367,16 @@ struct HRVAnalysisView: View {
     func clearZoomAnchor() {
         zoomAnchorScale = nil
         zoomAnchorCenterDate = nil
+    }
+
+    // 차트 바깥 탭, 모드 전환, 스크롤 시작, 핀치 시작 등 "지금 보던 툴팁/상세 패널은 더 이상 유효하지
+    // 않다"는 뜻인 지점마다 다섯 종류를 한꺼번에 지워야 해서 공통으로 뺐다.
+    func clearAllTooltips() {
+        tooltipPoint = nil
+        tooltipCalendarEvent = nil
+        tooltipSleepRange = nil
+        tooltipWorkoutRange = nil
+        tooltipDailyMarker = nil
     }
 
     private func recomputeRange() {
@@ -1110,20 +1112,16 @@ private final class SleepOverviewViewModel {
         let rangesByNight = Dictionary(grouping: eligibleRanges) {
             SleepAnalysisService.nightLabel(for: $0.start)
         }
-        // RMSSDLocalStore.summaryDaysToRebuild와 같은 정책 — 최근 이틀 밤은 수면 데이터가 늦게
-        // 확정될 수 있어 캐시하지 않고 매번 새로 계산하고, 그보다 이전 밤은 한 번 계산해서 캐시에
-        // 남겨 다음 호출(하루씩 옮겨 다닐 때마다)에서 재사용한다.
-        let recentCutoff = Calendar.current.date(
-            byAdding: .day,
-            value: -2,
-            to: Calendar.current.startOfDay(for: Date())
-        ) ?? endNight
+        // RMSSDLocalStore.summaryDaysToRebuild와 같은 정책(SleepAnalysisService에 공유) — 최근
+        // 며칠 밤은 수면 데이터가 늦게 확정될 수 있어 캐시하지 않고 매번 새로 계산하고, 그보다 이전
+        // 밤은 한 번 계산해서 캐시에 남겨 다음 호출(하루씩 옮겨 다닐 때마다)에서 재사용한다.
         let nights = rangesByNight.map { night, nightRanges -> SleepContinuityMetrics in
-            if night < recentCutoff, let cached = continuityMetricsCache[night] {
+            let isRecent = SleepAnalysisService.isWithinRecentRecomputeWindow(night)
+            if !isRecent, let cached = continuityMetricsCache[night] {
                 return cached
             }
             let metrics = Self.makeContinuityMetrics(ranges: nightRanges, timeline: timeline)
-            if night < recentCutoff {
+            if !isRecent {
                 continuityMetricsCache[night] = metrics
             }
             return metrics
@@ -1185,13 +1183,6 @@ private struct SleepOverviewView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "M월 d일 EEEE"
         formatter.locale = Locale(identifier: "ko_KR")
-        return formatter
-    }()
-
-    private static let tooltipTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()
 
@@ -1414,7 +1405,7 @@ private struct SleepOverviewView: View {
             )
             .sleepValueTooltip(
                 point: selectedRMSSDPoint,
-                time: selectedRMSSDPoint.map { Self.tooltipTimeFormatter.string(from: $0.date) },
+                time: selectedRMSSDPoint.map { DateKey.timeString(from: $0.date) },
                 value: selectedRMSSDPoint.map { String(format: "%.1f ms", $0.value) }
             )
         }
@@ -1465,7 +1456,7 @@ private struct SleepOverviewView: View {
             )
             .sleepValueTooltip(
                 point: selectedHeartRatePoint,
-                time: selectedHeartRatePoint.map { Self.tooltipTimeFormatter.string(from: $0.date) },
+                time: selectedHeartRatePoint.map { DateKey.timeString(from: $0.date) },
                 value: selectedHeartRatePoint.map { String(format: "%.0f bpm", $0.value) }
             )
         }

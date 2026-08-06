@@ -1,8 +1,79 @@
 import Charts
 import SwiftUI
 
+// 일별 모드의 안정시 심박수·수면시간·일광시간 막대 차트가 공통으로 필요로 하는 x축 값.
+// 이 프로토콜을 채택하는 타입(HRVPoint 등)이 이미 @MainActor격리된 HRVAnalysisViewModel에
+// 중첩돼 있어 Identifiable 준수 자체가 MainActor에 격리돼 있다 — 이 프로토콜도 맞춰야 한다.
+@MainActor
+protocol DatedPoint: Identifiable {
+    var date: Date { get }
+}
+
 // 실제 차트 정의 (라인+Gantt / 월별). 축/스크롤/툴팁 오버레이는 HRVAnalysisView+Axes.swift 참고.
 extension HRVAnalysisView {
+    // 일별 모드의 안정시 심박수·수면시간·일광시간 막대 차트는 값 필드·색·y축 범위만 다르고 나머지
+    // 뼈대(막대 폭, "현재" 기준선, 높이, 오버레이 구성)가 동일해서 하나로 합쳤다.
+    // showsTopDivider: 이 차트 바로 위가 다른 막대 차트(구분선이 필요)인지, 라인 차트(이미 그
+    // 자체로 경계가 보여서 필요 없음)인지에 따라 다르다 — 안정시 심박수 차트만 false.
+    // isBottomChart: 일별 스택 전체의 x축 라벨은 맨 아래 차트에서만 보여준다.
+    func dailyBarChart<Point: DatedPoint>(
+        points: [Point],
+        value: @escaping (Point) -> Double,
+        valueLabel: String,
+        isHidden: Bool,
+        color: Color,
+        yAxisUpperBound: Double,
+        yAxisTicks: [Double],
+        showsTopDivider: Bool,
+        isBottomChart: Bool
+    ) -> some View {
+        Chart {
+            if !isHidden {
+                ForEach(points) { point in
+                    BarMark(
+                        x: .value("날짜", point.date),
+                        y: .value(valueLabel, value(point)),
+                        width: .fixed(8)
+                    )
+                    .foregroundStyle(color.opacity(0.7))
+                    .cornerRadius(4)
+                }
+            }
+
+            if visibleDateRange.contains(Date()) {
+                RuleMark(x: .value("현재", Date()))
+                    .foregroundStyle(.red)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+            }
+        }
+        .frame(height: ganttChartHeight * 0.65)
+        .chartXScale(domain: visibleDateRange)
+        .chartYScale(domain: 0...yAxisUpperBound)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .overlay(alignment: .top) {
+            if showsTopDivider {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.4))
+                    .frame(height: 1)
+            }
+        }
+        .chartOverlay { proxy in
+            chartOverlay(
+                proxy: proxy,
+                visibleDomain: visibleDomain,
+                yAxisTickValues: yAxisTicks,
+                xAxisTickDates: xAxisTickDates,
+                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
+                xAxisLabelBelow: isBottomChart,
+                showsXAxisLabels: isBottomChart,
+                showsXAxisBaseline: isBottomChart,
+                showsYAxisGridLines: false,
+                showsPointTooltip: false,
+                tooltipPoints: currentRMSSDPoints
+            )
+        }
+    }
     // baseLineChart/ganttChart 사이 간격을 아예 없앴다 — 간격이 있으면 라인차트의 x축 기준선과
     // 간트 차트의 x축 기준선 사이에서 간트 막대를 정중앙에 두는 계산이 그 간격만큼 더 복잡해지고,
     // 시각적으로도 위아래 여백을 맞추기 더 어려워진다. 간격이 없으면 간트 차트 안에서만 위아래
@@ -85,7 +156,8 @@ extension HRVAnalysisView {
                         // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
                         // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강. 응답하지 않은 낮음/높음 포인트는
                         // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
-                        if let event = matchedRMSSDEvent(for: point.date), event.direction == RMSSDThresholdDirection.high.rawValue {
+                        let matchedEvent = matchedRMSSDEvent(for: point.date)
+                        if let event = matchedEvent, event.direction == RMSSDThresholdDirection.high.rawValue {
                             // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 같은 색의 옅은(10%) 테두리를
                             // 살짝 더 큰 원을 뒤에 겹쳐 그려서 흉내 낸다(PointMark는 실제 stroke를
                             // 지원하지 않는다).
@@ -102,7 +174,7 @@ extension HRVAnalysisView {
                             )
                             .symbolSize(90)
                             .foregroundStyle(Theme.rmssdHigh)
-                        } else if matchedRMSSDEvent(for: point.date) != nil {
+                        } else if matchedEvent != nil {
                             // 여기 도달했다는 건 위에서 높음(high)이 아니라고 걸러졌다는 뜻이라 낮음뿐이다.
                             PointMark(
                                 x: .value("시간", point.date),
@@ -246,7 +318,11 @@ extension HRVAnalysisView {
     }
 
     var ganttChart: some View {
-        Chart {
+        // 종일 일정 마커는 body 계산 한 번에 아래 ForEach와 chartOverlay의 tooltipAllDayMarkers 둘 다
+        // 필요해서, 한 번만 계산해 두고 재사용한다.
+        let allDayMarkers = allDayEventDayMarkers
+
+        return Chart {
             if !hiddenSeries.contains(.sleep) {
                 ForEach(viewModel.sleepRanges) { interval in
                     let duration = interval.end.timeIntervalSince(interval.start)
@@ -298,7 +374,7 @@ extension HRVAnalysisView {
                     .cornerRadius(4)
                 }
 
-                ForEach(Array(allDayEventDayMarkers.enumerated()), id: \.offset) { _, marker in
+                ForEach(Array(allDayMarkers.enumerated()), id: \.offset) { _, marker in
                     // 흰 원(뒤, 크게) 위에 일정 색 원(앞, 작게)을 겹쳐서 테두리처럼 보이게 한다 —
                     // 뒤에 깔린 막대와 색이 겹쳐도 항상 구분되어 보인다.
                     PointMark(
@@ -342,7 +418,7 @@ extension HRVAnalysisView {
                     tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
                     tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
                     tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
-                    tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayEventDayMarkers
+                    tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayMarkers
                 )
                 ganttBorderOverlay(proxy: proxy)
             }
@@ -417,101 +493,39 @@ extension HRVAnalysisView {
 
     // 일별 모드 전용 — 간트 차트(수면/운동/캘린더) 대신 안정시 심박수를 하루 막대 하나로 보여준다.
     // 일별 모드는 rMSSD도 이미 하루 대표값(중앙값)이라 같은 결의 "하루 단위 요약" 지표로 맞췄다.
+    // 바로 위가 라인 차트라 그 자체로 경계가 보여서, 이 차트만 상단 구분선이 없다.
     var restingHeartRateChart: some View {
         let points = viewModel.wearableRestingHeartRatePointsDaily
         let yAxisUpperBound = max(ceil((points.map(\.value).max() ?? 60) / 20) * 20, 20)
 
-        return Chart {
-            ForEach(points) { point in
-                if !hiddenSeries.contains(.restingHeartRate) {
-                    // unit: .day 대역을 쓰지 않고 rMSSD PointMark와 정확히 같은 날짜 좌표에 고정한다.
-                    BarMark(
-                        x: .value("날짜", point.date),
-                        y: .value("안정시 심박수", point.value),
-                        width: .fixed(8)
-                    )
-                    .foregroundStyle(Theme.systemMint.opacity(0.7))
-                    .cornerRadius(4)
-                }
-            }
-
-            if visibleDateRange.contains(Date()) {
-                RuleMark(x: .value("현재", Date()))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-            }
-        }
-        .frame(height: ganttChartHeight * 0.65)
-        .chartXScale(domain: visibleDateRange)
-        .chartYScale(domain: 0...yAxisUpperBound)
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartOverlay { proxy in
-            chartOverlay(
-                proxy: proxy,
-                visibleDomain: visibleDomain,
-                yAxisTickValues: yAxisTicks(upperBound: yAxisUpperBound),
-                xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                xAxisLabelBelow: true,
-                showsXAxisLabels: false,
-                showsXAxisBaseline: false,
-                showsYAxisGridLines: false,
-                showsPointTooltip: false,
-                tooltipPoints: currentRMSSDPoints
-            )
-        }
+        return dailyBarChart(
+            points: points,
+            value: \.value,
+            valueLabel: "안정시 심박수",
+            isHidden: hiddenSeries.contains(.restingHeartRate),
+            color: Theme.systemMint,
+            yAxisUpperBound: yAxisUpperBound,
+            yAxisTicks: yAxisTicks(upperBound: yAxisUpperBound),
+            showsTopDivider: false,
+            isBottomChart: false
+        )
     }
 
     // 일별 모드 전용 — 오후 9시부터 다음 날 오전 10시까지 실제로 잔 시간만 합산한다.
     // 안정시 심박수 차트 아래에 두고, 이 아래에 일광시간 막대 차트가 하나 더 있어서 x축은 그쪽 최하단
-    // 차트에서만 표시한다(안정시 심박수 차트와 같은 방식으로 숨김).
+    // 차트에서만 표시한다.
     var nightlySleepChart: some View {
-        let points = viewModel.nightlySleepPointsDaily
-
-        return Chart {
-            if !hiddenSeries.contains(.sleep) {
-                ForEach(points) { point in
-                    BarMark(
-                        x: .value("날짜", point.date),
-                        y: .value("수면시간", point.hours),
-                        width: .fixed(8)
-                    )
-                    .foregroundStyle(sleepColor.opacity(0.7))
-                    .cornerRadius(4)
-                }
-            }
-
-            if visibleDateRange.contains(Date()) {
-                RuleMark(x: .value("현재", Date()))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-            }
-        }
-        .frame(height: ganttChartHeight * 0.65)
-        .chartXScale(domain: visibleDateRange)
-        .chartYScale(domain: 0...13)
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.gray.opacity(0.4))
-                .frame(height: 1)
-        }
-        .chartOverlay { proxy in
-            chartOverlay(
-                proxy: proxy,
-                visibleDomain: visibleDomain,
-                yAxisTickValues: [0, 4, 8, 12],
-                xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                showsXAxisLabels: false,
-                showsXAxisBaseline: false,
-                showsYAxisGridLines: false,
-                showsPointTooltip: false,
-                tooltipPoints: currentRMSSDPoints
-            )
-        }
+        dailyBarChart(
+            points: viewModel.nightlySleepPointsDaily,
+            value: \.hours,
+            valueLabel: "수면시간",
+            isHidden: hiddenSeries.contains(.sleep),
+            color: sleepColor,
+            yAxisUpperBound: 13,
+            yAxisTicks: [0, 4, 8, 12],
+            showsTopDivider: true,
+            isBottomChart: false
+        )
     }
 
     // 일별 모드 전용 — 수면 차트 아래에 하루 동안 누적된 일광시간(HKQuantityTypeIdentifier.timeInDaylight)을
@@ -523,48 +537,17 @@ extension HRVAnalysisView {
         // 직접 잡는다.
         let daylightYAxisTicks = [0, yAxisUpperBound / 2, yAxisUpperBound]
 
-        return Chart {
-            if !hiddenSeries.contains(.daylight) {
-                ForEach(points) { point in
-                    BarMark(
-                        x: .value("날짜", point.date),
-                        y: .value("일광시간", point.minutes),
-                        width: .fixed(8)
-                    )
-                    .foregroundStyle(Theme.systemYellow.opacity(0.7))
-                    .cornerRadius(4)
-                }
-            }
-
-            if visibleDateRange.contains(Date()) {
-                RuleMark(x: .value("현재", Date()))
-                    .foregroundStyle(.red)
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-            }
-        }
-        .frame(height: ganttChartHeight * 0.65)
-        .chartXScale(domain: visibleDateRange)
-        .chartYScale(domain: 0...yAxisUpperBound)
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.gray.opacity(0.4))
-                .frame(height: 1)
-        }
-        .chartOverlay { proxy in
-            chartOverlay(
-                proxy: proxy,
-                visibleDomain: visibleDomain,
-                yAxisTickValues: daylightYAxisTicks,
-                xAxisTickDates: xAxisTickDates,
-                xAxisLabel: { date in AnyView(xAxisLabel(for: date)) },
-                xAxisLabelBelow: true,
-                showsYAxisGridLines: false,
-                showsPointTooltip: false,
-                tooltipPoints: currentRMSSDPoints
-            )
-        }
+        return dailyBarChart(
+            points: points,
+            value: \.minutes,
+            valueLabel: "일광시간",
+            isHidden: hiddenSeries.contains(.daylight),
+            color: Theme.systemYellow,
+            yAxisUpperBound: yAxisUpperBound,
+            yAxisTicks: daylightYAxisTicks,
+            showsTopDivider: true,
+            isBottomChart: true
+        )
     }
 
     // 월별 모드는 주식 차트의 캔들스틱처럼 위쪽엔 rMSSD 최소~최대(심지)+1Q~3Q(몸통)+중앙값을,

@@ -39,7 +39,10 @@ MindProfiler
 ├── Views
 │   ├── Home
 │   ├── Calendar
-│   ├── Statistics
+│   ├── HRVAnalysis
+│   ├── Report
+│   ├── Login
+│   ├── RMSSDEvent
 │   └── Settings
 │
 ├── ViewModels

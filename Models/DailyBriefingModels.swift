@@ -1,15 +1,5 @@
 import Foundation
 
-private enum BriefingFormatters {
-    static let time: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.timeZone = .current
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-}
-
 // 오늘의 수사 노트 튜닝값. 표시 개수와 조회 기간을 바꾸려면 이곳만 수정한다.
 enum DailyBriefingConfiguration {
     static let maximumDisplayedClues = 10
@@ -140,79 +130,90 @@ struct DailySummaryInput {
     let morningRecoveryChangePercent: Double?
 }
 
+// 지표 하나를 "평소보다 얼마나 바뀌었는지 → 임계값을 넘으면 고정 문구 하나" 규칙으로 판정한다.
+// change가 -threshold 이하면 lowMessage, +threshold 이상이면 highMessage, 둘 다 아니면(또는
+// change 자체가 없으면) 아무 신호도 내지 않는다 — 두 조건은 항상 서로 배타적이라 어느 쪽을 먼저
+// 검사하든 결과가 같다.
+private struct DailyThresholdSignal {
+    let change: Double?
+    let threshold: Double
+    let lowMessage: String
+    let highMessage: String
+    // 활동량이 적었다는 신호처럼, 임계값을 넘어도 별도 조건(하루가 아직 안 끝남 등)에 따라
+    // lowMessage를 억눌러야 하는 지표가 있어서 기본값 true로 둔다.
+    var canShowLow = true
+
+    var message: String? {
+        guard let change else { return nil }
+        if change <= -threshold, canShowLow { return lowMessage }
+        if change >= threshold { return highMessage }
+        return nil
+    }
+}
+
 enum DailySummaryBuilder {
     static func build(from input: DailySummaryInput) -> [DailySummaryHighlight] {
-        var messages: [String] = []
-
         // 수면 시간 부족은 회복에 가장 직접적으로 영향을 주는 지표라, 다른 신호가 같이 뜨는 날에도
         // 항상 맨 위에 오도록 따로 빼서 맨 끝에 앞으로 꽂는다. "충분한 수면"은 부족만큼 급하게 알 필요는
-        // 없어서 다른 지표처럼 평범한 순서로 둔다.
-        var isSleepDurationShort = false
-        if let change = input.sleepDurationChangePercent {
-            if change <= -DailySummaryConfiguration.sleepDurationThresholdPercent {
-                isSleepDurationShort = true
-            } else if change >= DailySummaryConfiguration.sleepDurationThresholdPercent {
-                messages.append("🛌 충분한 수면을 취했어요.")
-            }
-        }
+        // 없어서 다른 지표처럼 평범한 순서로 둔다(아래 signals의 sleepDuration 항목이 그 역할).
+        let isSleepDurationShort = input.sleepDurationChangePercent.map {
+            $0 <= -DailySummaryConfiguration.sleepDurationThresholdPercent
+        } ?? false
 
-        if let change = input.sleepRecoveryRMSSDChangePercent {
-            if change <= -DailySummaryConfiguration.sleepRecoveryThresholdPercent {
-                messages.append("🌿 수면 중 회복이 평소보다 느렸어요.")
-            } else if change >= DailySummaryConfiguration.sleepRecoveryThresholdPercent {
-                messages.append("🌿 수면 중 회복이 평소보다 잘 이루어졌어요.")
-            }
-        }
+        let signals: [DailyThresholdSignal] = [
+            DailyThresholdSignal(
+                change: input.sleepDurationChangePercent,
+                threshold: DailySummaryConfiguration.sleepDurationThresholdPercent,
+                lowMessage: "", // 짧은 수면 문구는 위 isSleepDurationShort로 따로 맨 앞에 꽂는다.
+                highMessage: "🛌 충분한 수면을 취했어요.",
+                canShowLow: false
+            ),
+            DailyThresholdSignal(
+                change: input.sleepRecoveryRMSSDChangePercent,
+                threshold: DailySummaryConfiguration.sleepRecoveryThresholdPercent,
+                lowMessage: "🌿 수면 중 회복이 평소보다 느렸어요.",
+                highMessage: "🌿 수면 중 회복이 평소보다 잘 이루어졌어요."
+            ),
+            DailyThresholdSignal(
+                change: input.awakeRatioChangePercent,
+                threshold: DailySummaryConfiguration.awakeRatioThresholdPercent,
+                lowMessage: "🌙 밤사이 잠이 안정적으로 이어졌어요.",
+                highMessage: "🌙 밤사이 잠이 평소보다 자주 끊겼어요."
+            ),
+            DailyThresholdSignal(
+                change: input.bedtimeChangeMinutes,
+                threshold: DailySummaryConfiguration.bedtimeThresholdMinutes,
+                lowMessage: "🌃 평소보다 일찍 잠들었어요.",
+                highMessage: "🌃 평소보다 늦게 잠들었어요."
+            ),
+            DailyThresholdSignal(
+                change: input.restingHeartRateChangePercent,
+                threshold: DailySummaryConfiguration.restingHeartRateThresholdPercent,
+                lowMessage: "❤️ 몸이 편안하게 쉬고 있었어요.",
+                highMessage: "❤️ 심장이 평소보다 조금 바빴어요."
+            ),
+            DailyThresholdSignal(
+                change: input.dailyRMSSDChangePercent,
+                threshold: DailySummaryConfiguration.dailyRMSSDThresholdPercent,
+                lowMessage: "🌿 회복 신호가 평소보다 약했어요.",
+                highMessage: "🌿 회복 신호가 평소보다 좋았어요."
+            ),
+            DailyThresholdSignal(
+                change: input.exerciseDurationChangePercent,
+                threshold: DailySummaryConfiguration.exerciseDurationThresholdPercent,
+                lowMessage: "🪫 활동량이 적은 하루였어요.",
+                highMessage: "💪 몸을 많이 사용한 하루였어요.",
+                canShowLow: input.canShowLowActivityMessage
+            ),
+            DailyThresholdSignal(
+                change: input.morningRecoveryChangePercent,
+                threshold: DailySummaryConfiguration.morningRecoveryThresholdPercent,
+                lowMessage: "☀️ 아침에 몸이 천천히 깨어났어요.",
+                highMessage: "☀️ 아침부터 회복 신호가 좋았어요."
+            ),
+        ]
 
-        if let change = input.awakeRatioChangePercent {
-            if change >= DailySummaryConfiguration.awakeRatioThresholdPercent {
-                messages.append("🌙 밤사이 잠이 평소보다 자주 끊겼어요.")
-            } else if change <= -DailySummaryConfiguration.awakeRatioThresholdPercent {
-                messages.append("🌙 밤사이 잠이 안정적으로 이어졌어요.")
-            }
-        }
-
-        if let change = input.bedtimeChangeMinutes {
-            if change >= DailySummaryConfiguration.bedtimeThresholdMinutes {
-                messages.append("🌃 평소보다 늦게 잠들었어요.")
-            } else if change <= -DailySummaryConfiguration.bedtimeThresholdMinutes {
-                messages.append("🌃 평소보다 일찍 잠들었어요.")
-            }
-        }
-
-        if let change = input.restingHeartRateChangePercent {
-            if change >= DailySummaryConfiguration.restingHeartRateThresholdPercent {
-                messages.append("❤️ 심장이 평소보다 조금 바빴어요.")
-            } else if change <= -DailySummaryConfiguration.restingHeartRateThresholdPercent {
-                messages.append("❤️ 몸이 편안하게 쉬고 있었어요.")
-            }
-        }
-
-        if let change = input.dailyRMSSDChangePercent {
-            if change <= -DailySummaryConfiguration.dailyRMSSDThresholdPercent {
-                messages.append("🌿 회복 신호가 평소보다 약했어요.")
-            } else if change >= DailySummaryConfiguration.dailyRMSSDThresholdPercent {
-                messages.append("🌿 회복 신호가 평소보다 좋았어요.")
-            }
-        }
-
-        if let change = input.exerciseDurationChangePercent {
-            if change >= DailySummaryConfiguration.exerciseDurationThresholdPercent {
-                messages.append("💪 몸을 많이 사용한 하루였어요.")
-            } else if change <= -DailySummaryConfiguration.exerciseDurationThresholdPercent,
-                      input.canShowLowActivityMessage {
-                messages.append("🪫 활동량이 적은 하루였어요.")
-            }
-        }
-
-        if let change = input.morningRecoveryChangePercent {
-            if change <= -DailySummaryConfiguration.morningRecoveryThresholdPercent {
-                messages.append("☀️ 아침에 몸이 천천히 깨어났어요.")
-            } else if change >= DailySummaryConfiguration.morningRecoveryThresholdPercent {
-                messages.append("☀️ 아침부터 회복 신호가 좋았어요.")
-            }
-        }
-
+        var messages = signals.compactMap(\.message)
         if isSleepDurationShort {
             messages.insert("🛌 수면 시간이 평소보다 짧았어요.", at: 0)
         }
@@ -526,7 +527,7 @@ enum TodayBriefingClueBuilder {
         return BriefingClue(
             category: .hrv,
             type: type,
-            message: "\(label): \(BriefingFormatters.time.string(from: candidate.sample.date))\(suffix)",
+            message: "\(label): \(DateKey.timeString(from: candidate.sample.date))\(suffix)",
             severity: abs(candidate.ratio - 1),
             occurredAt: candidate.sample.date
         )
@@ -795,7 +796,7 @@ enum NoteClueBuilder {
         case .high: "스트레스가 낮은 순간"
         case .low: "스트레스가 높은 순간"
         }
-        let time = BriefingFormatters.time.string(from: note.date)
+        let time = DateKey.timeString(from: note.date)
         return [BriefingClue(
             category: .note,
             type: .neutral,

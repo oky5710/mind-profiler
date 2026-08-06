@@ -104,8 +104,12 @@ final class HomeViewModel {
             async let heartRateTask = HealthKitService.fetchHeartRateSamples(start: fetchStart, end: fetchEnd)
             async let dailyRMSSDSummaryTask = RMSSDLocalStore.shared.dailySummaries(start: recentStart, end: now)
             async let healthWorkoutsForSummaryTask = HealthKitService.fetchWorkoutRanges(start: recentStart, end: now)
-            let (sleepSamples, timeline, rmssdSamples, heartRateSamples, dailyRMSSDSummaries, healthWorkoutsForSummary) = try await (
-                sleepTask, timelineTask, rmssdTask, heartRateTask, dailyRMSSDSummaryTask, healthWorkoutsForSummaryTask
+            // 뒤에서 hrvNotes를 만들 때도 이 이벤트 목록이 다시 필요한데, 매번 다시 가져오지 않고
+            // 여기서 한 번만 가져와서 재사용한다(오늘 것만 거르는 todayNotes와 evidence 구간만 거르는
+            // hrvNotes 둘 다 이 배열을 필터링만 다르게 한 결과다).
+            async let noteEntriesTask: [RMSSDEventEntry]? = try? RMSSDEventService.allEvents()
+            let (sleepSamples, timeline, rmssdSamples, heartRateSamples, dailyRMSSDSummaries, healthWorkoutsForSummary, noteEntries) = try await (
+                sleepTask, timelineTask, rmssdTask, heartRateTask, dailyRMSSDSummaryTask, healthWorkoutsForSummaryTask, noteEntriesTask
             )
 
             let ranges = SleepAnalysisService.buildSleepRanges(sleepSamples)
@@ -132,7 +136,7 @@ final class HomeViewModel {
                     calendar: calendar
                 )
             }
-            let todayNotes = ((try? await RMSSDEventService.allEvents()) ?? []).compactMap { entry -> (Date, String)? in
+            let todayNotes = (noteEntries ?? []).compactMap { entry -> (Date, String)? in
                 guard let date = DateKey.parseISODate(entry.occurredAt),
                       calendar.isDate(date, inSameDayAs: now),
                       let note = entry.note else { return nil }
@@ -199,12 +203,10 @@ final class HomeViewModel {
             async let coffeeEntriesTask: [CoffeeLogEntry]? = try? CoffeeService.allCoffees()
             async let exerciseEntriesTask: [ExerciseLogEntry]? = try? ExerciseService.allExercises()
             async let schedulesTask = Self.fetchSchedules(start: evidenceStart, end: behaviorEnd)
-            async let noteEntriesTask: [RMSSDEventEntry]? = try? RMSSDEventService.allEvents()
-            let (coffeeEntries, exerciseEntries, schedules, noteEntries) = await (
+            let (coffeeEntries, exerciseEntries, schedules) = await (
                 coffeeEntriesTask,
                 exerciseEntriesTask,
-                schedulesTask,
-                noteEntriesTask
+                schedulesTask
             )
 
             let coffees = (coffeeEntries ?? []).compactMap { entry -> BriefingCoffeeRecord? in
