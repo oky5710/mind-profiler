@@ -98,7 +98,7 @@ final class RMSSDThresholdMonitorService {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = direction == .low ? "rMSSD가 급격히 낮아졌어요" : "rMSSD가 평소보다 크게 높아졌어요"
+        content.title = direction == .low ? "HRV가 급격히 낮아졌어요" : "HRV가 평소보다 크게 높아졌어요"
         content.body = "지금 기분을 기록해보세요."
         content.sound = .default
         content.categoryIdentifier = Self.categoryIdentifier
