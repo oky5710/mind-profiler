@@ -142,21 +142,49 @@ struct HomeView: View {
 
     private var summaryStatsRow: some View {
         HStack(alignment: .top, spacing: 10) {
-            summaryStat(
-                title: "전날 수면시간",
-                value: viewModel.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration)
-            )
+            previousNightSleepStat
             latestHRVStat
         }
     }
 
-    private func summaryStat(title: String, value: String?) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(title)
+    private var previousNightSleepStat: some View {
+        let totalMinutes = viewModel.previousNightSleepDuration.map { Int($0) / 60 }
+        let hours = totalMinutes.map { $0 / 60 }
+        let minutes = totalMinutes.map { $0 % 60 }
+
+        return VStack(alignment: .leading, spacing: 9) {
+            Text("전날 수면시간")
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
-            Text(value ?? "—")
-                .font(Typography.sectionTitle.weight(.bold))
+
+            HStack(alignment: .bottom, spacing: 6) {
+                if let hours, let minutes {
+                    // 숫자만 크게, "시간"/"분" 단위 글자는 작게 — 최근 HRV 카드의 값+단위(ms)와
+                    // 같은 위계를 시간·분 두 쌍 모두에 적용한다.
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text("\(hours)")
+                            .font(Typography.sectionTitle.weight(.bold))
+                        Text("시간")
+                            .font(Typography.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(minutes)")
+                            .font(Typography.sectionTitle.weight(.bold))
+                        Text("분")
+                            .font(Typography.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("—")
+                        .font(Typography.sectionTitle.weight(.bold))
+                }
+
+                if let difference = viewModel.previousNightSleepDurationDifferenceMinutes {
+                    let roundedDifference = Int(abs(difference).rounded())
+                    Text("\(difference >= 0 ? "↑" : "↓") \(roundedDifference)분")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(minHeight: 72, alignment: .topLeading)

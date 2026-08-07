@@ -35,6 +35,9 @@ final class HomeViewModel {
     private(set) var latestRMSSDValue: Double?
     private(set) var latestRMSSDComparison: LatestRMSSDComparison?
     private(set) var previousNightSleepDuration: TimeInterval?
+    // "전날 수면시간" 카드에 평균(최근 30일 기준 밤들) 대비 몇 분 더 자거나 덜 잤는지 보여주기
+    // 위한 값 — 사건 판정에 필요한 나머지 값들과 무관하게 기준 밤만 있으면 계산할 수 있어서 따로 둔다.
+    private(set) var previousNightSleepDurationDifferenceMinutes: Double?
 
     private(set) var todayMoodScore: Int?
     private(set) var moodErrorMessage: String?
@@ -160,20 +163,31 @@ final class HomeViewModel {
                 // 그 밤 수면 기록 자체가 없으면 전날 수면시간도 진짜로 없는 것이므로 비운다 —
                 // clearDailyBriefing()은 이 값을 건드리지 않아서(아래 참고) 여기서 직접 비운다.
                 previousNightSleepDuration = nil
+                previousNightSleepDurationDifferenceMinutes = nil
                 clearDailyBriefing()
                 return
             }
             // 사건 판정용 기준 밤이나 중앙값 계산이 이후에 실패해도(clearDailyBriefing 호출) 전날 밤
             // 수면 자체는 이미 확인됐으므로 계속 보여준다.
-            previousNightSleepDuration = currentRange.stageDurations.values.reduce(0, +)
+            let currentNightSleepDuration = currentRange.stageDurations.values.reduce(0, +)
+            previousNightSleepDuration = currentNightSleepDuration
             let currentNight = SleepAnalysisService.nightLabel(for: currentRange.start)
 
             let previousRanges = ranges
                 .filter { SleepAnalysisService.nightLabel(for: $0.start) < currentNight }
                 .suffix(DailyBriefingConfiguration.sleepBaselineNightCount)
+            // 매 로드마다 새로 계산해서, 기준 밤이 부족해 아래서 못 채우는 경우 이전 날짜의 값이
+            // 그대로 남아있지 않게 한다.
+            previousNightSleepDurationDifferenceMinutes = nil
             guard !previousRanges.isEmpty else {
                 clearDailyBriefing()
                 return
+            }
+            if let sleepDurationMedianForCard = previousRanges
+                .map({ $0.stageDurations.values.reduce(0, +) })
+                .median {
+                previousNightSleepDurationDifferenceMinutes =
+                    (currentNightSleepDuration - sleepDurationMedianForCard) / 60
             }
 
             let current = Self.briefingNight(range: currentRange, timeline: timeline, rmssd: rmssdSamples)
