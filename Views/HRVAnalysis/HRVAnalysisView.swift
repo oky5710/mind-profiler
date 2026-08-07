@@ -221,6 +221,15 @@ struct HRVAnalysisView: View {
         viewModel.hasLoadedHealthKitData(start: visibleStart, end: visibleEnd)
     }
 
+    // 스크롤/모드 전환 중 배경에서 다시 불러오는 동안에도 기존 차트를 그대로 보여줘야 화면이
+    // 깜박이지 않는다 — 전체 화면 스피너는 지금 보여줄 데이터가 하나도 없을 때만 쓴다.
+    private var hasAnyChartData: Bool {
+        switch chartMode {
+        case .monthly: !viewModel.wearableRMSSDMonthlyStats.isEmpty || !viewModel.examPoints.isEmpty
+        case .hourly, .daily: hasAnyLineChartData
+        }
+    }
+
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
     var lineChartHeight: CGFloat {
         availableHeight * 0.4
@@ -329,7 +338,7 @@ struct HRVAnalysisView: View {
         // 모드 전환은 zoomScale과 스크롤 위치를 한 번에 바꾼다. 두 값을 따로 관찰하면 동일한
         // HealthKit 범위를 연속 두 번 요청하게 되므로 최종 viewport 하나만 관찰한다.
         .onChange(of: healthKitViewport) { _, viewport in
-            replaceHealthKitViewportLoad(with: viewport)
+            scheduleHealthKitViewportLoad(for: viewport)
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
@@ -337,7 +346,7 @@ struct HRVAnalysisView: View {
             recomputeRange()
             let end = latestVisibleEnd(for: newMode)
             let start = end.addingTimeInterval(-newMode.visibleDomain)
-            replaceHealthKitViewportLoad(with: HealthKitViewport(start: start, end: end))
+            scheduleHealthKitViewportLoad(for: HealthKitViewport(start: start, end: end), immediate: true)
         }
         .refreshable {
             await viewModel.reload()
@@ -373,38 +382,24 @@ struct HRVAnalysisView: View {
         HealthKitViewport(start: visibleStart, end: visibleEnd)
     }
 
-    private func replaceHealthKitViewportLoad(with viewport: HealthKitViewport) {
-        let previousTask = healthKitViewportLoadTask
-        previousTask?.cancel()
+    // 스크롤(드래그)은 한 번의 제스처 동안 healthKitViewport를 수십 번 바꾼다 — 그때마다 실제
+    // HealthKit 조회를 시작하면 (1) 화면이 계속 로딩 상태로 깜박이고 (2) 취소되는 조회들이 서로
+    // 뒤엉켜 "이미 지나간" 구간이 캐시에 잘못 남을 수 있다(이전에 겪은 버그). 그래서 스크롤이
+    // 잠깐 멈출 때까지 기다렸다가, 마지막으로 멈춘 위치 단 하나에 대해서만 실제로 조회한다.
+    // 탭 전환처럼 사용자가 의도적으로 한 번 누른 동작(immediate: true)은 기다리지 않고 즉시
+    // 조회해야 "탭이 안 눌리는 것처럼" 느껴지지 않는다.
+    private static let scrollSettleDelay: Duration = .milliseconds(250)
 
+    private func scheduleHealthKitViewportLoad(for viewport: HealthKitViewport, immediate: Bool = false) {
+        healthKitViewportLoadTask?.cancel()
         healthKitViewportLoadTask = Task { @MainActor in
-            // RMSSDLocalStore 작업은 직렬화돼 있으므로 취소된 작업이 컨텍스트를 정리하고 잠금을 넘긴
-            // 다음 새 범위를 요청해야 한다. 기다리는 동안 이 Task까지 다시 취소되면 새 조회는 생략한다.
-            if let previousTask { await previousTask.value }
-            guard !Task.isCancelled else { return }
-
-            var didReload = await viewModel.ensureHealthKitDataLoaded(
-                visibleStart: viewport.start,
-                visibleEnd: viewport.end
-            )
-            guard !Task.isCancelled,
-                  healthKitViewport == viewport
-            else { return }
-
-            // 빠르게 스크롤하는 동안 취소·대체된 이전 요청이 마침 이 구간을 덮는 넓은 창을 이미
-            // "로드됨"으로 남겨두면, isWithinLoadedRange가 안전 여백 안이라고 보고 다시 조회하지
-            // 않아 실제로는 빈 결과가 그대로 남는다 — 그 경우만 한 번 강제로 다시 불러와 스스로
-            // 교정한다(당겨서 새로고침과 같은 동작).
-            if isVisibleHealthKitRangeLoaded, hasAnyLineChartData, currentRMSSDPoints.isEmpty, chartMode != .monthly {
-                didReload = await viewModel.ensureHealthKitDataLoaded(
-                    visibleStart: viewport.start,
-                    visibleEnd: viewport.end,
-                    force: true
-                )
-                guard !Task.isCancelled, healthKitViewport == viewport else { return }
+            if !immediate {
+                try? await Task.sleep(for: Self.scrollSettleDelay)
+                guard !Task.isCancelled else { return }
             }
-
-            if didReload { recomputeRange() }
+            if await viewModel.ensureHealthKitDataLoaded(visibleStart: viewport.start, visibleEnd: viewport.end) {
+                recomputeRange()
+            }
         }
     }
 
@@ -721,7 +716,7 @@ struct HRVAnalysisView: View {
                     .foregroundStyle(.red)
             }
 
-            if viewModel.isLoading || viewModel.isLoadingHealthKit || !isVisibleHealthKitRangeLoaded {
+            if viewModel.isLoading || (viewModel.isLoadingHealthKit && !hasAnyChartData) {
                 HeartLoader(height: lineChartHeight)
             } else if chartMode == .monthly {
                 if viewModel.wearableRMSSDMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
