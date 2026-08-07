@@ -383,13 +383,27 @@ struct HRVAnalysisView: View {
             if let previousTask { await previousTask.value }
             guard !Task.isCancelled else { return }
 
-            let didReload = await viewModel.ensureHealthKitDataLoaded(
+            var didReload = await viewModel.ensureHealthKitDataLoaded(
                 visibleStart: viewport.start,
                 visibleEnd: viewport.end
             )
             guard !Task.isCancelled,
                   healthKitViewport == viewport
             else { return }
+
+            // 빠르게 스크롤하는 동안 취소·대체된 이전 요청이 마침 이 구간을 덮는 넓은 창을 이미
+            // "로드됨"으로 남겨두면, isWithinLoadedRange가 안전 여백 안이라고 보고 다시 조회하지
+            // 않아 실제로는 빈 결과가 그대로 남는다 — 그 경우만 한 번 강제로 다시 불러와 스스로
+            // 교정한다(당겨서 새로고침과 같은 동작).
+            if isVisibleHealthKitRangeLoaded, hasAnyLineChartData, currentRMSSDPoints.isEmpty, chartMode != .monthly {
+                didReload = await viewModel.ensureHealthKitDataLoaded(
+                    visibleStart: viewport.start,
+                    visibleEnd: viewport.end,
+                    force: true
+                )
+                guard !Task.isCancelled, healthKitViewport == viewport else { return }
+            }
+
             if didReload { recomputeRange() }
         }
     }
