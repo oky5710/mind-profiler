@@ -124,11 +124,14 @@ final class HomeViewModel {
                 samples: recentRMSSD,
                 sleepRanges: recentSleepRanges
             )
-            recoveryScore = RecoveryScoreBuilder.build(
+            // 회복 지수 상한(수면시간 기준)은 "전날 밤" 수면이 확인돼야 적용할 수 있어서, z는 여기서
+            // 미리 구해 두고 아래에서 currentNightSleepDuration이 나온 뒤 다시 score(forZ:)로 씌운다.
+            let recoveryZScore = RecoveryScoreBuilder.combinedZScore(
                 samples: recentRMSSD,
                 sleepRanges: recentSleepRanges,
                 day: now
             )
+            recoveryScore = recoveryZScore.map { RecoveryScoreBuilder.score(forZ: $0) }
             let latestRMSSDSample = rmssdSamples
                 .filter { $0.date <= now }
                 .max { $0.date < $1.date }
@@ -171,6 +174,13 @@ final class HomeViewModel {
             // 수면 자체는 이미 확인됐으므로 계속 보여준다.
             let currentNightSleepDuration = currentRange.stageDurations.values.reduce(0, +)
             previousNightSleepDuration = currentNightSleepDuration
+            // 전날 밤 수면이 이제 확인됐으니, 위에서 미리 구해 둔 z에 수면시간 상한을 다시 씌운다.
+            if let recoveryZScore {
+                recoveryScore = RecoveryScoreBuilder.score(
+                    forZ: recoveryZScore,
+                    sleepDurationHours: currentNightSleepDuration / 3_600
+                )
+            }
             let currentNight = SleepAnalysisService.nightLabel(for: currentRange.start)
 
             let previousRanges = ranges

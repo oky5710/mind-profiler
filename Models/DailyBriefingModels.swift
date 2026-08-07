@@ -31,6 +31,16 @@ enum RecoveryScoreConfiguration {
     static let pointsPerZScore = 10.0
     static let minimumScore = 0.0
     static let maximumScore = 100.0
+
+    // 전날 수면시간이 부족하면 HRV 편차만으로 회복 지수가 100점까지 올라가는 게 어색해 보여서,
+    // 수면시간에 따라 상한을 둔다. 기준 시간 내림차순으로 검사해 처음 맞는 항목의 상한을 쓴다
+    // (마지막 0시간 항목이 나머지 전부를 받는다).
+    static let sleepDurationCaps: [(minimumHours: Double, maximumScore: Double)] = [
+        (7, .infinity),
+        (6, 95),
+        (5, 85),
+        (0, 75),
+    ]
 }
 
 struct RecoveryScore {
@@ -95,13 +105,24 @@ enum RecoveryScoreBuilder {
 
     static func score(
         forZ combinedZ: Double,
+        sleepDurationHours: Double? = nil,
         baseScore: Double = RecoveryScoreConfiguration.baseScore,
         pointsPerZScore: Double = RecoveryScoreConfiguration.pointsPerZScore
     ) -> RecoveryScore {
-        let rawScore = baseScore + combinedZ * pointsPerZScore
+        var rawScore = baseScore + combinedZ * pointsPerZScore
+        if let sleepDurationHours {
+            rawScore = min(rawScore, sleepDurationCap(forHours: sleepDurationHours))
+        }
         return RecoveryScore(value: Int(rawScore.clamped(
             to: RecoveryScoreConfiguration.minimumScore...RecoveryScoreConfiguration.maximumScore
         ).rounded()))
+    }
+
+    private static func sleepDurationCap(forHours hours: Double) -> Double {
+        for (minimumHours, maximumScore) in RecoveryScoreConfiguration.sleepDurationCaps where hours >= minimumHours {
+            return maximumScore
+        }
+        return RecoveryScoreConfiguration.maximumScore
     }
 
     private static func period(
