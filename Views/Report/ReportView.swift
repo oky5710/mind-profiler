@@ -16,13 +16,6 @@ struct ReportView: View {
         return formatter
     }()
 
-    private static let dateTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
     private static let weekdaySymbols = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"]
 
     // ui-style.md "날짜 표기" 규칙 — 인접 포인트 간격이 하루 이상 30일 미만이면 MM-dd 표기.
@@ -99,7 +92,6 @@ struct ReportView: View {
                         hourlyPatternSection
                         rmssdLowestFindingsSection
                         rmssdLowestDaysTableSection
-                        sdnnRmssdSection
                     } else if viewModel.isAnalyzing {
                         HeartLoader(height: 200)
                     } else {
@@ -119,13 +111,18 @@ struct ReportView: View {
                     Text("보고서").font(Typography.screenTitle)
                 }
             }
+            // 화면에 처음 들어오면 기본 기간(최근 30일)으로 바로 한 번 분석해서 보여준다 — 그 다음부터는
+            // 기간을 새로 고를 때만(datePickers의 onConfirm) 다시 분석한다.
+            .task {
+                guard !viewModel.hasAnalyzed else { return }
+                await viewModel.analyze()
+            }
         }
     }
 
     // 화면에는 별도의 "분석" 버튼이 없다 — 기간(시작일~종료일) 입력 하나를 탭하면 뜨는 시트 안에
-    // 분석 버튼이 있고, 그 버튼을 누르면 시트가 닫히면서 바로 분석한다. 처음 들어왔을 때는 자동으로
-    // 분석하지 않고 "분석 기간을 선택해주세요" 안내만 보여준다 — 사용자가 직접 기간을 확인/조정하고
-    // 분석을 눌러야 한다.
+    // 분석 버튼이 있고, 그 버튼을 누르면 시트가 닫히면서 바로 분석한다. 처음 들어왔을 때는 기본
+    // 기간(최근 30일)으로 자동 분석하고, 그 뒤로는 사용자가 기간을 바꿔 다시 분석을 눌러야 한다.
     private var datePickers: some View {
         PeriodRangeRow(
             startDate: $viewModel.previousVisitDate,
@@ -914,52 +911,6 @@ struct ReportView: View {
             Text(value ?? "—")
                 .font(.caption2)
         }
-    }
-
-    // MARK: - SDNN vs rMSSD
-
-    private var sdnnRmssdSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("SDNN vs rMSSD 차이 Top 3").font(Typography.reportSectionTitle)
-                .padding(.bottom, 8)
-
-            if viewModel.topSDNNRMSSDDifferences.isEmpty {
-                Text("해당 기간에 비교할 데이터가 없어요")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                    GridRow {
-                        Text("일시").font(.caption2).foregroundStyle(.secondary)
-                        Text("SDNN").font(.caption2).foregroundStyle(.secondary)
-                        Text("rMSSD").font(.caption2).foregroundStyle(.secondary)
-                        Text("차이").font(.caption2).foregroundStyle(.secondary)
-                    }
-                    tableRowDivider(columns: 4)
-
-                    ForEach(viewModel.topSDNNRMSSDDifferences) { diff in
-                        GridRow {
-                            Text(Self.dateTimeFormatter.string(from: diff.date)).font(.caption2)
-                            Text("\(String(format: "%.0f", diff.sdnn))ms").font(.caption2)
-                            Text("\(String(format: "%.0f", diff.rmssd))ms").font(.caption2)
-                            Text("\(String(format: "%.0f", diff.difference))ms").font(.caption2)
-                        }
-                        tableRowDivider(columns: 4)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .panelCard()
-    }
-
-    // Grid 안에서 GridRow로 감싸지 않고 바로 두면 그 한 줄이 되고, gridCellColumns(columns)로
-    // 칸을 전부 차지하게 해서 표 너비 전체를 가로지르는 구분선이 된다.
-    private func tableRowDivider(columns: Int) -> some View {
-        Rectangle()
-            .fill(Theme.systemGray5)
-            .frame(height: 1)
-            .gridCellColumns(columns)
     }
 
 }

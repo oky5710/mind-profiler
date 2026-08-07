@@ -27,14 +27,6 @@ final class ReportViewModel {
         let mostFrequentLowestHour: Int?
     }
 
-    struct SDNNRMSSDDifference: Identifiable {
-        let id = UUID()
-        let date: Date
-        let sdnn: Double
-        let rmssd: Double
-        var difference: Double { abs(sdnn - rmssd) }
-    }
-
     // 변동계수(CV) = 표준편차 ÷ 평균 × 100 — rMSSD 기준.
     struct CVFindings {
         // 기간 내 모든 원시(시간별) rMSSD 샘플 분포로 계산한 전체 변동계수(%).
@@ -83,7 +75,6 @@ final class ReportViewModel {
     private(set) var cvFindings: CVFindings?
     private(set) var hourOfDayPattern: [HourOfDayPoint] = []
     private(set) var rmssdFindings: RMSSDLowestFindings?
-    private(set) var topSDNNRMSSDDifferences: [SDNNRMSSDDifference] = []
     private(set) var vitalMedians: VitalMedians?
     private(set) var rmssdLowestDayRows: [RMSSDLowestDayRow] = []
 
@@ -145,10 +136,6 @@ final class ReportViewModel {
                 sleepSamplesTask, rmssdSamplesTask, sdnnSamplesTask, restingHeartRateSamplesTask,
                 workoutsTask, calendarEventsTask, lifeEventsTask, manualExercisesTask
             )
-            // rMSSD/SDNN을 이미 위에서 받아왔으니, fetchSDNNRMSSDPairs()를 또 불러서 HealthKit을
-            // 중복 조회하는 대신 이미 가진 배열로 짝만 짓는다.
-            let allPairs = HealthKitService.pairSDNNAndRMSSD(sdnn: allSDNNSamples, rmssd: allRMSSDSamples)
-
             // 수면은 기간 경계에 걸친 밤이 중간에 잘리지 않도록 전체 샘플을 먼저 병합한 뒤,
             // 그 기간에 속하는 밤만 추린다 — 세션의 실제 시작 시각이 아니라 나이트 라벨(위 "수면"
             // 참고: 오전 10시 이전 시작은 전날 밤으로 취급)로 판정해야, 이 목록이 차트에 실제로
@@ -181,13 +168,6 @@ final class ReportViewModel {
                 sdnn: periodSDNN.isEmpty ? nil : HRVStatistics.median(periodSDNN),
                 rmssd: periodRMSSD.isEmpty ? nil : HRVStatistics.median(periodRMSSD.map(\.value))
             )
-
-            let periodPairs = allPairs.filter { $0.date >= start && $0.date < end }
-            topSDNNRMSSDDifferences = periodPairs
-                .map { SDNNRMSSDDifference(date: $0.date, sdnn: $0.sdnn, rmssd: $0.rmssd) }
-                .sorted { $0.difference > $1.difference }
-                .prefix(3)
-                .map { $0 }
 
             // HealthKit 운동과 수동 입력 운동(캘린더 ExerciseEntryForm)을 합쳐 아래 rMSSD 최저일
             // 요약에서 전날 운동으로 사용한다.
