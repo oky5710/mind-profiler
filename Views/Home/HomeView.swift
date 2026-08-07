@@ -179,18 +179,27 @@ struct HomeView: View {
                 }
 
                 if let difference = viewModel.previousNightSleepDurationDifferenceMinutes {
-                    let roundedDifference = Int(abs(difference).rounded())
-                    Text("\(difference >= 0 ? "↑" : "↓") \(roundedDifference)분")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
+                    comparisonText(isHigher: difference >= 0, detail: "\(Int(abs(difference).rounded()))분")
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 72, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // 화살표만 방향에 따라 색을 준다 — 높음(초록)/낮음(빨강, 눈을 덜 아프게 절반쯽 밝기). 나머지
+    // 수치·문구는 계속 회색으로 둬서 화살표 색만 눈에 띄게 한다.
+    private func comparisonText(isHigher: Bool, detail: String) -> some View {
+        HStack(spacing: 2) {
+            Text(isHigher ? "↑" : "↓")
+                .foregroundStyle(isHigher ? Theme.systemGreen : Theme.systemRed.opacity(0.6))
+            Text(detail)
+                .foregroundStyle(.secondary)
+        }
+        .font(Typography.caption)
     }
 
     private var latestHRVStat: some View {
@@ -212,14 +221,15 @@ struct HomeView: View {
 
                 if let comparison = viewModel.latestRMSSDComparison {
                     let roundedDifference = Int(abs(comparison.difference).rounded())
-                    Text("\(comparison.difference >= 0 ? "↑" : "↓") \(roundedDifference)ms · \(comparison.status.label)")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
+                    comparisonText(
+                        isHigher: comparison.difference >= 0,
+                        detail: "\(roundedDifference)ms · \(comparison.status.label)"
+                    )
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 72, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
