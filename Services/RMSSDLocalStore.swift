@@ -6,7 +6,9 @@ final class RMSSDLocalStore {
     static let shared = RMSSDLocalStore()
     static let calculationVersion = 1
     // 수면 세션 병합 기준이 1시간에서 2시간으로 바뀌어 과거 시간대 분류도 다시 만들어야 한다.
-    static let aggregationVersion = 2
+    // 3: window(start:end:)가 하루 중간에서 끊긴 채로 요약을 계산해 완성됨으로 잘못 고정해 둔
+    // 기존 캐시를 무효화한다(날짜 경계로 넓혀 조회하도록 고친 변경과 함께).
+    static let aggregationVersion = 3
     static let monthlyAggregationVersion = 1
 
     private let container: ModelContainer
@@ -95,28 +97,38 @@ final class RMSSDLocalStore {
     func window(start: Date, end: Date) async throws -> RMSSDWindowDTO {
         try await acquireOperation()
         defer { releaseOperation() }
-        let affectedDays = try await synchronize(start: start, end: end)
-        let cachedMeasurements = try measurements(start: start, end: end)
+        // start/end는 스크롤 위치 중심으로 계산된 임의 시각이라 하루 중간에서 끊길 수 있다. 그대로
+        // 쓰면 그 날의 이른 아침/늦은 밤 측정이 이번 조회에서 빠진 채로 그 날 중앙값이 "완성됨"으로
+        // 캐시에 고정되고, aggregationVersion이 이미 "현재"라 나중에 그 날을 온전히 포함하는 조회를
+        // 해도(예: 화면을 그 날짜 중앙으로 스크롤) 다시 계산되지 않는다 — synchronize()가 그 사이
+        // HealthKit에서 새 UUID를 못 찾으면 affectedDays에도 안 잡혀서 자연 치유도 안 된다. 항상
+        // 날짜 경계로 넓혀서 조회해 하루치 요약은 항상 하루 전체 데이터로 계산되게 한다.
+        let calendar = Calendar.current
+        let alignedStart = calendar.startOfDay(for: start)
+        let alignedEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end)) ?? end
+
+        let affectedDays = try await synchronize(start: alignedStart, end: alignedEnd)
+        let cachedMeasurements = try measurements(start: alignedStart, end: alignedEnd)
         let daysToRebuild = try summaryDaysToRebuild(
-            start: start,
-            end: end,
+            start: alignedStart,
+            end: alignedEnd,
             measurements: cachedMeasurements,
             affectedDays: affectedDays
         )
         if !daysToRebuild.isEmpty {
             try await rebuildSummaries(days: daysToRebuild, measurements: cachedMeasurements)
         }
-        let dailySummaries = try fetchSummaries(start: start, end: end)
+        let dailySummaries = try fetchSummaries(start: alignedStart, end: alignedEnd)
         try rebuildCompletedMonthlySummaries(
-            start: start,
-            end: end,
+            start: alignedStart,
+            end: alignedEnd,
             dailySummaries: dailySummaries,
             affectedDays: daysToRebuild
         )
         return RMSSDWindowDTO(
             measurements: cachedMeasurements,
             summaries: dailySummaries,
-            monthlySummaries: try fetchMonthlySummaries(start: start, end: end)
+            monthlySummaries: try fetchMonthlySummaries(start: alignedStart, end: alignedEnd)
         )
     }
 
