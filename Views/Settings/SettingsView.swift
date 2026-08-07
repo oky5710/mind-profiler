@@ -56,6 +56,12 @@ struct SettingsView: View {
                     Label("개발자에게 문의하기", systemImage: "envelope")
                 }
 
+                NavigationLink {
+                    PrivacyPolicyView()
+                } label: {
+                    Label("개인정보 처리방침", systemImage: "hand.raised")
+                }
+
                 Section {
                     Button(role: .destructive) {
                         isShowingSignOutConfirmation = true
@@ -188,6 +194,166 @@ private struct DeveloperContactView: View {
         openURL(url) { accepted in
             if !accepted {
                 isShowingMailError = true
+            }
+        }
+    }
+}
+
+private struct PrivacyPolicyView: View {
+    var body: some View {
+        List {
+            Section {
+                Text("최종 업데이트: 2026년 8월 8일")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                paragraph("Mind Profiler(이하 \"앱\")는 이용자의 개인정보를 중요하게 생각하며, 관련 법령을 준수합니다. 본 개인정보 처리방침은 앱에서 수집하는 정보와 이용 목적, 보관 방법 및 이용자의 권리를 안내하기 위해 작성되었습니다.")
+            }
+
+            policySection("1. 수집하는 정보") {
+                paragraph("앱은 다음 정보를 수집하거나 접근할 수 있습니다.")
+                subheading("① 계정 정보")
+                bullets([
+                    "Google 로그인 계정 정보",
+                    "이메일 주소",
+                    "사용자 식별을 위한 고유 ID",
+                ])
+                subheading("② 건강 정보 (HealthKit)")
+                paragraph("사용자가 권한을 허용한 경우에만 다음 정보를 읽습니다.")
+                bullets([
+                    "심박변이(HRV)",
+                    "심박수",
+                    "수면 데이터",
+                    "운동 데이터",
+                    "기타 사용자가 명시적으로 접근을 허용한 건강 데이터",
+                ])
+                paragraph("HealthKit 데이터는 사용자의 건강 패턴 분석 및 시각화를 위해서만 사용됩니다.")
+                subheading("③ 사용자가 직접 입력한 정보")
+                bullets([
+                    "기분 기록",
+                    "복용 약 정보",
+                    "메모",
+                    "기타 사용자가 직접 입력한 정보",
+                ])
+                subheading("④ 기술 정보")
+                paragraph("앱의 안정적인 운영을 위해 다음 정보가 수집될 수 있습니다.")
+                bullets([
+                    "앱 버전",
+                    "운영체제 버전",
+                    "오류 로그(있는 경우)",
+                ])
+            }
+
+            policySection("2. 개인정보의 이용 목적") {
+                paragraph("수집한 정보는 다음 목적으로만 이용합니다.")
+                bullets([
+                    "개인 맞춤형 건강 패턴 분석",
+                    "회복 지수 및 통계 제공",
+                    "차트 및 보고서 생성",
+                    "사용자 설정 저장",
+                    "앱 오류 수정 및 서비스 개선",
+                ])
+            }
+
+            policySection("3. HealthKit 데이터 이용") {
+                paragraph("HealthKit 데이터는 Apple의 HealthKit 정책을 준수하여 처리됩니다.")
+                bullets([
+                    "사용자의 명시적인 동의가 있는 경우에만 접근합니다.",
+                    "광고 또는 마케팅 목적으로 사용하지 않습니다.",
+                    "제3자에게 판매하거나 제공하지 않습니다.",
+                    "사용자의 건강 정보를 광고에 활용하지 않습니다.",
+                    "**HealthKit에서 읽은 건강 데이터는 사용자의 기기 내에서만 분석됩니다.**",
+                    "**HealthKit 데이터는 당사 서버로 전송하거나 저장하지 않습니다.**",
+                    "**회복 지수, 패턴 분석 등은 사용자의 기기에서 로컬로 계산되며, 사용자의 명시적인 동의 없이 외부로 전송되지 않습니다.**",
+                ])
+            }
+
+            policySection("4. 개인정보의 보관") {
+                paragraph("개인정보는 서비스 제공에 필요한 기간 동안만 보관합니다.")
+                paragraph("사용자가 계정을 삭제하거나 삭제를 요청하는 경우 관련 법령에 따라 보관이 필요한 정보를 제외하고 지체 없이 삭제합니다.")
+            }
+
+            policySection("5. 개인정보의 제3자 제공") {
+                paragraph("앱은 이용자의 개인정보를 판매하거나 제3자에게 제공하지 않습니다.")
+                paragraph("다만 다음의 경우에는 예외로 합니다.")
+                bullets([
+                    "이용자의 별도 동의가 있는 경우",
+                    "법령에 따른 요청이 있는 경우",
+                ])
+            }
+
+            policySection("6. 개인정보 처리 위탁") {
+                paragraph("서비스 운영을 위해 일부 업무를 외부 서비스에 위탁할 수 있습니다.")
+                subheading("예시")
+                bullets([
+                    "Google 로그인",
+                    "클라우드 서버",
+                    "오류 분석 서비스",
+                ])
+                paragraph("위탁업체가 변경되는 경우 본 개인정보 처리방침을 통해 안내합니다.")
+            }
+
+            policySection("7. 이용자의 권리") {
+                paragraph("이용자는 언제든지 다음 권리를 행사할 수 있습니다.")
+                bullets([
+                    "개인정보 열람",
+                    "개인정보 수정",
+                    "개인정보 삭제 요청",
+                    "HealthKit 권한 철회",
+                ])
+                paragraph("HealthKit 권한은 iPhone의 **설정 > 건강 > 데이터 접근 및 기기**에서 변경할 수 있습니다.")
+            }
+
+            policySection("8. 의료 관련 안내") {
+                paragraph("본 앱은 건강 관리 및 개인 기록을 위한 서비스입니다.")
+                paragraph("앱에서 제공하는 분석 결과와 회복 지수는 참고용 정보이며 의료진의 진단, 치료 또는 의학적 판단을 대체하지 않습니다.")
+                paragraph("건강에 이상이 있다고 판단되는 경우 반드시 의료 전문가와 상담하시기 바랍니다.")
+            }
+
+            policySection("9. 개인정보 보호") {
+                paragraph("앱은 개인정보 보호를 위해 합리적인 기술적·관리적 보호조치를 적용합니다.")
+            }
+
+            policySection("10. 개인정보 처리방침 변경") {
+                paragraph("본 개인정보 처리방침은 관련 법령 또는 서비스 변경에 따라 수정될 수 있습니다.")
+                paragraph("중요한 변경 사항이 있는 경우 앱 또는 홈페이지를 통해 안내합니다.")
+            }
+
+            policySection("11. 문의") {
+                paragraph("개인정보 처리와 관련한 문의는 아래 연락처로 문의해 주시기 바랍니다.")
+                Link("이메일: oky5710@gmail.com", destination: URL(string: "mailto:oky5710@gmail.com")!)
+            }
+        }
+        .contentMargins(.top, 10, for: .scrollContent)
+        .navigationTitle("개인정보 처리방침")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func policySection<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Section {
+            content()
+        } header: {
+            Text(title)
+        }
+    }
+
+    private func subheading(_ text: String) -> some View {
+        Text(text).font(.subheadline.bold())
+    }
+
+    private func paragraph(_ text: String) -> some View {
+        Text(LocalizedStringKey(text))
+    }
+
+    private func bullets(_ items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(items, id: \.self) { item in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("•")
+                    paragraph(item)
+                }
             }
         }
     }
