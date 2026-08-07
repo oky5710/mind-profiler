@@ -179,8 +179,11 @@ struct HRVAnalysisView: View {
         return points.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
     }
 
+    // SDNN은 연구자·관리자에게만 참고용으로 보여준다 — 일반 사용자에게는 낯선 지표라 rMSSD/HRV와
+    // 헷갈릴 수 있다.
     var visibleSDNNPoints: [HRVAnalysisViewModel.HRVPoint] {
-        viewModel.wearableSDNNPointsHourly.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
+        guard authViewModel.usesResearcherTerminology else { return [] }
+        return viewModel.wearableSDNNPointsHourly.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
     }
 
     var visibleExamPoints: [HRVAnalysisViewModel.ExamPoint] {
@@ -515,7 +518,8 @@ struct HRVAnalysisView: View {
     // SDNN은 시간별 모드에서만 그려지므로(hiddenSeries로 꺼져 있어도 마찬가지) 그 외에는 nil —
     // 툴팁이 찾는 rMSSD 포인트와 정확히 같은 시각의 샘플이 없을 수 있어 가장 가까운 값을 쓴다.
     private func nearestSDNNValue(to date: Date) -> Double? {
-        guard chartMode == .hourly, !hiddenSeries.contains(.sdnn) else { return nil }
+        guard authViewModel.usesResearcherTerminology,
+              chartMode == .hourly, !hiddenSeries.contains(.sdnn) else { return nil }
         return viewModel.wearableSDNNPointsHourly.min {
             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }?.value
@@ -799,7 +803,10 @@ struct HRVAnalysisView: View {
     }
 
     private var legendItems: [LegendItem] {
-        HRVSeries.allCases.filter { $0.appliesTo(chartMode) }.flatMap { series -> [LegendItem] in
+        HRVSeries.allCases
+            .filter { $0.appliesTo(chartMode) }
+            .filter { $0 != .sdnn || authViewModel.usesResearcherTerminology }
+            .flatMap { series -> [LegendItem] in
             if series == .rmssd, chartMode == .monthly {
                 // 두 스와치의 실제 그림 크기가 달라도 같은 12x14 칸 안에 가운데 정렬한다.
                 return [

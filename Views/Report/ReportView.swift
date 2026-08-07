@@ -2,6 +2,7 @@ import Charts
 import SwiftUI
 
 struct ReportView: View {
+    @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = ReportViewModel()
     @State private var selectedSleepRange: SleepRange?
     @State private var selectedCVDailyPoint: ReportViewModel.CVDailyPoint?
@@ -147,7 +148,9 @@ struct ReportView: View {
                 HStack(spacing: 12) {
                     vitalPanel(title: "안정시 심박수", value: vitals.restingHeartRate.map { "\(Int($0.rounded()))" }, unit: "bpm")
                     vitalPanel(title: "rMSSD", value: vitals.rmssd.map { "\(Int($0.rounded()))" }, unit: "ms")
-                    vitalPanel(title: "SDNN", value: vitals.sdnn.map { "\(Int($0.rounded()))" }, unit: "ms")
+                    if authViewModel.usesResearcherTerminology {
+                        vitalPanel(title: "SDNN", value: vitals.sdnn.map { "\(Int($0.rounded()))" }, unit: "ms")
+                    }
                 }
             } else {
                 Text("해당 기간에 심박수/HRV 데이터가 없어요")
@@ -1119,4 +1122,5 @@ private extension View {
 
 #Preview {
     ReportView()
+        .environment(AuthViewModel())
 }
