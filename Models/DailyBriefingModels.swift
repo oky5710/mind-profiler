@@ -24,7 +24,11 @@ enum DailyBriefingConfiguration {
 }
 
 enum RecoveryScoreConfiguration {
-    static let pointsPerZScore = 15.0
+    // 통합 편차(combinedZ) == 0(최근 30일 기준과 동일한 상태)일 때 몇 점으로 보일지. 50점은
+    // "평균"이라는 통계적 의미보다 "절반밖에 회복되지 않았다"로 읽혀서, 평소 상태를 75점으로
+    // 올리고 편차 1당 배점(10)도 같이 낮춰 0~100 끝까지 쓰기 쉽게 했다.
+    static let baseScore = 75.0
+    static let pointsPerZScore = 10.0
     static let minimumScore = 0.0
     static let maximumScore = 100.0
 }
@@ -34,9 +38,9 @@ struct RecoveryScore {
 
     var label: String {
         switch value {
-        case 85...: "Excellent"
-        case 70..<85: "Good"
-        case 50..<70: "Fair"
+        case 90...: "Excellent"
+        case 80..<90: "Good"
+        case 70..<80: "Typical"
         default: "Low"
         }
     }
@@ -50,6 +54,19 @@ enum RecoveryScoreBuilder {
         sleepRanges: [SleepRange],
         day: Date = Date()
     ) -> RecoveryScore? {
+        guard let combinedZ = combinedZScore(samples: samples, sleepRanges: sleepRanges, day: day) else {
+            return nil
+        }
+        return score(forZ: combinedZ)
+    }
+
+    // 최종 점수 변환(baseScore + z × pointsPerZScore)과 분리해 둔다 — 진단용 분포 확인 도구가
+    // 같은 z 하나로 여러 배점 후보를 동시에 비교해볼 수 있게 하기 위함(RecoveryScoreDistributionView 참고).
+    static func combinedZScore(
+        samples: [(date: Date, value: Double)],
+        sleepRanges: [SleepRange],
+        day: Date = Date()
+    ) -> Double? {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: day)
         var history: [Period: [Double]] = [:]
@@ -73,9 +90,15 @@ enum RecoveryScoreBuilder {
             return (HRVStatistics.median(currentValues) - median) / mad
         }
         guard !zScores.isEmpty else { return nil }
+        return zScores.reduce(0, +) / Double(zScores.count)
+    }
 
-        let combinedZ = zScores.reduce(0, +) / Double(zScores.count)
-        let rawScore = 50 + combinedZ * RecoveryScoreConfiguration.pointsPerZScore
+    static func score(
+        forZ combinedZ: Double,
+        baseScore: Double = RecoveryScoreConfiguration.baseScore,
+        pointsPerZScore: Double = RecoveryScoreConfiguration.pointsPerZScore
+    ) -> RecoveryScore {
+        let rawScore = baseScore + combinedZ * pointsPerZScore
         return RecoveryScore(value: Int(rawScore.clamped(
             to: RecoveryScoreConfiguration.minimumScore...RecoveryScoreConfiguration.maximumScore
         ).rounded()))
