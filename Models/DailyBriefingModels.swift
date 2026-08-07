@@ -38,10 +38,10 @@ struct RecoveryScore {
 
     var label: String {
         switch value {
-        case 90...: "Excellent"
-        case 80..<90: "Good"
-        case 70..<80: "Typical"
-        default: "Low"
+        case 90...: "🟢 회복이 좋아요"
+        case 80..<90: "🟡 평소 수준이에요"
+        case 70..<80: "🟠 조금 지쳤어요"
+        default: "🔴 회복이 필요해요"
         }
     }
 }

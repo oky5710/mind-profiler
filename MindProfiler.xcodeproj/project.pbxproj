@@ -55,6 +55,7 @@
 		7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */; };
 		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
 		8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */; };
+		9D1647913BF2A3B6BCE0664A /* RecoveryScoreDistributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */; };
 		8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */; };
 		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
 		899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */; };
@@ -193,6 +194,7 @@
 		C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisView.swift; sourceTree = "<group>"; };
 		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListView.swift; sourceTree = "<group>"; };
+		4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryScoreDistributionView.swift; sourceTree = "<group>"; };
 		D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RRIntervalExportViewModel.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
@@ -428,6 +430,7 @@
 				CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */,
 				FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */,
 				E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */,
+				4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -627,6 +630,7 @@
 				C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */,
 				5124DBB25C473642007675E2 /* ReminderListViewModel.swift in Sources */,
 				8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */,
+				9D1647913BF2A3B6BCE0664A /* RecoveryScoreDistributionView.swift in Sources */,
 				46FD50BDB7766225F32BF817 /* ReminderEntryForm.swift in Sources */,
 				EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */,
 				67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */,

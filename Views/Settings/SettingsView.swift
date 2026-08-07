@@ -67,6 +67,9 @@ struct SettingsView: View {
                         Button("rMSSD 높음 알림 테스트") {
                             Task { await RMSSDThresholdMonitorService.shared.debugTriggerNotification(direction: .high) }
                         }
+                        NavigationLink("회복 지수 분포 확인") {
+                            RecoveryScoreDistributionView()
+                        }
                     }
                 }
                 #endif
