@@ -96,6 +96,7 @@ extension HRVAnalysisView {
                 hourlyMarkerLane
             }
         }
+        .id(chartMode)
         // 상세 패널은 오버레이라 이 스택의 레이아웃 높이에 영향을 주지 않는다 — x축 위치(간트 차트
         // 바로 아래)에 붙여서 그 아래 범례 위에 겹쳐 보이게 한다. 히트 테스트는 켜둔 채로 둔다 —
         // 패널이 자기 영역의 탭을 그대로 흡수해야 뒤에 가려진 범례 버튼이 같이 눌리지 않는다.
@@ -115,9 +116,7 @@ extension HRVAnalysisView {
         let range = cachedRange
         let visibleStart = hrvScrollPosition
         let visibleEnd = hrvScrollPosition.addingTimeInterval(visibleDomain)
-        // currentRMSSDPoints는 HealthKit에서 가져온 전체 기간 데이터라, 그 개수로 판단하면 시간별 모드에서
-        // 실제로 보이는 건 하루치뿐이어도 과거 데이터가 많으면 점이 영영 안 뜨게 된다 — 보이는 구간만 센다.
-        let showRMSSDPointMarkers = currentRMSSDPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }.count <= 300
+        let showRMSSDPointMarkers = currentRMSSDPoints.count <= 300
         let yAxisUpperBound = min(
             max(ceil(range.max / 50) * 50, 50),
             Self.maximumRMSSDChartValue
@@ -130,7 +129,7 @@ extension HRVAnalysisView {
             // 두께를 rMSSD보다 굵게 하면 흐린 색과 별개로 오히려 더 튀어 보여서, 두께는 rMSSD와
             // 동일하게(기본값) 둔다.
             if chartMode == .hourly, !hiddenSeries.contains(.sdnn) {
-                ForEach(viewModel.wearableSDNNPointsHourly) { point in
+                ForEach(visibleSDNNPoints) { point in
                     LineMark(
                         x: .value("시간", point.date),
                         y: .value("SDNN", point.value),
@@ -215,7 +214,7 @@ extension HRVAnalysisView {
             }
 
             if !hiddenSeries.contains(.examRmssd) {
-                ForEach(viewModel.examPoints) { point in
+                ForEach(visibleExamPoints) { point in
                     PointMark(
                         x: .value("검사일", point.date),
                         y: .value("검사 rMSSD", point.rmssd)
@@ -308,7 +307,7 @@ extension HRVAnalysisView {
     var allDayEventDayMarkers: [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] {
         let calendar = Calendar.current
         return viewModel.calendarEventRanges
-            .filter(\.isAllDay)
+            .filter { $0.isAllDay && $0.start < visibleEnd && $0.end > visibleStart }
             .flatMap { event -> [(day: Date, event: HRVAnalysisViewModel.CalendarEventRange)] in
                 let dayCount = max(calendar.dateComponents([.day], from: event.start, to: event.end).day ?? 1, 1)
                 return (0..<dayCount).compactMap { offset in
@@ -321,10 +320,15 @@ extension HRVAnalysisView {
         // 종일 일정 마커는 body 계산 한 번에 아래 ForEach와 chartOverlay의 tooltipAllDayMarkers 둘 다
         // 필요해서, 한 번만 계산해 두고 재사용한다.
         let allDayMarkers = allDayEventDayMarkers
+        let visibleSleepRanges = viewModel.sleepRanges.filter { $0.start < visibleEnd && $0.end > visibleStart }
+        let visibleExerciseRanges = viewModel.exerciseRanges.filter { $0.start < visibleEnd && $0.end > visibleStart }
+        let visibleCalendarEvents = viewModel.calendarEventRanges.filter {
+            !$0.isAllDay && $0.start < visibleEnd && $0.end > visibleStart
+        }
 
         return Chart {
             if !hiddenSeries.contains(.sleep) {
-                ForEach(viewModel.sleepRanges) { interval in
+                ForEach(visibleSleepRanges) { interval in
                     let duration = interval.end.timeIntervalSince(interval.start)
                     let isShort = duration < Self.shortSleepThreshold
 
@@ -347,7 +351,7 @@ extension HRVAnalysisView {
             }
 
             if !hiddenSeries.contains(.exercise) {
-                ForEach(viewModel.exerciseRanges) { interval in
+                ForEach(visibleExerciseRanges) { interval in
                     RectangleMark(
                         xStart: .value("운동 시작", interval.start),
                         xEnd: .value("운동 끝", interval.end),
@@ -363,7 +367,7 @@ extension HRVAnalysisView {
             // 다르게 그린다 — 시간 일정은 전체 높이에 옅게 깐 막대, 종일 일정은 겹치는 막대 위에서도
             // 묻히지 않도록 흰 테두리가 있는 원(날짜당 하나)으로 표시한다.
             if !hiddenSeries.contains(.calendarEvent) {
-                ForEach(viewModel.calendarEventRanges.filter { !$0.isAllDay }) { event in
+                ForEach(visibleCalendarEvents) { event in
                     RectangleMark(
                         xStart: .value("일정 시작", event.start),
                         xEnd: .value("일정 끝", event.end),
@@ -415,9 +419,9 @@ extension HRVAnalysisView {
                     xAxisLabelBelow: false,
                     showsXAxisLabels: false,
                     showsXAxisBaseline: false,
-                    tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : viewModel.calendarEventRanges.filter { !$0.isAllDay },
-                    tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : viewModel.sleepRanges,
-                    tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : viewModel.exerciseRanges,
+                    tooltipRanges: hiddenSeries.contains(.calendarEvent) ? [] : visibleCalendarEvents,
+                    tooltipSleepRanges: hiddenSeries.contains(.sleep) ? [] : visibleSleepRanges,
+                    tooltipWorkoutRanges: hiddenSeries.contains(.exercise) ? [] : visibleExerciseRanges,
                     tooltipAllDayMarkers: hiddenSeries.contains(.calendarEvent) ? [] : allDayMarkers
                 )
                 ganttBorderOverlay(proxy: proxy)
@@ -550,8 +554,7 @@ extension HRVAnalysisView {
         )
     }
 
-    // 월별 모드는 주식 차트의 캔들스틱처럼 위쪽엔 rMSSD 최소~최대(심지)+1Q~3Q(몸통)+중앙값을,
-    // 원래 간트 차트가 있던 아래쪽엔 그 달의 CV(변동계수)를 막대로 보여준다.
+    // 월별 모드는 위쪽에 rMSSD 1Q~3Q와 중앙값을, 아래쪽에는 그 달의 CV를 보여준다.
     var monthlyChart: some View {
         VStack(spacing: 8) {
             monthlyCandlestickChart
@@ -591,18 +594,7 @@ extension HRVAnalysisView {
         return Chart {
             if !hiddenSeries.contains(.rmssd) {
                 ForEach(viewModel.wearableRMSSDMonthlyStats) { stat in
-                    // 주식 차트의 고가-저가 심지처럼, 최소~최대 범위를 얇은 세로선으로 — 박스보다
-                    // 먼저 그려서 제일 뒤로 보내고, 박스와 겹치는 부분은 박스 아래 가려지게 한다.
-                    RuleMark(
-                        x: .value("월", stat.monthStart, unit: .month),
-                        yStart: .value("최소", stat.min),
-                        yEnd: .value("최대", stat.max)
-                    )
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    .foregroundStyle(rmssdColor.opacity(0.5))
-
-                    // 박스플롯의 몸통처럼, 1Q~3Q 구간을 사각형으로 — 연보라(Theme.rmssdRange)로
-                    // 불투명하게 채워서 심지 위에 겹쳐도 박스 구간의 심지가 완전히 가려진다.
+                    // 1Q~3Q 구간을 연보라 사각형으로 표시한다.
                     RectangleMark(
                         x: .value("월", stat.monthStart, unit: .month),
                         yStart: .value("1Q", stat.q1),
@@ -625,7 +617,7 @@ extension HRVAnalysisView {
             }
 
             if !hiddenSeries.contains(.examRmssd) {
-                ForEach(viewModel.examPoints) { point in
+                ForEach(visibleExamPoints) { point in
                     PointMark(
                         x: .value("검사일", point.date),
                         y: .value("검사 rMSSD", point.rmssd)

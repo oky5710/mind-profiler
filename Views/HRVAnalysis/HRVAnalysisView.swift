@@ -91,6 +91,11 @@ enum HRVSeries: String, CaseIterable, Identifiable {
 }
 
 struct HRVAnalysisView: View {
+    struct HealthKitViewport: Equatable {
+        let start: Date
+        let end: Date
+    }
+
     static let maximumRMSSDChartValue = 150.0
     // 핀치 줌 배율 범위. 1.0이 chartMode의 기본 visibleDomain이고, 배율이 커질수록(최대 5배)
     // 화면에 보이는 기간이 좁아지고(확대), 작아질수록(최소 0.5배) 넓어진다(축소).
@@ -123,6 +128,9 @@ struct HRVAnalysisView: View {
     // 처음 나타날 때는 아래 .task들이 이미 최초 로딩을 하니, onAppear의 강제 재조회는 그 다음
     // 탭 재진입부터만 하면 된다 — 최초 진입에서 두 번 불러오는 낭비를 막는다.
     @State var hasAppearedBefore = false
+    // 스크롤·줌·탭 전환으로 바뀌는 HealthKit 범위 요청은 하나만 유지한다. 새 요청이 오면 이전
+    // Task를 취소하고 종료를 기다린 뒤 시작해, 월별 계산이 시간별 전환을 가로막지 않게 한다.
+    @State private var healthKitViewportLoadTask: Task<Void, Never>?
     @State private var selectedPatternSection: PatternSection = .hrv
 
     let rmssdColor = Theme.rmssd
@@ -160,11 +168,20 @@ struct HRVAnalysisView: View {
     }()
 
     var currentRMSSDPoints: [HRVAnalysisViewModel.HRVPoint] {
-        switch chartMode {
+        let points: [HRVAnalysisViewModel.HRVPoint] = switch chartMode {
         case .hourly: viewModel.wearableRMSSDPointsHourly
         case .daily: viewModel.wearableRMSSDPointsDaily
         case .monthly: []
         }
+        return points.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
+    }
+
+    var visibleSDNNPoints: [HRVAnalysisViewModel.HRVPoint] {
+        viewModel.wearableSDNNPointsHourly.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
+    }
+
+    var visibleExamPoints: [HRVAnalysisViewModel.ExamPoint] {
+        viewModel.examPoints.filter { $0.date >= visibleStart && $0.date <= visibleEnd }
     }
 
     // 일별 모드의 point.date는 실제 샘플 시각이 아니라 그날 자정(그날의 대표값)이라, 시간 오차로
@@ -194,10 +211,14 @@ struct HRVAnalysisView: View {
 
     private var hasAnyLineChartData: Bool {
         !currentRMSSDPoints.isEmpty
-            || !viewModel.examPoints.isEmpty
-            || !viewModel.sleepRanges.isEmpty
-            || !viewModel.exerciseRanges.isEmpty
-            || !viewModel.calendarEventRanges.isEmpty
+            || !visibleExamPoints.isEmpty
+            || viewModel.sleepRanges.contains { $0.start < visibleEnd && $0.end > visibleStart }
+            || viewModel.exerciseRanges.contains { $0.start < visibleEnd && $0.end > visibleStart }
+            || viewModel.calendarEventRanges.contains { $0.start < visibleEnd && $0.end > visibleStart }
+    }
+
+    private var isVisibleHealthKitRangeLoaded: Bool {
+        viewModel.hasLoadedHealthKitData(start: visibleStart, end: visibleEnd)
     }
 
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
@@ -305,24 +326,18 @@ struct HRVAnalysisView: View {
         // 스크롤(드래그)이나 핀치 줌으로 보이는 구간이 바뀔 때마다 호출하지만, 이미 여유 있게
         // 로드된 범위 안이면 ensureHealthKitDataLoaded가 그냥 바로 반환하므로 실제 HealthKit
         // 조회는 가장자리에 가까워질 때만 드물게 일어난다.
-        .onChange(of: hrvScrollPosition) { _, _ in
-            Task {
-                if await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd) {
-                    recomputeRange()
-                }
-            }
-        }
-        .onChange(of: visibleDomain) { _, _ in
-            Task {
-                if await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd) {
-                    recomputeRange()
-                }
-            }
+        // 모드 전환은 zoomScale과 스크롤 위치를 한 번에 바꾼다. 두 값을 따로 관찰하면 동일한
+        // HealthKit 범위를 연속 두 번 요청하게 되므로 최종 viewport 하나만 관찰한다.
+        .onChange(of: healthKitViewport) { _, viewport in
+            replaceHealthKitViewportLoad(with: viewport)
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
             clearAllTooltips()
             recomputeRange()
+            let end = latestVisibleEnd(for: newMode)
+            let start = end.addingTimeInterval(-newMode.visibleDomain)
+            replaceHealthKitViewportLoad(with: HealthKitViewport(start: start, end: end))
         }
         .refreshable {
             await viewModel.reload()
@@ -352,8 +367,32 @@ struct HRVAnalysisView: View {
         }
     }
 
-    private var visibleStart: Date { hrvScrollPosition }
-    private var visibleEnd: Date { hrvScrollPosition.addingTimeInterval(visibleDomain) }
+    var visibleStart: Date { hrvScrollPosition }
+    var visibleEnd: Date { hrvScrollPosition.addingTimeInterval(visibleDomain) }
+    private var healthKitViewport: HealthKitViewport {
+        HealthKitViewport(start: visibleStart, end: visibleEnd)
+    }
+
+    private func replaceHealthKitViewportLoad(with viewport: HealthKitViewport) {
+        let previousTask = healthKitViewportLoadTask
+        previousTask?.cancel()
+
+        healthKitViewportLoadTask = Task { @MainActor in
+            // RMSSDLocalStore 작업은 직렬화돼 있으므로 취소된 작업이 컨텍스트를 정리하고 잠금을 넘긴
+            // 다음 새 범위를 요청해야 한다. 기다리는 동안 이 Task까지 다시 취소되면 새 조회는 생략한다.
+            if let previousTask { await previousTask.value }
+            guard !Task.isCancelled else { return }
+
+            let didReload = await viewModel.ensureHealthKitDataLoaded(
+                visibleStart: viewport.start,
+                visibleEnd: viewport.end
+            )
+            guard !Task.isCancelled,
+                  healthKitViewport == viewport
+            else { return }
+            if didReload { recomputeRange() }
+        }
+    }
 
     // 핀치 줌 상태를 mode의 기본 배율(1배)로 되돌리고, 스크롤 위치도 그 모드의 "가장 최근 구간"으로
     // 되돌린다 — 모드 전환 시(onChange)와 왼쪽 리셋 버튼 탭 시 둘 다 여기서 처리한다.
@@ -387,12 +426,12 @@ struct HRVAnalysisView: View {
             values += viewModel.recentThirtyDayPeriodMedians?.values ?? []
             values += currentRMSSDPoints.map(\.value)
             if !hiddenSeries.contains(.sdnn) {
-                values += viewModel.wearableSDNNPointsHourly.map(\.value)
+                values += visibleSDNNPoints.map(\.value)
             }
         case .daily:
             values += currentRMSSDPoints.map(\.value)
         case .monthly:
-            values += viewModel.wearableRMSSDMonthlyStats.flatMap { [$0.min, $0.max] }
+            values += viewModel.wearableRMSSDMonthlyStats.flatMap { [$0.q1, $0.median, $0.q3] }
         }
         cachedRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
     }
@@ -668,7 +707,7 @@ struct HRVAnalysisView: View {
                     .foregroundStyle(.red)
             }
 
-            if (viewModel.isLoading || viewModel.isLoadingHealthKit) && !hasAnyLineChartData {
+            if viewModel.isLoading || viewModel.isLoadingHealthKit || !isVisibleHealthKitRangeLoaded {
                 HeartLoader(height: lineChartHeight)
             } else if chartMode == .monthly {
                 if viewModel.wearableRMSSDMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
@@ -688,7 +727,7 @@ struct HRVAnalysisView: View {
                 } else {
                     // 검사·수면·운동 등 다른 데이터는 있는데 rMSSD 계산용 원시 박동 시리즈만 없는 경우가
                     // 있다 (기기/OS/측정 상황에 따라 다름) — 차트가 빈 채로만 나오면 오류처럼 보이므로 안내.
-                    if !viewModel.isLoadingHealthKit && currentRMSSDPoints.isEmpty {
+                    if isVisibleHealthKitRangeLoaded && !viewModel.isLoadingHealthKit && currentRMSSDPoints.isEmpty {
                         Text("이 기간에는 rMSSD를 계산할 원시 박동 데이터가 없어요")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -715,9 +754,7 @@ struct HRVAnalysisView: View {
         }
     }
 
-    // 범례 한 칸. 월별 rMSSD는 박스(1Q~3Q)/심지(최소~최대) 두 칸으로 나뉘지만 둘 다 같은 series를
-    // 가리켜서, 탭하면 항상 rMSSD 전체가 같이 토글된다 — 각 칸이 grid의 독립된 셀이라 다른 한 줄짜리
-    // 항목과도 자연스럽게 좌측 정렬로 나란히 놓인다(한 칸 안에 두 줄을 욱여넣지 않음).
+    // 월별 rMSSD의 1Q~3Q와 중앙값은 같은 series를 가리켜서 어느 쪽을 탭해도 함께 토글된다.
     private struct LegendItem: Identifiable {
         let id: String
         let series: HRVSeries
@@ -729,22 +766,8 @@ struct HRVAnalysisView: View {
     private var legendItems: [LegendItem] {
         HRVSeries.allCases.filter { $0.appliesTo(chartMode) }.flatMap { series -> [LegendItem] in
             if series == .rmssd, chartMode == .monthly {
-                // 세 스와치의 실제 그림 크기(8pt/2pt/2pt)가 서로 달라도, 모두 같은 12x14 칸 안에
-                // 가운데 정렬해서 스와치 모양과 무관하게 텍스트 세로 위치가 셋 다 나란히 맞는다.
-                // 순서는 차트에서 겹쳐 그리는 순서(뒤→앞)와 같다: 심지 → 박스 → 중앙값.
+                // 두 스와치의 실제 그림 크기가 달라도 같은 12x14 칸 안에 가운데 정렬한다.
                 return [
-                    LegendItem(
-                        id: "rmssd-line",
-                        series: .rmssd,
-                        label: "최소~최대",
-                        boldValue: nil,
-                        swatch: AnyView(
-                            Rectangle()
-                                .fill(rmssdColor.opacity(0.5))
-                                .frame(width: 2, height: 10)
-                                .frame(width: 12, height: 14)
-                        )
-                    ),
                     LegendItem(
                         id: "rmssd-box",
                         series: .rmssd,

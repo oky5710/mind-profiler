@@ -7,6 +7,7 @@ final class RMSSDLocalStore {
     static let calculationVersion = 1
     // 수면 세션 병합 기준이 1시간에서 2시간으로 바뀌어 과거 시간대 분류도 다시 만들어야 한다.
     static let aggregationVersion = 2
+    static let monthlyAggregationVersion = 1
 
     private let container: ModelContainer
     private var isPerformingOperation = false
@@ -22,7 +23,7 @@ final class RMSSDLocalStore {
     private(set) var isUsingInMemoryFallback = false
 
     private init() {
-        let schema = Schema([RMSSDMeasurement.self, DailyRMSSDSummary.self])
+        let schema = Schema([RMSSDMeasurement.self, DailyRMSSDSummary.self, MonthlyRMSSDSummary.self])
         if let onDiskContainer = Self.makeOnDiskContainer(schema: schema) {
             container = onDiskContainer
         } else {
@@ -105,9 +106,17 @@ final class RMSSDLocalStore {
         if !daysToRebuild.isEmpty {
             try await rebuildSummaries(days: daysToRebuild, measurements: cachedMeasurements)
         }
+        let dailySummaries = try fetchSummaries(start: start, end: end)
+        try rebuildCompletedMonthlySummaries(
+            start: start,
+            end: end,
+            dailySummaries: dailySummaries,
+            affectedDays: daysToRebuild
+        )
         return RMSSDWindowDTO(
             measurements: cachedMeasurements,
-            summaries: try fetchSummaries(start: start, end: end)
+            summaries: dailySummaries,
+            monthlySummaries: try fetchMonthlySummaries(start: start, end: end)
         )
     }
 
@@ -344,6 +353,89 @@ final class RMSSDLocalStore {
                 morningCount: $0.morningCount,
                 afternoonMedian: $0.afternoonMedian,
                 afternoonCount: $0.afternoonCount
+            )
+        }
+    }
+
+    // 조회 범위에 월 전체가 들어오고 이미 종료된 달만 저장한다. 이번 달은 데이터가 계속 추가되므로
+    // 저장하지 않고 화면에서 현재 일별 중앙값으로 계산한다.
+    private func rebuildCompletedMonthlySummaries(
+        start: Date,
+        end: Date,
+        dailySummaries: [DailyRMSSDSummaryDTO],
+        affectedDays: Set<Date>
+    ) throws {
+        let calendar = Calendar.current
+        let currentMonthStart = calendar.dateInterval(of: .month, for: Date())?.start ?? Date()
+        let firstMonthStart = calendar.dateInterval(of: .month, for: start)?.start ?? start
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<MonthlyRMSSDSummary>(
+            predicate: #Predicate { $0.monthStart >= firstMonthStart && $0.monthStart < currentMonthStart }
+        )
+        var storedByKey = Dictionary(
+            try context.fetch(descriptor).map { ($0.monthKey, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let affectedMonths = Set(affectedDays.compactMap { calendar.dateInterval(of: .month, for: $0)?.start })
+        let dailyByMonth = Dictionary(grouping: dailySummaries) {
+            calendar.dateInterval(of: .month, for: $0.date)?.start ?? calendar.startOfDay(for: $0.date)
+        }
+
+        for (monthStart, summaries) in dailyByMonth where monthStart < currentMonthStart {
+            guard let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart),
+                  monthStart >= start,
+                  monthEnd <= end
+            else { continue }
+
+            let key = DateKey.string(from: monthStart)
+            let existing = storedByKey[key]
+            let needsRebuild = existing == nil
+                || existing?.aggregationVersion != Self.monthlyAggregationVersion
+                || affectedMonths.contains(monthStart)
+            guard needsRebuild else { continue }
+
+            let values = summaries.compactMap(\.wholeDayMedian)
+            guard !values.isEmpty else {
+                if let existing { context.delete(existing) }
+                continue
+            }
+            let quartiles = HRVStatistics.quartiles(values)
+            let model = existing ?? MonthlyRMSSDSummary(
+                monthKey: key,
+                monthStart: monthStart,
+                aggregationVersion: Self.monthlyAggregationVersion
+            )
+            if model.modelContext == nil {
+                context.insert(model)
+                storedByKey[key] = model
+            }
+            model.q1 = quartiles.q1
+            model.median = quartiles.median
+            model.q3 = quartiles.q3
+            model.coefficientOfVariation = HRVStatistics.coefficientOfVariation(values)
+            model.dayCount = values.count
+            model.aggregationVersion = Self.monthlyAggregationVersion
+            model.updatedAt = .now
+        }
+        if context.hasChanges { try context.save() }
+    }
+
+    private func fetchMonthlySummaries(start: Date, end: Date) throws -> [MonthlyRMSSDSummaryDTO] {
+        let firstMonthStart = Calendar.current.dateInterval(of: .month, for: start)?.start ?? start
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<MonthlyRMSSDSummary>(
+            predicate: #Predicate { $0.monthStart >= firstMonthStart && $0.monthStart <= end },
+            sortBy: [SortDescriptor(\.monthStart)]
+        )
+        return try context.fetch(descriptor).compactMap {
+            guard $0.aggregationVersion == Self.monthlyAggregationVersion else { return nil }
+            return MonthlyRMSSDSummaryDTO(
+                monthStart: $0.monthStart,
+                q1: $0.q1,
+                median: $0.median,
+                q3: $0.q3,
+                coefficientOfVariation: $0.coefficientOfVariation,
+                dayCount: $0.dayCount
             )
         }
     }

@@ -39,8 +39,6 @@ final class HRVAnalysisViewModel {
 
     struct MonthlyHRVStat: Identifiable {
         let monthStart: Date
-        let min: Double
-        let max: Double
         let q1: Double
         let median: Double
         let q3: Double
@@ -223,13 +221,18 @@ final class HRVAnalysisViewModel {
     // 쌓여도 매번 전부 다시 계산하지 않기 위함. 스크롤/핀치로 보이는 구간이 이 범위의 안전 여백
     // (prefetchMarginMultiplier배) 밖으로 나가려고 하면 새 위치를 중심으로 다시 불러온다.
     static let loadWindowMultiplier: Double = 5
-    // 월별은 기본 표시 범위 자체가 약 6개월이므로 5배를 적용하면 한 번에 약 2.3년을 조회한다.
-    // 월별 수준의 긴 범위는 2배만 미리 읽어 탭 전환 비용을 제한한다.
+    // 일별(기본 30일)부터는 5배를 적용하면 한 번에 150일 이상을 조회해 탭 전환이 버벅일 수 있다.
+    // 30일 이상 범위는 2배만 미리 읽어 일별은 약 60일, 월별도 필요한 범위만 캐시한다.
     static let longRangeLoadWindowMultiplier: Double = 2
-    private static let longRangeThreshold: TimeInterval = 90 * 24 * 60 * 60
+    private static let longRangeThreshold: TimeInterval = 30 * 24 * 60 * 60
     // 지금까지 불러온 HealthKit 데이터가 커버하는 실제 기간.
     private var loadedHealthKitRange: ClosedRange<Date>?
     private var isLoadingHealthKitWindow = false
+
+    func hasLoadedHealthKitData(start: Date, end: Date) -> Bool {
+        guard let loadedHealthKitRange else { return false }
+        return start >= loadedHealthKitRange.lowerBound && end <= loadedHealthKitRange.upperBound
+    }
 
     private var hasLoaded = false
     private var hasCheckedRecentMedian = false
@@ -426,11 +429,11 @@ final class HRVAnalysisViewModel {
     // 실제 HealthKit 조회 + 배열 갱신 한 번. visibleStart/visibleEnd(1배 폭) 기준으로 그
     // loadWindowMultiplier배 구간을 불러온다.
     private func fetchAndApplyHealthKitWindow(visibleStart: Date, visibleEnd: Date) async -> Bool {
-        // 최초 로딩(아직 데이터가 하나도 없음)일 때만 전체 화면 스피너를 보여준다 — 스크롤 중
-        // 미리 불러오는 건 눈에 안 띄어야 하므로, 기존 데이터를 그대로 보여준 채 조용히 교체한다.
-        let isInitialLoad = loadedHealthKitRange == nil
-        if isInitialLoad { isLoadingHealthKit = true }
-        defer { if isInitialLoad { isLoadingHealthKit = false } }
+        // 기존 차트 데이터가 있으면 뷰가 자체적으로 계속 차트를 보여주므로, 이 플래그를 모든 윈도우
+        // 로딩에 켜도 전체 스피너로 바뀌지 않는다. 다만 모드 전환 직후 새 범위의 포인트가 아직 없을
+        // 때는 잘못된 "원시 박동 데이터 없음" 문구 대신 로딩 상태를 정확히 표시할 수 있다.
+        isLoadingHealthKit = true
+        defer { isLoadingHealthKit = false }
 
         let visibleDomain = visibleEnd.timeIntervalSince(visibleStart)
         let center = visibleStart.addingTimeInterval(visibleDomain / 2)
@@ -458,10 +461,12 @@ final class HRVAnalysisViewModel {
                 restingHR,
                 daylight
             )
+            try Task.checkCancellation()
 
             // 수동으로 입력한 운동 기록(백엔드)도 같은 레인에 합친다 — 실패해도 HealthKit 데이터
             // 표시는 막지 않도록 별도로 무시 가능한 에러 처리.
             let manualRanges = (try? await ExerciseService.allExercises()) ?? []
+            try Task.checkCancellation()
 
             let rawRMSSDSamples = cachedRMSSDWindow.measurements
                 .map { ($0.measuredAt, $0.value) }
@@ -475,7 +480,10 @@ final class HRVAnalysisViewModel {
             wearableRMSSDPointsDaily = Self.segmentDailyByDateGap(dailyRMSSD)
             let rawSDNNSamples = sdnnSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
             wearableSDNNPointsHourly = Self.segmentByGap(rawSDNNSamples, gapThreshold: Self.hrvGapThresholdHourly)
-            wearableRMSSDMonthlyStats = Self.monthlyStats(rawRMSSDSamples)
+            wearableRMSSDMonthlyStats = Self.monthlyStats(
+                dailySummaries: cachedRMSSDWindow.summaries,
+                cachedSummaries: cachedRMSSDWindow.monthlySummaries
+            )
             // 안정시 심박수는 하루에 하나(애플이 자체 계산)라 이미 대체로 하루 대표값이지만, 혹시
             // 같은 날 여러 개가 있어도 중앙값으로 합쳐 항상 막대 하나만 나오게 한다.
             let rawRestingHRSamples = restingHRSamples.map { ($0.date, $0.value) }.sorted { $0.0 < $1.0 }
@@ -507,6 +515,9 @@ final class HRVAnalysisViewModel {
             isHealthKitAuthorized = true
             loadedHealthKitRange = windowStart...windowEnd
             return true
+        } catch is CancellationError {
+            // 탭이 바뀐 이전 범위의 결과는 오류로 표시하거나 화면 배열에 반영하지 않는다.
+            return false
         } catch {
             healthKitErrorMessage = error.localizedDescription
             // loadedHealthKitRange는 건드리지 않는다 — 다음 스크롤/새로고침 때 "아직 로드 안 됨"
@@ -625,27 +636,41 @@ final class HRVAnalysisViewModel {
             .sorted { $0.date < $1.date }
     }
 
-    private static func monthlyStats(_ samples: [(Date, Double)]) -> [MonthlyHRVStat] {
+    private static func monthlyStats(
+        dailySummaries: [DailyRMSSDSummaryDTO],
+        cachedSummaries: [MonthlyRMSSDSummaryDTO]
+    ) -> [MonthlyHRVStat] {
         let calendar = Calendar.current
-        var groups: [DateComponents: [Double]] = [:]
-        for (date, value) in samples {
-            groups[calendar.dateComponents([.year, .month], from: date), default: []].append(value)
+        let cachedMonthStarts = Set(cachedSummaries.map(\.monthStart))
+        var liveGroups: [Date: [Double]] = [:]
+        for summary in dailySummaries {
+            guard let value = summary.wholeDayMedian,
+                  let monthStart = calendar.dateInterval(of: .month, for: summary.date)?.start,
+                  !cachedMonthStarts.contains(monthStart)
+            else { continue }
+            liveGroups[monthStart, default: []].append(value)
         }
-        return groups
-            .compactMap { components, values -> MonthlyHRVStat? in
-                guard let monthStart = calendar.date(from: components) else { return nil }
-                let sorted = values.sorted()
-                let quartiles = HRVStatistics.quartiles(sorted)
-                return MonthlyHRVStat(
-                    monthStart: monthStart,
-                    min: sorted.first ?? 0,
-                    max: sorted.last ?? 0,
-                    q1: quartiles.q1,
-                    median: quartiles.median,
-                    q3: quartiles.q3,
-                    cv: HRVStatistics.coefficientOfVariation(sorted)
-                )
-            }
+
+        let cached = cachedSummaries.map {
+            MonthlyHRVStat(
+                monthStart: $0.monthStart,
+                q1: $0.q1,
+                median: $0.median,
+                q3: $0.q3,
+                cv: $0.coefficientOfVariation
+            )
+        }
+        let live = liveGroups.map { monthStart, values in
+            let quartiles = HRVStatistics.quartiles(values)
+            return MonthlyHRVStat(
+                monthStart: monthStart,
+                q1: quartiles.q1,
+                median: quartiles.median,
+                q3: quartiles.q3,
+                cv: HRVStatistics.coefficientOfVariation(values)
+            )
+        }
+        return (cached + live)
             .sorted { $0.monthStart < $1.monthStart }
     }
 }

@@ -58,6 +58,31 @@ final class DailyRMSSDSummary {
     }
 }
 
+@Model
+final class MonthlyRMSSDSummary {
+    @Attribute(.unique) var monthKey: String
+    var monthStart: Date
+    var q1: Double
+    var median: Double
+    var q3: Double
+    var coefficientOfVariation: Double?
+    var dayCount: Int
+    var aggregationVersion: Int
+    var updatedAt: Date
+
+    init(monthKey: String, monthStart: Date, aggregationVersion: Int) {
+        self.monthKey = monthKey
+        self.monthStart = monthStart
+        q1 = 0
+        median = 0
+        q3 = 0
+        coefficientOfVariation = nil
+        dayCount = 0
+        self.aggregationVersion = aggregationVersion
+        updatedAt = .now
+    }
+}
+
 struct RMSSDMeasurementDTO: Sendable {
     let healthKitUUID: String
     let measuredAt: Date
@@ -79,7 +104,17 @@ struct DailyRMSSDSummaryDTO: Sendable {
     let afternoonCount: Int
 }
 
+struct MonthlyRMSSDSummaryDTO: Sendable {
+    let monthStart: Date
+    let q1: Double
+    let median: Double
+    let q3: Double
+    let coefficientOfVariation: Double?
+    let dayCount: Int
+}
+
 struct RMSSDWindowDTO: Sendable {
     let measurements: [RMSSDMeasurementDTO]
     let summaries: [DailyRMSSDSummaryDTO]
+    let monthlySummaries: [MonthlyRMSSDSummaryDTO]
 }

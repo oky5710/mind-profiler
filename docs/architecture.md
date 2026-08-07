@@ -53,9 +53,10 @@ View → ViewModel (async 호출) → Service → APIClient / HealthKitService /
 
 ```
 HealthKit HeartbeatSeries
-  → RMSSDLocalStore (UUID별 신규/변경 측정만 계산, 한 윈도우에서 측정값·일별 요약 동시 반환)
+  → RMSSDLocalStore (UUID별 신규/변경 측정만 계산, 한 윈도우에서 측정값·일별·월별 요약 동시 반환)
   → RMSSDMeasurement
   → DailyRMSSDSummary (신규 측정일·버전 변경일·오늘/어제만 증분 재집계)
+  → MonthlyRMSSDSummary (완료된 과거 월의 일별 중앙값 분포를 기기 내부에 저장)
   → HRV Trend / Recovery / 오늘 단서 / 장기 미제 사건 / 보고서
 ```
 
@@ -65,6 +66,9 @@ HealthKit HeartbeatSeries
   판정하므로 수면 중 측정은 `sleepMedian`에만 포함된다.
 - 공개 `HealthKitService.fetchRMSSDSamples`가 로컬 저장소를 경유하므로 시간별 차트와 기존 분석 코드도
   같은 측정 캐시를 공유한다. 일별 HRV Trend와 장기 미제 사건은 `DailyRMSSDSummary`를 직접 사용한다.
+- 월별 HRV Trend는 측정 횟수가 많은 날의 편향을 막기 위해 원시 측정값이 아니라 일별 중앙값으로
+  1Q·중앙값·3Q·CV를 집계한다. 조회 범위에 월 전체가 포함된 완료 월만 `MonthlyRMSSDSummary`에
+  저장하며, 아직 바뀌는 이번 달은 저장하지 않고 현재 일별 Summary에서 실시간으로 계산한다.
 
 ## 백그라운드 HealthKit 관찰
 
