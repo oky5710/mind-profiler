@@ -5,6 +5,10 @@ struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = HomeViewModel()
     @State private var selectedDate = Date()
+    // 오늘 날짜에 표시할 데이터가 전혀 없으면(수면 기록이 아예 없어 회복 지수도 못 구하는 등) 빈
+    // 화면 대신 전날 것을 기본으로 보여준다 — 최초 진입 시 한 번만 시도하고, 그 뒤 사용자가 직접
+    // 고른 날짜에는 적용하지 않는다.
+    @State private var hasAutoFallenBackToPreviousDay = false
 
     init(refreshRequestID: UUID? = nil) {
         self.refreshRequestID = refreshRequestID
@@ -21,6 +25,20 @@ struct HomeView: View {
     // 선택한 날짜는 항상 사건 일자로 보여준다. 회복 지수는 계산할 수 있을 때만 해당 행을 추가한다.
     private var hasBriefingHeader: Bool {
         viewModel.briefingDate != nil
+    }
+
+    // 오늘 날짜로 처음 열었는데 보여줄 게 전혀 없으면(수면 기록이 아예 없어 회복 지수도 못 구하는
+    // 경우 등) 빈 화면 대신 전날 것을 기본으로 보여준다. 최초 진입 시 한 번만 시도하고, 이후
+    // 사용자가 직접 고른 날짜에는 있는 그대로(빈 상태 포함) 보여준다.
+    private func fallBackToPreviousDayIfNeeded() {
+        guard !hasAutoFallenBackToPreviousDay,
+              Calendar.current.isDateInToday(selectedDate),
+              viewModel.recoveryScore == nil,
+              viewModel.briefingCaseType == nil,
+              let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)
+        else { return }
+        hasAutoFallenBackToPreviousDay = true
+        selectedDate = yesterday
     }
 
     var body: some View {
@@ -59,7 +77,10 @@ struct HomeView: View {
         // Apple Watch 동기화가 앱을 연 뒤 끝날 수 있어 브리핑은 홈에 들어올 때마다 갱신한다.
         // 기분·커피·복약은 각 IfNeeded 함수가 성공적으로 확인한 항목을 자체적으로 건너뛴다.
         .onAppear {
-            Task { await viewModel.loadDailyBriefing(for: selectedDate, hrvTerm: authViewModel.hrvTerm) }
+            Task {
+                await viewModel.loadDailyBriefing(for: selectedDate, hrvTerm: authViewModel.hrvTerm)
+                fallBackToPreviousDayIfNeeded()
+            }
             Task { await viewModel.loadTodayMoodIfNeeded() }
             Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
             Task { await viewModel.loadTodayMedicationLogsIfNeeded() }
@@ -112,7 +133,7 @@ struct HomeView: View {
             .background(Theme.systemGray6, in: Capsule())
     }
 
-    // recoveryScore/사건 일자와 별개로, "오늘 확보한 단서" 위에 전날 밤 수면시간·가장 최근 rMSSD를
+    // recoveryScore/사건 일자와 별개로, "오늘 확보한 단서" 위에 전날 밤 수면시간·최근 rMSSD를
     // 큰 글씨로 먼저 보여준다 — 둘 중 하나만 있어도(예: 전날 밤 수면 기록이 없어도 rMSSD는 있을 수
     // 있음) 그 값만 보이고, 둘 다 없으면 이 줄 자체를 그리지 않는다.
     private var hasSummaryStats: Bool {
@@ -130,7 +151,7 @@ struct HomeView: View {
     }
 
     private func summaryStat(title: String, value: String?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 9) {
             Text(title)
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
@@ -145,26 +166,28 @@ struct HomeView: View {
     }
 
     private var latestHRVStat: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("가장 최근 HRV")
+        VStack(alignment: .leading, spacing: 9) {
+            Text("최근 HRV")
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
-                    .font(Typography.sectionTitle.weight(.bold))
-                if viewModel.latestRMSSDValue != nil {
-                    Text("ms")
+            HStack(alignment: .bottom, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
+                        .font(Typography.sectionTitle.weight(.bold))
+                    if viewModel.latestRMSSDValue != nil {
+                        Text("ms")
+                            .font(Typography.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let comparison = viewModel.latestRMSSDComparison {
+                    let roundedDifference = Int(abs(comparison.difference).rounded())
+                    Text("\(comparison.difference >= 0 ? "↑" : "↓") \(roundedDifference)ms · \(comparison.status.label)")
                         .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 }
-            }
-
-            if let comparison = viewModel.latestRMSSDComparison {
-                let roundedDifference = Int(abs(comparison.difference).rounded())
-                Text("\(comparison.difference >= 0 ? "↑" : "↓") \(roundedDifference)ms · \(comparison.status.label)")
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
