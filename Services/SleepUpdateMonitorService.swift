@@ -52,6 +52,13 @@ final class SleepUpdateMonitorService {
         let previousKey = UserDefaults.standard.string(forKey: Self.latestObservedNightKey)
         guard nightKey != previousKey else { return }
 
+        // 알림이 꺼져 있어도 "이미 확인한 밤" 기준은 계속 갱신해야, 나중에 다시 켰을 때 그 사이
+        // 쌓인 밤들이 한꺼번에 알림으로 몰리지 않는다.
+        guard NotificationPreferences.isSleepUpdateAlertEnabled else {
+            UserDefaults.standard.set(nightKey, forKey: Self.latestObservedNightKey)
+            return
+        }
+
         guard await postNotification(for: latestNight) else { return }
         UserDefaults.standard.set(nightKey, forKey: Self.latestObservedNightKey)
     }

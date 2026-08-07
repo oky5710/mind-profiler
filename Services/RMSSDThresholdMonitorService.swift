@@ -50,6 +50,9 @@ final class RMSSDThresholdMonitorService {
     #endif
 
     private func handleUpdate() async {
+        // 설정에서 이 알림을 꺼둔 사용자에게는 실제 발생 감지 자체를 건너뛴다 — 디버그 트리거
+        // 버튼은 postNotification을 직접 부르므로 이 설정과 무관하게 항상 테스트할 수 있다.
+        guard NotificationPreferences.isRMSSDThresholdAlertEnabled else { return }
         do {
             let now = Date()
             let startOfToday = Calendar.current.startOfDay(for: now)

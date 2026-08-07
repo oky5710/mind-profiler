@@ -101,6 +101,7 @@
 		EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225DD3DE88849264BC0A42B7 /* AppDelegate.swift */; };
 		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
 		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
+		F912D8A8A9749327632D32C9 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */; };
 		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
 		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
 		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
@@ -203,6 +204,7 @@
 		EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdMonitorService.swift; sourceTree = "<group>"; };
 		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
+		181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
 		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
 		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
@@ -393,6 +395,7 @@
 				59D553D84925EA368698C8FF /* RMSSDEventService.swift */,
 				EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */,
 				F00100022026080200000002 /* SleepUpdateMonitorService.swift */,
+				181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -632,6 +635,7 @@
 				9B1DD9B8EBD1BEE0C68067F4 /* RMSSDThresholdMonitorService.swift in Sources */,
 				00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */,
 				F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */,
+				F912D8A8A9749327632D32C9 /* NotificationPreferences.swift in Sources */,
 				F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */,
 				1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */,
 				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,

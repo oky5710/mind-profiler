@@ -7,9 +7,26 @@ struct ReminderListView: View {
     @State private var viewModel = ReminderListViewModel()
     @State private var isPresentingAddForm = false
     @State private var editingReminder: MedicationReminderEntry?
+    // 약 복용 알림과 달리 서버에 저장할 게 없는 기기 로컬 켬/끔이라, 화면 상태를 따로 들고
+    // 있다가 바꿀 때마다 NotificationPreferences(UserDefaults)에 반영한다.
+    @State private var isRMSSDThresholdAlertEnabled = NotificationPreferences.isRMSSDThresholdAlertEnabled
+    @State private var isSleepUpdateAlertEnabled = NotificationPreferences.isSleepUpdateAlertEnabled
 
     var body: some View {
         List {
+            Section {
+                Toggle("rMSSD 급격한 변화 알림", isOn: $isRMSSDThresholdAlertEnabled)
+                    .onChange(of: isRMSSDThresholdAlertEnabled) { _, newValue in
+                        NotificationPreferences.isRMSSDThresholdAlertEnabled = newValue
+                    }
+                Toggle("수면 데이터 업데이트 알림", isOn: $isSleepUpdateAlertEnabled)
+                    .onChange(of: isSleepUpdateAlertEnabled) { _, newValue in
+                        NotificationPreferences.isSleepUpdateAlertEnabled = newValue
+                    }
+            } footer: {
+                Text("rMSSD가 평소보다 급격히 낮거나 높아졌을 때, 그리고 새 수면 데이터가 동기화됐을 때 알려줘요.")
+            }
+
             Section("등록된 알림") {
                 if viewModel.isLoading {
                     ProgressView()
