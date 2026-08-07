@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import GoogleSignIn
 import UIKit
@@ -64,17 +65,54 @@ final class AuthViewModel {
                 body: GoogleLoginRequest(idToken: idToken),
                 authorized: false
             )
-
-            KeychainService.save(token: response.accessToken, forKey: Self.tokenKey)
-            role = Self.decodeRole(fromToken: response.accessToken)
-            if response.isNewUser == true {
-                UserDefaults.standard.set(true, forKey: Self.onboardingPendingKey)
-                shouldShowOnboarding = true
-            }
-            isAuthenticated = true
+            applySignIn(response)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // SignInWithAppleButton(AuthenticationServices)이 프레젠테이션까지 다 처리해서 넘겨주는
+    // ASAuthorization을 그대로 받는다 — Google처럼 이 파일에서 컨트롤러/델리게이트를 직접 다룰
+    // 필요가 없다.
+    func signInWithApple(authorization: ASAuthorization) async {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let tokenData = credential.identityToken,
+              let idToken = String(data: tokenData, encoding: .utf8)
+        else {
+            errorMessage = "Apple 로그인에서 idToken을 받지 못했습니다."
+            return
+        }
+
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        // Apple은 최초 인가 때만 이름을 내려준다 — 이후 로그인에서는 nil이라 서버가 이미 저장한
+        // 이름을 그대로 유지한다.
+        let fullName = credential.fullName.flatMap {
+            PersonNameComponentsFormatter().string(from: $0)
+        }.flatMap { $0.isEmpty ? nil : $0 }
+
+        do {
+            let response: AuthTokenResponse = try await APIClient.shared.post(
+                "/auth/apple",
+                body: AppleLoginRequest(idToken: idToken, fullName: fullName),
+                authorized: false
+            )
+            applySignIn(response)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func applySignIn(_ response: AuthTokenResponse) {
+        KeychainService.save(token: response.accessToken, forKey: Self.tokenKey)
+        role = Self.decodeRole(fromToken: response.accessToken)
+        if response.isNewUser == true {
+            UserDefaults.standard.set(true, forKey: Self.onboardingPendingKey)
+            shouldShowOnboarding = true
+        }
+        isAuthenticated = true
     }
 
     func signOut() {
