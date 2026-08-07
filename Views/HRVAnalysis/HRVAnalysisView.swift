@@ -230,6 +230,19 @@ struct HRVAnalysisView: View {
         }
     }
 
+    // 검사·수면·운동 등 다른 데이터는 있는데 rMSSD 계산용 원시 박동 시리즈만 없는 경우가 있다
+    // (워치를 안 차고 있었던 시간대 등) — 차트가 빈 채로만 나오면 오류처럼 보이므로 안내한다.
+    // 예전엔 차트 위에 텍스트로 끼워 넣었는데, 그러면 그 문구가 차지하는 높이만큼 차트가
+    // 아래로 밀려서 스크롤할 때마다 차트가 들썩였다 — 레이아웃에 자리를 차지하지 않는 토스트로
+    // 바꿔서 차트 위치는 항상 고정되게 한다.
+    private var shouldNotifyNoRawBeatData: Bool {
+        chartMode != .monthly
+            && hasAnyLineChartData
+            && isVisibleHealthKitRangeLoaded
+            && !viewModel.isLoadingHealthKit
+            && currentRMSSDPoints.isEmpty
+    }
+
     // ui-style.md 규칙: 차트 높이는 전체 화면의 40%. 간트 차트는 그 절반의 70%.
     var lineChartHeight: CGFloat {
         availableHeight * 0.4
@@ -339,6 +352,13 @@ struct HRVAnalysisView: View {
         // HealthKit 범위를 연속 두 번 요청하게 되므로 최종 viewport 하나만 관찰한다.
         .onChange(of: healthKitViewport) { _, viewport in
             scheduleHealthKitViewportLoad(for: viewport)
+        }
+        // 값 자체가 바뀔 때만(예: 없음 → 있음, 있음 → 없음) 한 번 띄운다 — 조건이 계속 true인
+        // 동안 매 리렌더마다 다시 호출해도 ToastCenter.show가 같은 문구는 타이머만 늘리므로
+        // 안전하지만, onChange로 전환 시점에만 트리거해 불필요한 호출 자체를 줄인다.
+        .onChange(of: shouldNotifyNoRawBeatData) { _, shouldNotify in
+            guard shouldNotify else { return }
+            toastCenter.show("이 기간에는 rMSSD를 계산할 원시 박동 데이터가 없어요", duration: .seconds(2))
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
@@ -734,13 +754,6 @@ struct HRVAnalysisView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
-                    // 검사·수면·운동 등 다른 데이터는 있는데 rMSSD 계산용 원시 박동 시리즈만 없는 경우가
-                    // 있다 (기기/OS/측정 상황에 따라 다름) — 차트가 빈 채로만 나오면 오류처럼 보이므로 안내.
-                    if isVisibleHealthKitRangeLoaded && !viewModel.isLoadingHealthKit && currentRMSSDPoints.isEmpty {
-                        Text("이 기간에는 rMSSD를 계산할 원시 박동 데이터가 없어요")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
                     lineAndGanttChartsStack
                 }
             }
