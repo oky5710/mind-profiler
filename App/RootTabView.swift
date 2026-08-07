@@ -20,6 +20,12 @@ struct RootTabView: View {
                     Label("홈", systemImage: "house")
                 }
 
+            HRVAnalysisView()
+                .tag(RootTab.pattern)
+                .tabItem {
+                    Label("오늘의 패턴", systemImage: "waveform.path.ecg")
+                }
+
             CalendarView()
                 .tag(RootTab.calendar)
                 .tabItem {
@@ -30,12 +36,6 @@ struct RootTabView: View {
                 .tag(RootTab.report)
                 .tabItem {
                     Label("보고서", systemImage: "doc.text.magnifyingglass")
-                }
-
-            HRVAnalysisView()
-                .tag(RootTab.pattern)
-                .tabItem {
-                    Label("오늘의 패턴", systemImage: "waveform.path.ecg")
                 }
 
             SettingsView()
