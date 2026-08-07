@@ -62,6 +62,12 @@ struct SettingsView: View {
                     Label("개인정보 처리방침", systemImage: "hand.raised")
                 }
 
+                NavigationLink {
+                    TermsOfServiceView()
+                } label: {
+                    Label("이용약관", systemImage: "doc.text")
+                }
+
                 Section {
                     Button(role: .destructive) {
                         isShowingSignOutConfirmation = true
@@ -328,34 +334,121 @@ private struct PrivacyPolicyView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func policySection<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        Section {
-            content()
-        } header: {
-            Text(title)
-        }
-    }
+}
 
-    private func subheading(_ text: String) -> some View {
-        Text(text).font(.subheadline.bold())
+// PrivacyPolicyView·TermsOfServiceView가 같이 쓰는, 법률 문서 화면 전용 레이아웃 조각.
+private func policySection<Content: View>(
+    _ title: String,
+    @ViewBuilder content: () -> Content
+) -> some View {
+    Section {
+        content()
+    } header: {
+        Text(title)
     }
+}
 
-    private func paragraph(_ text: String) -> some View {
-        Text(LocalizedStringKey(text))
-    }
+private func subheading(_ text: String) -> some View {
+    Text(text).font(.subheadline.bold())
+}
 
-    private func bullets(_ items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(items, id: \.self) { item in
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("•")
-                    paragraph(item)
-                }
+private func paragraph(_ text: String) -> some View {
+    Text(LocalizedStringKey(text))
+}
+
+private func bullets(_ items: [String]) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+        ForEach(items, id: \.self) { item in
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("•")
+                paragraph(item)
             }
         }
+    }
+}
+
+private struct TermsOfServiceView: View {
+    var body: some View {
+        List {
+            Section {
+                Text("최종 업데이트: 2026년 8월 8일")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                paragraph("본 이용약관은 Mind Profiler(이하 \"앱\")의 이용과 관련하여 이용자와 운영자 간의 권리, 의무 및 책임사항을 규정합니다.")
+            }
+
+            policySection("제1조 (목적)") {
+                paragraph("본 약관은 이용자가 앱을 이용함에 있어 필요한 사항을 규정함을 목적으로 합니다.")
+            }
+
+            policySection("제2조 (서비스 내용)") {
+                paragraph("앱은 다음과 같은 기능을 제공합니다.")
+                bullets([
+                    "HealthKit 데이터를 활용한 건강 패턴 분석",
+                    "회복 지수 및 통계 제공",
+                    "수면, 심박변이(HRV), 운동 등 건강 데이터 시각화",
+                    "기분, 약 복용, 메모 등 개인 기록 관리",
+                    "건강 패턴 보고서 생성",
+                ])
+                paragraph("서비스 내용은 운영 정책에 따라 변경될 수 있습니다.")
+            }
+
+            policySection("제3조 (회원가입 및 로그인)") {
+                paragraph("이용자는 지원되는 로그인 방식을 통해 서비스를 이용할 수 있습니다.")
+                paragraph("이용자는 본인의 계정을 직접 관리해야 하며, 계정 관리 소홀로 발생한 문제에 대한 책임은 이용자에게 있습니다.")
+            }
+
+            policySection("제4조 (HealthKit 이용)") {
+                paragraph("앱은 사용자의 동의가 있는 경우에만 Apple HealthKit 데이터에 접근합니다.")
+                paragraph("HealthKit 데이터는 사용자의 건강 패턴 분석을 위해서만 이용되며,")
+                bullets([
+                    "광고에 이용되지 않습니다.",
+                    "제3자에게 판매되지 않습니다.",
+                    "사용자의 명시적인 동의 없이 외부로 전송되지 않습니다.",
+                    "사용자의 기기 내에서만 분석됩니다.",
+                ])
+            }
+
+            policySection("제5조 (이용자의 의무)") {
+                paragraph("이용자는 다음 행위를 해서는 안 됩니다.")
+                bullets([
+                    "다른 사람의 계정을 사용하는 행위",
+                    "서비스 운영을 방해하는 행위",
+                    "앱을 불법적인 목적으로 이용하는 행위",
+                    "관련 법령을 위반하는 행위",
+                ])
+            }
+
+            policySection("제6조 (서비스 변경 및 중단)") {
+                paragraph("운영자는 서비스 개선 또는 시스템 점검을 위해 서비스의 일부 또는 전부를 변경하거나 일시적으로 중단할 수 있습니다.")
+                paragraph("서비스 변경 또는 중단이 필요한 경우 가능한 범위에서 사전에 안내합니다.")
+            }
+
+            policySection("제7조 (면책사항)") {
+                paragraph("앱에서 제공하는 분석 결과, 회복 지수 및 각종 통계는 건강 관리를 위한 참고 자료입니다.")
+                paragraph("앱은 의료기기가 아니며, 의사의 진단·치료 또는 전문적인 의료 판단을 대체하지 않습니다.")
+                paragraph("이용자는 자신의 건강 상태와 관련된 중요한 의사결정을 할 때 반드시 의료 전문가와 상담해야 합니다.")
+                paragraph("운영자는 이용자가 앱의 분석 결과만을 근거로 내린 판단으로 인해 발생한 손해에 대하여 관련 법령에서 허용하는 범위 내에서 책임을 지지 않습니다.")
+            }
+
+            policySection("제8조 (지식재산권)") {
+                paragraph("앱의 디자인, 코드, 로고 및 콘텐츠에 대한 저작권 및 지식재산권은 운영자에게 있습니다.")
+                paragraph("관련 법령에서 허용하는 범위를 제외하고 운영자의 사전 동의 없이 복제, 배포 또는 상업적으로 이용할 수 없습니다.")
+            }
+
+            policySection("제9조 (약관의 변경)") {
+                paragraph("운영자는 관련 법령 또는 서비스 변경에 따라 본 약관을 수정할 수 있습니다.")
+                paragraph("중요한 변경 사항은 앱 또는 홈페이지를 통해 안내합니다.")
+            }
+
+            policySection("제10조 (문의)") {
+                paragraph("서비스 이용과 관련한 문의는 아래 연락처로 문의해 주시기 바랍니다.")
+                Link("이메일: oky5710@gmail.com", destination: URL(string: "mailto:oky5710@gmail.com")!)
+            }
+        }
+        .contentMargins(.top, 10, for: .scrollContent)
+        .navigationTitle("이용약관")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
