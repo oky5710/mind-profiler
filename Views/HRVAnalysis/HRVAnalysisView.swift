@@ -369,14 +369,7 @@ struct HRVAnalysisView: View {
             scheduleHealthKitViewportLoad(for: HealthKitViewport(start: start, end: end), immediate: true)
         }
         .refreshable {
-            await viewModel.reload()
-            // 지금 보이는 구간은 pull-to-refresh니까 이미 로드돼 있어도(force) 무조건 다시 불러온다 —
-            // 워치에서 새로 동기화된 데이터가 있을 수 있어서다.
-            await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
-            await viewModel.loadCalendarEventsIfNeeded()
-            await viewModel.reloadRMSSDEvents()
-            await viewModel.reloadDailyMarkers()
-            recomputeRange()
+            await refreshHRVData()
         }
         // 탭을 나갔다가 다시 들어올 때마다 pull-to-refresh와 같은 강제 새로고침을 한다 — 캘린더에서
         // 운동/이벤트를 새로 입력하고 이 탭으로 돌아와도 예전에 로드해둔 값을 그대로 보여주던 문제.
@@ -385,15 +378,20 @@ struct HRVAnalysisView: View {
                 hasAppearedBefore = true
                 return
             }
-            Task {
-                await viewModel.reload()
-                await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
-                await viewModel.loadCalendarEventsIfNeeded()
-                await viewModel.reloadRMSSDEvents()
-                await viewModel.reloadDailyMarkers()
-                recomputeRange()
-            }
+            Task { await refreshHRVData() }
         }
+    }
+
+    // 당겨서 새로고침, 새로고침 버튼, 탭 재진입 강제 새로고침이 모두 같은 동작을 한다 — 지금
+    // 보이는 구간은 이미 로드돼 있어도(force) 무조건 다시 불러온다. 워치에서 새로 동기화된
+    // 데이터가 있을 수 있어서다.
+    private func refreshHRVData() async {
+        await viewModel.reload()
+        await viewModel.ensureHealthKitDataLoaded(visibleStart: visibleStart, visibleEnd: visibleEnd, force: true)
+        await viewModel.loadCalendarEventsIfNeeded()
+        await viewModel.reloadRMSSDEvents()
+        await viewModel.reloadDailyMarkers()
+        recomputeRange()
     }
 
     var visibleStart: Date { hrvScrollPosition }
@@ -472,15 +470,27 @@ struct HRVAnalysisView: View {
                 Spacer()
                 // 핀치로 확대/축소한 뒤 원래 배율(1배)로 되돌리는 버튼. 이미 원래 배율이면 눌러도
                 // 할 일이 없으니 흐리게 표시하고 탭을 막는다 — 그래도 자리는 계속 차지해서 픽커 옆
-                // 레이아웃이 줌 상태에 따라 흔들리지 않는다.
+                // 레이아웃이 줌 상태에 따라 흔들리지 않는다. 아이콘은 새로고침 버튼(바로 옆)과
+                // 헷갈리지 않도록 순환 화살표가 아닌 축소 화살표로 — "원래 크기로 되돌린다"는
+                // 뜻을 순환(새로고침)이 아닌 압축 방향으로 표현한다.
                 Button {
                     resetZoom(for: chartMode)
                 } label: {
-                    Image(systemName: "arrow.counterclockwise")
+                    Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .disabled(zoomScale == 1.0)
                 .opacity(zoomScale == 1.0 ? 0.35 : 1)
+                .padding(.trailing, 8)
+
+                // 차트가 화면 대부분을 차지해서 당겨서 새로고침 제스처를 시작할 빈 공간이 별로
+                // 없다 — 같은 동작(refreshHRVData)을 버튼으로도 할 수 있게 둔다.
+                Button {
+                    Task { await refreshHRVData() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                }
                 .padding(.trailing, 8)
 
                 Picker("보기 단위", selection: $chartMode) {
