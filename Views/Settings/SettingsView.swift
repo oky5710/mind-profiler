@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authViewModel
+    @State private var isShowingSignOutConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -55,6 +56,14 @@ struct SettingsView: View {
                     Label("개발자에게 문의하기", systemImage: "envelope")
                 }
 
+                Section {
+                    Button(role: .destructive) {
+                        isShowingSignOutConfirmation = true
+                    } label: {
+                        Label("로그아웃", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+
                 #if DEBUG
                 // 실제 rMSSD를 낮추거나 높일 수 없어서, 감지 로직은 건너뛰고 알림이 뜬 이후의
                 // 흐름(탭 → 입력 화면 → 저장)만 확인해보는 디버그용 버튼 — 릴리스 빌드에는 없다.
@@ -81,6 +90,16 @@ struct SettingsView: View {
                 ToolbarItem(placement: .principal) {
                     Text("설정").font(Typography.screenTitle)
                 }
+            }
+            .confirmationDialog(
+                "로그아웃 하시겠어요?",
+                isPresented: $isShowingSignOutConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("로그아웃", role: .destructive) {
+                    authViewModel.signOut()
+                }
+                Button("취소", role: .cancel) {}
             }
         }
     }
