@@ -4,6 +4,7 @@ import SwiftUI
 // 어느 탭/화면을 보고 있었든 최상단에서 여는 것이라 캘린더 입력 폼처럼 .sheet로 반쯤 걸치는 대신
 // 화면 전체를 확실히 전환한다.
 struct RMSSDEventEntryForm: View {
+    @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel: RMSSDEventEntryViewModel
     var onDone: () -> Void
 
@@ -24,7 +25,7 @@ struct RMSSDEventEntryForm: View {
             Form {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.pendingEvent.direction == .low ? "rMSSD가 급격히 낮아졌어요" : "rMSSD가 평소보다 크게 높아졌어요")
+                        Text(viewModel.pendingEvent.direction == .low ? "\(authViewModel.hrvTerm)가 급격히 낮아졌어요" : "\(authViewModel.hrvTerm)가 평소보다 크게 높아졌어요")
                             .font(.headline)
                         Text("\(Self.timeFormatter.string(from: viewModel.pendingEvent.occurredAt)) · \(Int(viewModel.pendingEvent.rmssdValue))ms")
                             .font(.caption)

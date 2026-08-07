@@ -38,10 +38,12 @@ enum HRVSeries: String, CaseIterable, Identifiable {
     case median, sdnn, calendarEvent, cv
     var id: String { rawValue }
 
-    var label: String {
+    // 연구자/관리자에게는 익숙한 "rMSSD"를, 일반 사용자에게는 더 친숙한 "HRV"를 보여준다
+    // (AuthViewModel.hrvTerm) — 보고서·설정 화면은 이 범례를 쓰지 않아 영향받지 않는다.
+    func label(hrvTerm: String) -> String {
         switch self {
-        case .rmssd: "rMSSD (계산값)"
-        case .examRmssd: "검사 rMSSD"
+        case .rmssd: "\(hrvTerm) (계산값)"
+        case .examRmssd: "검사 \(hrvTerm)"
         case .restingHeartRate: "안정시 심박수"
         case .sleep: "수면"
         case .daylight: "일광시간"
@@ -110,6 +112,7 @@ struct HRVAnalysisView: View {
     @State var zoomAnchorScale: CGFloat?
     @State var zoomAnchorCenterDate: Date?
     @Environment(ToastCenter.self) var toastCenter
+    @Environment(AuthViewModel.self) private var authViewModel
     @State var hiddenSeries: Set<HRVSeries> = []
     @State var tooltipPoint: HRVAnalysisViewModel.HRVPoint?
     @State var tooltipCalendarEvent: HRVAnalysisViewModel.CalendarEventRange?
@@ -358,7 +361,7 @@ struct HRVAnalysisView: View {
         // 안전하지만, onChange로 전환 시점에만 트리거해 불필요한 호출 자체를 줄인다.
         .onChange(of: shouldNotifyNoRawBeatData) { _, shouldNotify in
             guard shouldNotify else { return }
-            toastCenter.show("이 기간에는 rMSSD를 계산할 원시 박동 데이터가 없어요", duration: .seconds(2))
+            toastCenter.show("이 기간에는 \(authViewModel.hrvTerm)를 계산할 원시 박동 데이터가 없어요", duration: .seconds(2))
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
@@ -547,7 +550,7 @@ struct HRVAnalysisView: View {
             // 아니라 사용자가 고른 짧은 단어라 굳이 크게 강조하지 않고 라벨과 같은 작은 크기로 둔다.
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 4, verticalSpacing: 2) {
                 GridRow {
-                    Text("rMSSD").font(.caption2)
+                    Text(authViewModel.hrvTerm).font(.caption2)
                     Text("\(String(format: "%.0f", point.value))ms").font(.callout.bold())
                 }
                 if let sdnn = nearestSDNNValue(to: point.date) {
@@ -830,7 +833,7 @@ struct HRVAnalysisView: View {
                 LegendItem(
                     id: series.id,
                     series: series,
-                    label: series == .sleep && chartMode == .daily ? "야간 수면시간" : series.label,
+                    label: series == .sleep && chartMode == .daily ? "야간 수면시간" : series.label(hrvTerm: authViewModel.hrvTerm),
                     boldValue: legendValue(for: series),
                     swatch: AnyView(
                         Image(systemName: series.symbol)
@@ -973,6 +976,9 @@ private final class SleepOverviewViewModel {
         value: -1,
         to: Calendar.current.startOfDay(for: Date())
     ) ?? Date()
+    // 처음 열었을 때 기본값(어젯밤)에 수면 기록이 없으면 최근 기록이 있는 밤으로 한 번만 자동
+    // 보정한다(load() 참고) — 이후 사용자가 직접 고른 날짜에는 이 보정을 적용하지 않는다.
+    private var hasAutoSelectedRecentNight = false
     private(set) var timeline: [TimelineSegment] = []
     private(set) var rmssdPoints: [MetricPoint] = []
     private(set) var heartRatePoints: [MetricPoint] = []
@@ -1082,9 +1088,24 @@ private final class SleepOverviewViewModel {
                 start: contextStart,
                 end: searchDomain.upperBound
             )
-            sleepRange = SleepAnalysisService.buildSleepRanges(sleepSamples).last {
+            let allRanges = SleepAnalysisService.buildSleepRanges(sleepSamples)
+            var matchedRange = allRanges.last {
                 calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: selectedNight)
             }
+
+            // 기본값(어젯밤)에 수면 기록이 없으면(워치를 안 차고 잤을 때 등) 빈 화면을 그대로 보여주는
+            // 대신, 최근 30일 안에서 실제로 기록이 있는 가장 최근 밤으로 대신 보여준다. 한 번만
+            // 보정하므로 사용자가 그 뒤 직접 고른 날짜에 기록이 없으면 있는 그대로 빈 상태를 보여준다.
+            if matchedRange == nil, !hasAutoSelectedRecentNight {
+                if let mostRecent = allRanges.last(where: {
+                    SleepAnalysisService.nightLabel(for: $0.start) <= selectedNight
+                }) {
+                    selectedNight = calendar.startOfDay(for: SleepAnalysisService.nightLabel(for: mostRecent.start))
+                    matchedRange = mostRecent
+                }
+            }
+            hasAutoSelectedRecentNight = true
+            sleepRange = matchedRange
 
             guard let sleepRange else {
                 timeline = []
@@ -1228,6 +1249,7 @@ private final class SleepOverviewViewModel {
 }
 
 private struct SleepOverviewView: View {
+    @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = SleepOverviewViewModel()
     @State private var selectedRMSSDDate: Date?
     @State private var selectedHeartRateDate: Date?
@@ -1322,7 +1344,7 @@ private struct SleepOverviewView: View {
                 )
                 wakeMetric("총 각성 시간", value: Self.formattedDuration(metrics.totalAwakeDuration))
                 wakeMetric(
-                    "수면 중 rMSSD 평균",
+                    "수면 중 \(authViewModel.hrvTerm) 평균",
                     value: viewModel.sleepRMSSDAverage.map { "\(Int($0.rounded()))ms" } ?? "—"
                 )
             }
@@ -1452,7 +1474,7 @@ private struct SleepOverviewView: View {
             .chartXScale(domain: viewModel.chartDomain)
             .sleepTimeGrid()
             .chartYAxis(.hidden)
-            .sleepMetricLabel("rMSSD")
+            .sleepMetricLabel(authViewModel.hrvTerm)
             .sleepXAxisBaseline()
             .sleepPointTapSelection(
                 points: viewModel.rmssdPoints,
@@ -1771,4 +1793,5 @@ private extension View {
 #Preview {
     HRVAnalysisView()
         .environment(ToastCenter())
+        .environment(AuthViewModel())
 }

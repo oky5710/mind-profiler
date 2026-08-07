@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     let refreshRequestID: UUID?
+    @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = HomeViewModel()
     @State private var selectedDate = Date()
 
@@ -58,17 +59,17 @@ struct HomeView: View {
         // Apple Watch 동기화가 앱을 연 뒤 끝날 수 있어 브리핑은 홈에 들어올 때마다 갱신한다.
         // 기분·커피·복약은 각 IfNeeded 함수가 성공적으로 확인한 항목을 자체적으로 건너뛴다.
         .onAppear {
-            Task { await viewModel.loadDailyBriefing(for: selectedDate) }
+            Task { await viewModel.loadDailyBriefing(for: selectedDate, hrvTerm: authViewModel.hrvTerm) }
             Task { await viewModel.loadTodayMoodIfNeeded() }
             Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
             Task { await viewModel.loadTodayMedicationLogsIfNeeded() }
         }
         .onChange(of: refreshRequestID) { _, requestID in
             guard requestID != nil else { return }
-            Task { await viewModel.loadDailyBriefing(for: selectedDate) }
+            Task { await viewModel.loadDailyBriefing(for: selectedDate, hrvTerm: authViewModel.hrvTerm) }
         }
         .onChange(of: selectedDate) { _, newDate in
-            Task { await viewModel.loadDailyBriefing(for: newDate) }
+            Task { await viewModel.loadDailyBriefing(for: newDate, hrvTerm: authViewModel.hrvTerm) }
         }
     }
 
@@ -387,4 +388,5 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .environment(AuthViewModel())
 }

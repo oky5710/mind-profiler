@@ -12,9 +12,25 @@ final class AuthViewModel {
     var shouldShowOnboarding: Bool
     var isLoading = false
     var errorMessage: String?
+    // 서버 JWT에 담긴 role 클레임을 그대로 읽기만 한다(서명 검증은 하지 않음) — 여기서는 화면에
+    // 어떤 용어/메뉴를 보여줄지 정하는 데만 쓰고, 실제 접근 제어는 항상 백엔드가 담당한다.
+    private(set) var role: UserRole?
+
+    // 연구자는 원래 쓰던 rMSSD 용어를 그대로 알지만, 일반 사용자에게는 낯선 줄임말이라 보고서(의사
+    // 대상)·설정 화면을 뺀 나머지 화면에서는 더 친숙한 "HRV"로 바꿔 보여준다. admin도 연구자와
+    // 같은 기술 용어를 쓴다고 본다.
+    var usesResearcherTerminology: Bool {
+        role == .researcher || role == .admin
+    }
+
+    var hrvTerm: String {
+        usesResearcherTerminology ? "rMSSD" : "HRV"
+    }
 
     init() {
-        isAuthenticated = KeychainService.readToken(forKey: Self.tokenKey) != nil
+        let token = KeychainService.readToken(forKey: Self.tokenKey)
+        isAuthenticated = token != nil
+        role = token.flatMap(Self.decodeRole(fromToken:))
         shouldShowOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingPendingKey)
 
         // 저장된 JWT가 만료/폐기됐으면 어느 화면에서 API를 호출하든 401이 뜨는데, 그때까지는 앱이
@@ -50,6 +66,7 @@ final class AuthViewModel {
             )
 
             KeychainService.save(token: response.accessToken, forKey: Self.tokenKey)
+            role = Self.decodeRole(fromToken: response.accessToken)
             if response.isNewUser == true {
                 UserDefaults.standard.set(true, forKey: Self.onboardingPendingKey)
                 shouldShowOnboarding = true
@@ -64,6 +81,28 @@ final class AuthViewModel {
         GIDSignIn.sharedInstance.signOut()
         KeychainService.deleteToken(forKey: Self.tokenKey)
         isAuthenticated = false
+        role = nil
+    }
+
+    // JWT의 서명은 검증하지 않는다 — 여기서는 화면에 보여줄 용어/메뉴를 정하는 용도일 뿐이고, 실제
+    // 인가는 항상 백엔드가 Authorization 헤더의 토큰으로 매 요청마다 검증한다.
+    private static func decodeRole(fromToken token: String) -> UserRole? {
+        let segments = token.split(separator: ".")
+        guard segments.count > 1 else { return nil }
+
+        var base64 = String(segments[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+
+        guard let data = Data(base64Encoded: base64),
+              let payload = try? JSONDecoder().decode(JWTRolePayload.self, from: data)
+        else { return nil }
+        return payload.role.flatMap(UserRole.init(rawValue:))
+    }
+
+    private struct JWTRolePayload: Decodable {
+        let role: String?
     }
 
     func completeOnboarding() {

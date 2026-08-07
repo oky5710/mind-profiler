@@ -55,7 +55,9 @@ final class HomeViewModel {
     // 날짜가 최종적으로 반영된다.
     private var latestRequestedBriefingDate: Date?
 
-    func loadDailyBriefing(for selectedDate: Date = Date()) async {
+    // hrvTerm: 연구자/관리자는 "rMSSD", 일반 사용자는 "HRV"(AuthViewModel.hrvTerm) — 이 뷰모델은
+    // View가 아니라 environment에 직접 접근할 수 없어 호출부(HomeView)가 넘겨준다.
+    func loadDailyBriefing(for selectedDate: Date = Date(), hrvTerm: String) async {
         latestRequestedBriefingDate = selectedDate
         guard !isLoadingDailyBriefing else { return }
         isLoadingDailyBriefing = true
@@ -63,7 +65,7 @@ final class HomeViewModel {
 
         var dateToLoad = selectedDate
         while true {
-            await performDailyBriefingLoad(for: dateToLoad)
+            await performDailyBriefingLoad(for: dateToLoad, hrvTerm: hrvTerm)
             guard let latest = latestRequestedBriefingDate,
                   !Calendar.current.isDate(latest, inSameDayAs: dateToLoad)
             else { break }
@@ -71,7 +73,7 @@ final class HomeViewModel {
         }
     }
 
-    private func performDailyBriefingLoad(for selectedDate: Date) async {
+    private func performDailyBriefingLoad(for selectedDate: Date, hrvTerm: String) async {
         // Apple Watch → iPhone HealthKit 동기화는 앱을 연 뒤 완료될 수 있으므로 홈에 들어올 때마다
         // 최신 수면을 다시 읽는다.
         do {
@@ -267,7 +269,7 @@ final class HomeViewModel {
             )
             let caseType = BriefingCaseDetector.detect(from: input)
             briefingCaseType = caseType
-            briefingClues = BriefingClueBuilder.build(from: input)
+            briefingClues = BriefingClueBuilder.build(from: input, hrvTerm: hrvTerm)
 
             dailySummaryHighlights = DailySummaryBuilder.build(from: Self.dailySummaryInput(
                 current: current,

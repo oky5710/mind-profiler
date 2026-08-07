@@ -678,7 +678,9 @@ enum SleepClueBuilder {
 }
 
 enum HRVClueBuilder {
-    static func build(from input: DailyBriefingInput) -> [BriefingClue] {
+    // hrvTerm: 연구자/관리자에게는 "rMSSD", 일반 사용자에게는 "HRV"(AuthViewModel.hrvTerm) — 홈
+    // 화면은 누구나 보므로 호출부가 역할에 맞는 용어를 넘겨준다.
+    static func build(from input: DailyBriefingInput, hrvTerm: String) -> [BriefingClue] {
         var clues: [BriefingClue] = []
         if let change = input.rmssdChangePercent,
            change.isFinite,
@@ -686,7 +688,7 @@ enum HRVClueBuilder {
             clues.append(BriefingClue(
                 category: .hrv,
                 type: change > 0 ? .positive : .negative,
-                message: "rMSSD \(signedInteger(change))%",
+                message: "\(hrvTerm) \(signedInteger(change))%",
                 severity: abs(change) / DailyBriefingConfiguration.rmssdChangeThresholdPercent,
                 occurredAt: nil
             ))
@@ -696,7 +698,7 @@ enum HRVClueBuilder {
                 clues.append(BriefingClue(
                     category: .hrv,
                     type: .negative,
-                    message: "rMSSD 최근 30일 하위 10%",
+                    message: "\(hrvTerm) 최근 30일 하위 10%",
                     severity: 2.5,
                     occurredAt: nil
                 ))
@@ -704,7 +706,7 @@ enum HRVClueBuilder {
                 clues.append(BriefingClue(
                     category: .hrv,
                     type: .positive,
-                    message: "rMSSD 최근 30일 상위 10%",
+                    message: "\(hrvTerm) 최근 30일 상위 10%",
                     severity: 2.5,
                     occurredAt: nil
                 ))
@@ -815,9 +817,9 @@ enum NoteClueBuilder {
 }
 
 enum BriefingClueBuilder {
-    static func build(from input: DailyBriefingInput) -> [BriefingClue] {
+    static func build(from input: DailyBriefingInput, hrvTerm: String) -> [BriefingClue] {
         let candidates = SleepClueBuilder.build(from: input)
-            + HRVClueBuilder.build(from: input)
+            + HRVClueBuilder.build(from: input, hrvTerm: hrvTerm)
             + NoteClueBuilder.build(from: input)
             + WorkoutClueBuilder.build(from: input)
             + CoffeeClueBuilder.build(from: input)

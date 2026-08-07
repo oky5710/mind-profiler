@@ -1,25 +1,32 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(AuthViewModel.self) private var authViewModel
+
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    AnalysisSettingsView()
-                } label: {
-                    Label("SDNN·rMSSD 분석", systemImage: "waveform.path.ecg")
-                }
+                // 일반 사용자는 약 등록·알림 설정·문의하기만 쓰면 되고, 분석용 화면들은 연구자/관리자
+                // 대상이라 혼란만 준다 — 이 화면 자체는 사용자 요청으로 값을 바꿀 수 없는 역할이라
+                // (docs/architecture.md), 여기서 감춰도 실제 권한과 어긋나지 않는다.
+                if authViewModel.usesResearcherTerminology {
+                    NavigationLink {
+                        AnalysisSettingsView()
+                    } label: {
+                        Label("SDNN·rMSSD 분석", systemImage: "waveform.path.ecg")
+                    }
 
-                NavigationLink {
-                    CorrelationAnalysisView()
-                } label: {
-                    Label("상관계수 분석", systemImage: "chart.xyaxis.line")
-                }
+                    NavigationLink {
+                        CorrelationAnalysisView()
+                    } label: {
+                        Label("상관계수 분석", systemImage: "chart.xyaxis.line")
+                    }
 
-                NavigationLink {
-                    UnsolvedCasesView()
-                } label: {
-                    Label("장기 미제 사건", systemImage: "magnifyingglass")
+                    NavigationLink {
+                        UnsolvedCasesView()
+                    } label: {
+                        Label("장기 미제 사건", systemImage: "magnifyingglass")
+                    }
                 }
 
                 NavigationLink {
@@ -34,10 +41,12 @@ struct SettingsView: View {
                     Label("알림 설정", systemImage: "bell.badge")
                 }
 
-                NavigationLink {
-                    RRIntervalExportView()
-                } label: {
-                    Label("RR 데이터 내보내기", systemImage: "waveform.path")
+                if authViewModel.usesResearcherTerminology {
+                    NavigationLink {
+                        RRIntervalExportView()
+                    } label: {
+                        Label("RR 데이터 내보내기", systemImage: "waveform.path")
+                    }
                 }
 
                 NavigationLink {
@@ -49,12 +58,15 @@ struct SettingsView: View {
                 #if DEBUG
                 // 실제 rMSSD를 낮추거나 높일 수 없어서, 감지 로직은 건너뛰고 알림이 뜬 이후의
                 // 흐름(탭 → 입력 화면 → 저장)만 확인해보는 디버그용 버튼 — 릴리스 빌드에는 없다.
-                Section("디버그") {
-                    Button("rMSSD 낮음 알림 테스트") {
-                        Task { await RMSSDThresholdMonitorService.shared.debugTriggerNotification(direction: .low) }
-                    }
-                    Button("rMSSD 높음 알림 테스트") {
-                        Task { await RMSSDThresholdMonitorService.shared.debugTriggerNotification(direction: .high) }
+                // 연구자도 이 버튼들은 볼 필요가 없어서 admin에게만 남긴다.
+                if authViewModel.role == .admin {
+                    Section("디버그") {
+                        Button("rMSSD 낮음 알림 테스트") {
+                            Task { await RMSSDThresholdMonitorService.shared.debugTriggerNotification(direction: .low) }
+                        }
+                        Button("rMSSD 높음 알림 테스트") {
+                            Task { await RMSSDThresholdMonitorService.shared.debugTriggerNotification(direction: .high) }
+                        }
                     }
                 }
                 #endif
@@ -161,4 +173,5 @@ private struct DeveloperContactView: View {
 
 #Preview {
     SettingsView()
+        .environment(AuthViewModel())
 }
