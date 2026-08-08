@@ -345,8 +345,13 @@ final class ReportViewModel {
         let fromHealthKit = healthKitWorkouts.map {
             WorkoutSummary(start: $0.start, end: $0.end, label: HealthKitService.workoutActivityTypeDisplayName($0.activityType))
         }
+        // 사용자가 HealthKit이 이미 자동으로 잡은 운동을 앱에서 손으로 또 기록하는 경우가 있어,
+        // 시간대가 겹치는 수동 기록은 중복으로 보고 뺀다 — HealthKit 쪽이 실제 측정값이라 더
+        // 정확하다고 보고 그 쪽을 남긴다.
         let fromManual = manualExercises.compactMap { entry -> WorkoutSummary? in
             guard let start = DateKey.parseISODate(entry.startedAt), let end = DateKey.parseISODate(entry.endedAt) else { return nil }
+            let overlapsHealthKitWorkout = fromHealthKit.contains { $0.start < end && $0.end > start }
+            guard !overlapsHealthKitWorkout else { return nil }
             return WorkoutSummary(start: start, end: end, label: entry.type)
         }
         return (fromHealthKit + fromManual).sorted { $0.start < $1.start }
@@ -403,13 +408,18 @@ final class ReportViewModel {
                 return life.title
             }
 
-            let previousDayExercise = previousDay.flatMap { prev in
-                workoutSummaries.first { calendar.isDate($0.start, inSameDayAs: prev) }
-            }
-            let previousDayExerciseSummary = previousDayExercise.map { workout in
-                let minutes = Int(workout.end.timeIntervalSince(workout.start) / 60)
-                return "\(workout.label) \(minutes)분"
-            }
+            // .first로 하루 중 첫 운동 하나만 보면, 그날 여러 종목을 했을 때 나머지 운동 시간이
+            // 통째로 빠진다 — 그날의 모든 운동을 모아 총 시간을 더하고, 종목이 여럿이면 같이 나열한다.
+            let previousDayExercises = previousDay.map { prev in
+                workoutSummaries.filter { calendar.isDate($0.start, inSameDayAs: prev) }
+            } ?? []
+            let previousDayExerciseSummary: String? = {
+                guard !previousDayExercises.isEmpty else { return nil }
+                let totalMinutes = previousDayExercises.reduce(0) { $0 + Int($1.end.timeIntervalSince($1.start) / 60) }
+                var seenLabels = Set<String>()
+                let uniqueLabels = previousDayExercises.map(\.label).filter { seenLabels.insert($0).inserted }
+                return "\(uniqueLabels.joined(separator: ", ")) \(totalMinutes)분"
+            }()
 
             return RMSSDLowestDayRow(
                 date: entry.date,
