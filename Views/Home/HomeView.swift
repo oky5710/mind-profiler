@@ -476,7 +476,7 @@ struct HomeView: View {
 
     private func inlineError(_ message: String) -> some View {
         Text(message)
-            .font(.footnote)
+            .font(Typography.caption)
             .foregroundStyle(.red)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -510,7 +510,7 @@ struct HomeView: View {
             Task { await viewModel.logCoffee() }
         } label: {
             Text("커피")
-                .font(.caption)
+                .font(Typography.caption)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
@@ -533,7 +533,7 @@ struct HomeView: View {
             Task { await viewModel.logMedicationQuick(timing) }
         } label: {
             Text(timing.label)
-                .font(.caption)
+                .font(Typography.caption)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
