@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F10000012026080800000001 /* CoreCalculationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000022026080800000002 /* CoreCalculationTests.swift */; };
 		00D471A2243B7BF1EAC23855 /* RMSSDThresholdAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */; };
 		0236355296FE72A9C1A35CB5 /* PRD.md in Resources */ = {isa = PBXBuildFile; fileRef = 8AF23AC877DAF03E6DD07A49 /* PRD.md */; };
 		0410E0126862F30522EB07E8 /* CoffeeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */; };
@@ -115,7 +116,19 @@
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F10000102026080800000010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2F284349300A4D1000CE1C47 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2F284350300A4D1000CE1C47;
+			remoteInfo = MindProfiler;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		F10000022026080800000002 /* CoreCalculationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreCalculationTests.swift; sourceTree = "<group>"; };
+		F10000032026080800000003 /* MindProfilerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindProfilerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
 		08D6C75DD02E38AA10033162 /* MedicationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationModels.swift; sourceTree = "<group>"; };
 		0933E651496C8E1E00026E6A /* CoffeeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeService.swift; sourceTree = "<group>"; };
@@ -226,6 +239,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F10000052026080800000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2F28434E300A4D1000CE1C47 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -311,6 +331,7 @@
 				C5860D139D3B0008D12CBAE9 /* Components */,
 				EC88DF084C96613A6AE20F51 /* Resources */,
 				D4ED9D4CCB4E586CBBCDC940 /* docs */,
+				F10000042026080800000004 /* MindProfilerTests */,
 				2F284358300A4D1100CE1C47 /* Assets.xcassets */,
 				2F284361300AF2A000CE1C47 /* Recovered References */,
 			);
@@ -320,6 +341,7 @@
 			isa = PBXGroup;
 			children = (
 				2F284351300A4D1000CE1C47 /* MindProfiler.app */,
+				F10000032026080800000003 /* MindProfilerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -339,6 +361,14 @@
 				FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */,
 			);
 			path = RMSSDEvent;
+			sourceTree = "<group>";
+		};
+		F10000042026080800000004 /* MindProfilerTests */ = {
+			isa = PBXGroup;
+			children = (
+				F10000022026080800000002 /* CoreCalculationTests.swift */,
+			);
+			path = MindProfilerTests;
 			sourceTree = "<group>";
 		};
 		517A17634B4DCE20C3815264 /* Home */ = {
@@ -513,6 +543,24 @@
 			productReference = 2F284351300A4D1000CE1C47 /* MindProfiler.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F10000082026080800000008 /* MindProfilerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000132026080800000013 /* Build configuration list for PBXNativeTarget "MindProfilerTests" */;
+			buildPhases = (
+				F10000072026080800000007 /* Sources */,
+				F10000052026080800000005 /* Frameworks */,
+				F10000062026080800000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F10000092026080800000009 /* PBXTargetDependency */,
+			);
+			name = MindProfilerTests;
+			productName = MindProfilerTests;
+			productReference = F10000032026080800000003 /* MindProfilerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -525,6 +573,10 @@
 				TargetAttributes = {
 					2F284350300A4D1000CE1C47 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					F10000082026080800000008 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 2F284350300A4D1000CE1C47;
 					};
 				};
 			};
@@ -546,11 +598,27 @@
 			projectRoot = "";
 			targets = (
 				2F284350300A4D1000CE1C47 /* MindProfiler */,
+				F10000082026080800000008 /* MindProfilerTests */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXTargetDependency section */
+		F10000092026080800000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2F284350300A4D1000CE1C47 /* MindProfiler */;
+			targetProxy = F10000102026080800000010 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXResourcesBuildPhase section */
+		F10000062026080800000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2F28434F300A4D1000CE1C47 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -570,6 +638,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F10000072026080800000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F10000012026080800000001 /* CoreCalculationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2F28434D300A4D1000CE1C47 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -673,6 +749,42 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		F10000112026080800000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oky5710.MindProfilerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MindProfiler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MindProfiler";
+			};
+			name = Debug;
+		};
+		F10000122026080800000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oky5710.MindProfilerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MindProfiler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MindProfiler";
+			};
+			name = Release;
+		};
 		2F28435A300A4D1100CE1C47 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -851,6 +963,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F10000132026080800000013 /* Build configuration list for PBXNativeTarget "MindProfilerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000112026080800000011 /* Debug */,
+				F10000122026080800000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		2F28434C300A4D1000CE1C47 /* Build configuration list for PBXProject "MindProfiler" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -283,7 +283,7 @@ Typography.caption
 - 폰트 크기보다 여백으로 레이아웃을 정리한다.
 - 한 화면에 너무 많은 크기의 텍스트를 사용하지 않는다.
 - Weight와 Size로 위계를 만든다.
-- Dynamic Type을 지원할 수 있도록 시스템 폰트를 사용한다.
+- SwiftUI 시스템 폰트를 사용하며 UIKit의 `UIFont`/`UIFontMetrics`에 의존하지 않는다.
 - 같은 의미의 텍스트는 항상 같은 스타일을 사용한다.
 - 텍스트에 브랜드 컬러 `Theme.primary`를 사용할 때는 Weight 600(`semibold`)을 적용한다.
 

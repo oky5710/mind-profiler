@@ -54,11 +54,7 @@ final class AuthViewModel {
         defer { isLoading = false }
 
         do {
-            let result = try await Self.signIn(presenting: presentingViewController)
-            guard let idToken = result.user.idToken?.tokenString else {
-                errorMessage = "Google 로그인에서 idToken을 받지 못했습니다."
-                return
-            }
+            let idToken = try await Self.googleIDToken(presenting: presentingViewController)
 
             let response: AuthTokenResponse = try await APIClient.shared.post(
                 "/auth/google",
@@ -123,6 +119,7 @@ final class AuthViewModel {
         role = nil
         shouldShowOnboarding = false
         UserDefaults.standard.set(false, forKey: Self.onboardingPendingKey)
+        RecoveryScoreCache.clear()
     }
 
     // JWT의 서명은 검증하지 않는다 — 여기서는 화면에 보여줄 용어/메뉴를 정하는 용도일 뿐이고, 실제
@@ -151,13 +148,15 @@ final class AuthViewModel {
         shouldShowOnboarding = false
     }
 
-    private static func signIn(presenting viewController: UIViewController) async throws -> GIDSignInResult {
+    // GIDSignInResult는 Sendable이 아니므로 continuation을 통해 actor 경계를 넘기지 않는다.
+    // SDK 콜백 안에서 필요한 문자열만 추출해 Sendable 값으로 반환한다.
+    private static func googleIDToken(presenting viewController: UIViewController) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             GIDSignIn.sharedInstance.signIn(withPresenting: viewController) { result, error in
                 if let error {
                     continuation.resume(throwing: error)
-                } else if let result {
-                    continuation.resume(returning: result)
+                } else if let idToken = result?.user.idToken?.tokenString {
+                    continuation.resume(returning: idToken)
                 } else {
                     continuation.resume(throwing: APIError.invalidResponse)
                 }

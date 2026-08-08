@@ -1,5 +1,24 @@
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
+
+// UNUserNotificationCenterDelegate completion handler는 Sendable이 아니므로 actor Task에 직접 넘기지
+// 않고, 잠금으로 한 번만 소비되는 relay를 사용한다.
+private nonisolated final class NotificationCompletion<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var completion: ((Value) -> Void)?
+
+    init(_ completion: @escaping (Value) -> Void) {
+        self.completion = completion
+    }
+
+    func call(_ value: Value) {
+        lock.lock()
+        let action = completion
+        completion = nil
+        lock.unlock()
+        action?(value)
+    }
+}
 
 // 다른 Service들과 달리 enum 네임스페이스가 아니라 class다 — UNUserNotificationCenterDelegate로
 // 동작하려면 참조 타입(식별자를 가진 인스턴스)이 필요하고, 이번에 예약한 알림 목록을 잠깐 캐시해 둬야
@@ -211,15 +230,16 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
             completionHandler([.banner, .sound])
             return
         }
+        let completion = NotificationCompletion(completionHandler)
         Task { @MainActor in
             guard let timingRaw = notification.request.content.userInfo["timing"] as? String,
                   let timing = MedicationTiming(rawValue: timingRaw) else {
-                completionHandler([.banner, .sound])
+                completion.call([.banner, .sound])
                 return
             }
             let logs = try? await MedicationService.logs(on: Date())
             let alreadyTaken = logs?.contains { $0.timing == timing.rawValue && $0.taken } ?? false
-            completionHandler(alreadyTaken ? [] : [.banner, .sound])
+            completion.call(alreadyTaken ? [] : [.banner, .sound])
         }
     }
 
@@ -235,9 +255,10 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
         }
 
         if response.notification.request.content.categoryIdentifier == SleepUpdateMonitorService.categoryIdentifier {
+            let completion = NotificationCompletion<Void> { _ in completionHandler() }
             Task { @MainActor in
                 Self.onSleepUpdateTapped?()
-                completionHandler()
+                completion.call(())
             }
             return
         }
@@ -248,10 +269,11 @@ final class ReminderNotificationService: NSObject, UNUserNotificationCenterDeleg
             completionHandler()
             return
         }
+        let completion = NotificationCompletion<Void> { _ in completionHandler() }
         Task { @MainActor in
             _ = try? await MedicationService.logTiming(timing, date: Date())
             ReminderNotificationService.shared.cancelTodayOccurrences(forTiming: timing)
-            completionHandler()
+            completion.call(())
         }
     }
 }

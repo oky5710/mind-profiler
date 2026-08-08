@@ -17,6 +17,7 @@ struct OnboardingView: View {
                 interpretationSection
                 closingSection
             }
+            .lineSpacing(3)
             .padding(.horizontal, 24)
             .padding(.top, 36)
             .padding(.bottom, 100)
@@ -58,16 +59,17 @@ struct OnboardingView: View {
             Text("\(number). \(title)")
                 .font(Typography.sectionTitle)
             Text(body)
+                .font(Typography.body)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(items, id: \.self) { item in
                     Label(item, systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.primary)
                 }
             }
-            .font(Typography.secondary)
+            .font(Typography.body)
             Text(footnote)
-                .font(Typography.secondary.weight(.semibold))
-                .foregroundStyle(Theme.primary)
+                .font(Typography.body.weight(.semibold))
+                .foregroundStyle(Theme.primary700)
         }
     }
 
@@ -76,8 +78,9 @@ struct OnboardingView: View {
             Text("2. 해석할 때 주의할 점")
                 .font(Typography.sectionTitle)
             Text("한 번의 측정보다 추세가 중요합니다.")
-                .font(Typography.body.weight(.bold))
+                .font(Typography.body.weight(.semibold))
             Text("HRV는 다음과 같은 영향을 받을 수 있습니다.")
+                .font(Typography.body)
             let factors = ["수면", "운동", "스트레스", "카페인", "음주", "측정 환경"]
             LazyVGrid(
                 columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
@@ -94,8 +97,8 @@ struct OnboardingView: View {
                 }
             }
             Text("오늘 수치가 낮다고 해서 반드시 건강이 나쁘다는 의미는 아닙니다.")
-                .font(Typography.secondary.weight(.semibold))
-                .foregroundStyle(Theme.primary)
+                .font(Typography.body.weight(.semibold))
+                .foregroundStyle(Theme.primary700)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -105,8 +108,9 @@ struct OnboardingView: View {
             Text("3. 마지막")
                 .font(Typography.sectionTitle)
             Text("당신의 데이터는 당신을 이해하기 위한 단서입니다.")
+                .font(Typography.body)
             Text("숫자는 정답이 아니라,\n스스로를 이해하기 위한 시작점입니다.")
-                .font(Typography.body.weight(.bold))
+                .font(Typography.body.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

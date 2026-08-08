@@ -1,6 +1,25 @@
 import Foundation
 import HealthKit
 
+// HealthKit observer가 주는 completionHandler는 Sendable로 선언되어 있지 않다. 이를 Task에 직접
+// 캡처하면 Swift 6에서 데이터 경합 오류가 되므로, 한 번만 호출되는 Sendable relay로 감싼다.
+private nonisolated final class HealthKitObserverCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var completion: (() -> Void)?
+
+    init(_ completion: @escaping () -> Void) {
+        self.completion = completion
+    }
+
+    func call() {
+        lock.lock()
+        let action = completion
+        completion = nil
+        lock.unlock()
+        action?()
+    }
+}
+
 enum HealthKitError: Error, LocalizedError {
     case notAvailable
 
@@ -17,7 +36,7 @@ enum HealthKitService {
     enum SleepStage: String, CaseIterable {
         case core, deep, rem, unspecified
 
-        fileprivate init?(categoryValue: Int) {
+        nonisolated fileprivate init?(categoryValue: Int) {
             switch categoryValue {
             case HKCategoryValueSleepAnalysis.asleepCore.rawValue: self = .core
             case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: self = .deep
@@ -40,7 +59,7 @@ enum HealthKitService {
             }
         }
 
-        fileprivate init?(categoryValue: Int) {
+        nonisolated fileprivate init?(categoryValue: Int) {
             switch categoryValue {
             case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: self = .deep
             case HKCategoryValueSleepAnalysis.asleepCore.rawValue,
@@ -109,11 +128,12 @@ enum HealthKitService {
     // 대리 신호로 쓴다. HKObserverQuery는 이 앱이 백그라운드에 있어도(entitlements의
     // com.apple.developer.healthkit.background-delivery 덕분에) 새 데이터가 들어오면 호출된다.
     @discardableResult
-    static func observeSDNNUpdates(onUpdate: @escaping () async -> Void) -> HKObserverQuery {
+    static func observeSDNNUpdates(onUpdate: @escaping @Sendable () async -> Void) -> HKObserverQuery {
         let query = HKObserverQuery(sampleType: HKQuantityType(.heartRateVariabilitySDNN), predicate: nil) { _, completionHandler, _ in
+            let completion = HealthKitObserverCompletion(completionHandler)
             Task {
                 await onUpdate()
-                completionHandler()
+                completion.call()
             }
         }
         store.execute(query)
@@ -129,11 +149,12 @@ enum HealthKitService {
     // 수면 단계는 한 번의 밤에도 코어/깊은 수면/REM 샘플이 여러 건 들어온다. 관찰자는 "수면 데이터가
     // 바뀌었다"는 신호만 전달하고, 실제로 새 밤인지와 중복 여부는 SleepUpdateMonitorService가 판정한다.
     @discardableResult
-    static func observeSleepUpdates(onUpdate: @escaping () async -> Void) -> HKObserverQuery {
+    static func observeSleepUpdates(onUpdate: @escaping @Sendable () async -> Void) -> HKObserverQuery {
         let query = HKObserverQuery(sampleType: HKCategoryType(.sleepAnalysis), predicate: nil) { _, completionHandler, _ in
+            let completion = HealthKitObserverCompletion(completionHandler)
             Task {
                 await onUpdate()
-                completionHandler()
+                completion.call()
             }
         }
         store.execute(query)

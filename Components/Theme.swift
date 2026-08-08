@@ -177,25 +177,25 @@ enum Theme {
     //
     // 지표 색이 아닌 일반 UI, 임시 상태, 참고선 등에 사용한다.
 
-    static let systemRed = Color("SystemRed")
-    static let systemOrange = Color("SystemOrange")
-    static let systemYellow = Color("SystemYellow")
-    static let systemGreen = Color("SystemGreen")
-    static let systemMint = Color("SystemMint")
-    static let systemTeal = Color("SystemTeal")
-    static let systemCyan = Color("SystemCyan")
-    static let systemBlue = Color("SystemBlue")
-    static let systemIndigo = Color("SystemIndigo")
-    static let systemPurple = Color("SystemPurple")
-    static let systemPink = Color("SystemPink")
-    static let systemBrown = Color("SystemBrown")
+    static let systemRed = Color("MPSystemRed")
+    static let systemOrange = Color("MPSystemOrange")
+    static let systemYellow = Color("MPSystemYellow")
+    static let systemGreen = Color("MPSystemGreen")
+    static let systemMint = Color("MPSystemMint")
+    static let systemTeal = Color("MPSystemTeal")
+    static let systemCyan = Color("MPSystemCyan")
+    static let systemBlue = Color("MPSystemBlue")
+    static let systemIndigo = Color("MPSystemIndigo")
+    static let systemPurple = Color("MPSystemPurple")
+    static let systemPink = Color("MPSystemPink")
+    static let systemBrown = Color("MPSystemBrown")
 
-    static let systemGray = Color("SystemGray")
-    static let systemGray2 = Color("SystemGray2")
-    static let systemGray3 = Color("SystemGray3")
-    static let systemGray4 = Color("SystemGray4")
-    static let systemGray5 = Color("SystemGray5")
-    static let systemGray6 = Color("SystemGray6")
+    static let systemGray = Color("MPSystemGray")
+    static let systemGray2 = Color("MPSystemGray2")
+    static let systemGray3 = Color("MPSystemGray3")
+    static let systemGray4 = Color("MPSystemGray4")
+    static let systemGray5 = Color("MPSystemGray5")
+    static let systemGray6 = Color("MPSystemGray6")
     
     // MARK: - Brand Scale
 

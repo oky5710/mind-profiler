@@ -1,7 +1,7 @@
 import Foundation
 import ImageIO
 
-enum CatPhotoService {
+nonisolated enum CatPhotoService {
     // 스플래시를 띄운 액터(MainActor)에서 곧바로 부르면 폴더 순회와 JPEG 디코딩이 메인 스레드에서
     // 동기적으로 실행돼 1.5초 스플래시 표시 시간 일부를 잡아먹는다 — 백그라운드로 넘겨서 실행한다.
     static func randomPhoto() async -> CGImage? {

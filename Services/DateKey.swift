@@ -1,6 +1,6 @@
 import Foundation
 
-enum DateKey {
+nonisolated enum DateKey {
     static func string(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
