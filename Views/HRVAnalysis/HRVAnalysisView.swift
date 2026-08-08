@@ -590,37 +590,37 @@ struct HRVAnalysisView: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(dateText)
-                .font(.caption2)
+                .font(Typography.caption2)
             // 라벨(rMSSD/SDNN)은 작게, 숫자는 크게 — Grid로 두 줄의 라벨 칸 너비를 맞춰서
             // 숫자가 시작하는 위치가 항상 같은 줄에 맞게 정렬된다. 기분은 rMSSD/SDNN처럼 측정값이
             // 아니라 사용자가 고른 짧은 단어라 굳이 크게 강조하지 않고 라벨과 같은 작은 크기로 둔다.
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 4, verticalSpacing: 2) {
                 GridRow {
-                    Text(authViewModel.hrvTerm).font(.caption2)
-                    Text("\(String(format: "%.0f", point.value))ms").font(.callout.bold())
+                    Text(authViewModel.hrvTerm).font(Typography.caption2)
+                    Text("\(String(format: "%.0f", point.value))ms").font(Typography.body.weight(.bold))
                 }
                 if let sdnn = nearestSDNNValue(to: point.date) {
                     GridRow {
-                        Text("SDNN").font(.caption2)
-                        Text("\(String(format: "%.0f", sdnn))ms").font(.callout.bold())
+                        Text("SDNN").font(Typography.caption2)
+                        Text("\(String(format: "%.0f", sdnn))ms").font(Typography.body.weight(.bold))
                     }
                 }
                 if let restingHeartRate = dailyRestingHeartRate(on: point.date) {
                     GridRow {
-                        Text("안정시 심박수").font(.caption2)
-                        Text("\(String(format: "%.0f", restingHeartRate))bpm").font(.callout.bold())
+                        Text("안정시 심박수").font(Typography.caption2)
+                        Text("\(String(format: "%.0f", restingHeartRate))bpm").font(Typography.body.weight(.bold))
                     }
                 }
                 if let sleepDuration = dailySleepDuration(on: point.date) {
                     GridRow {
-                        Text("수면시간").font(.caption2)
-                        Text(SleepAnalysisService.formattedDuration(sleepDuration)).font(.callout.bold())
+                        Text("수면시간").font(Typography.caption2)
+                        Text(SleepAnalysisService.formattedDuration(sleepDuration)).font(Typography.body.weight(.bold))
                     }
                 }
                 if let emotion = matchedEvent.flatMap({ RMSSDEmotion(rawValue: $0.emotion) }) {
                     GridRow {
-                        Text("기분").font(.caption2)
-                        Text(emotion.label).font(.caption2)
+                        Text("기분").font(Typography.caption2)
+                        Text(emotion.label).font(Typography.caption2)
                     }
                 }
             }
@@ -629,7 +629,7 @@ struct HRVAnalysisView: View {
                 // 통짜 너비를 그대로 요구) 툴팁이 화면 밖으로 넘어갈 만큼 넓어질 수 있다 — 너비를
                 // 직접 제한하고 세로로만 줄바꿈되게 한다.
                 Text(note)
-                    .font(.caption2)
+                    .font(Typography.caption2)
                     .foregroundStyle(.white.opacity(0.85))
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: 220, alignment: .leading)
@@ -647,16 +647,16 @@ struct HRVAnalysisView: View {
         VStack(alignment: .leading, spacing: 2) {
             if event.category != .general {
                 Text(event.category == .holiday ? "공휴일" : "휴가")
-                    .font(.caption2.bold())
+                    .font(Typography.caption2.bold())
                     .foregroundStyle(allDayEventColor(for: event.category))
             }
             Text(event.title)
-                .font(.subheadline.bold())
+                .font(Typography.secondary.bold())
             Text(calendarEventTimeRangeText(event))
-                .font(.caption2)
+                .font(Typography.caption2)
             if let location = event.location, !location.isEmpty {
                 Text(location)
-                    .font(.caption2)
+                    .font(Typography.caption2)
             }
         }
         .foregroundStyle(.black)
@@ -681,19 +681,19 @@ struct HRVAnalysisView: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(workout.displayName)
-                .font(.subheadline.bold())
+                .font(Typography.secondary.bold())
             Text(
                 "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDuration(duration)) · " +
                     "\(Self.hourMinuteFormatter.string(from: workout.start)) ~ \(Self.hourMinuteFormatter.string(from: workout.end))"
             )
-            .font(.caption2)
+            .font(Typography.caption2)
             if let energyBurnedKcal = workout.energyBurnedKcal, energyBurnedKcal > 0 {
                 Text("\(Int(energyBurnedKcal.rounded()))kcal")
-                    .font(.caption2)
+                    .font(Typography.caption2)
             }
             if let distanceMeters = workout.distanceMeters, distanceMeters > 0 {
                 Text(String(format: "%.2fkm", distanceMeters / 1000))
-                    .font(.caption2)
+                    .font(Typography.caption2)
             }
         }
         .foregroundStyle(.black)
@@ -749,24 +749,24 @@ struct HRVAnalysisView: View {
     func tooltipLabel(for marker: HRVAnalysisViewModel.DailyMarker) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(dailyMarkerKindLabel(marker.kind))
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(dailyMarkerColor(for: marker.kind))
             // 약복용은 제목이 종류 라벨("약 복용")과 똑같아서 — 약 이름 자체는 원래 안 보여주는
             // 정책이라(DayDetailSheet와 동일) 중복으로 한 번 더 보여줄 필요가 없다.
             if marker.kind != .medication {
                 Text(marker.title)
-                    .font(.subheadline.bold())
+                    .font(Typography.secondary.bold())
             }
             if let intensity = marker.intensity {
                 Text("강도 \(intensity)")
-                    .font(.caption2.bold())
+                    .font(Typography.caption2.bold())
             }
             if let description = marker.description, !description.isEmpty {
                 Text(description)
-                    .font(.caption2)
+                    .font(Typography.caption2)
             }
             Text(Self.dailyMarkerTimeFormatter.string(from: marker.date))
-                .font(.caption2)
+                .font(Typography.caption2)
         }
         .foregroundStyle(.black)
         .padding(.horizontal, 20)
@@ -791,7 +791,7 @@ struct HRVAnalysisView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -800,7 +800,7 @@ struct HRVAnalysisView: View {
             } else if chartMode == .monthly {
                 if viewModel.wearableRMSSDMonthlyStats.isEmpty && viewModel.examPoints.isEmpty {
                     Text("표시할 HRV 데이터가 없어요")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
@@ -809,7 +809,7 @@ struct HRVAnalysisView: View {
             } else {
                 if !hasAnyLineChartData {
                     Text("표시할 HRV·수면·운동 데이터가 없어요")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
@@ -819,13 +819,13 @@ struct HRVAnalysisView: View {
 
             if let healthKitErrorMessage = viewModel.healthKitErrorMessage {
                 Text(healthKitErrorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
             if let calendarErrorMessage = viewModel.calendarErrorMessage {
                 Text(calendarErrorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -926,12 +926,12 @@ struct HRVAnalysisView: View {
                     HStack(spacing: 6) {
                         item.swatch
                         Text(item.label)
-                            .font(.caption2)
+                            .font(Typography.caption2)
                             .foregroundStyle(.secondary)
                     }
                     if let value = item.boldValue {
                         Text(value)
-                            .font(.caption2.bold())
+                            .font(Typography.caption2.bold())
                             .foregroundStyle(.primary)
                     }
                 }
@@ -966,11 +966,11 @@ struct HRVAnalysisView: View {
         HStack(spacing: 6) {
             swatch()
             Text(label)
-                .font(.caption2)
+                .font(Typography.caption2)
                 .foregroundStyle(.secondary)
             if let boldValue {
                 Text(boldValue)
-                    .font(.caption2.bold())
+                    .font(Typography.caption2.bold())
                     .foregroundStyle(.primary)
             }
         }

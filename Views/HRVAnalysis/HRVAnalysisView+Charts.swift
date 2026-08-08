@@ -343,7 +343,7 @@ extension HRVAnalysisView {
                     .annotation(position: .overlay) {
                         if isShort {
                             Text(SleepAnalysisService.formattedDuration(duration))
-                                .font(.system(size: 8))
+                                .font(Typography.chartAxisLabel)
                                 .foregroundStyle(.white)
                         }
                     }
@@ -664,7 +664,7 @@ extension HRVAnalysisView {
                         .cornerRadius(4)
                         .annotation(position: .top) {
                             Text("\(String(format: "%.1f", cv))%")
-                                .font(.system(size: 9))
+                                .font(Typography.chartAxisLabel)
                                 .foregroundStyle(.secondary)
                         }
                     }

@@ -33,7 +33,7 @@ extension HRVAnalysisView {
                             }
 
                             Text(String(format: "%.0f", value))
-                                .font(.system(size: 9))
+                                .font(Typography.chartAxisLabel)
                                 .tracking(1)
                                 .padding(.horizontal, 3)
                                 .background(Color(.systemBackground).opacity(0.85))
