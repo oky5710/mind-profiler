@@ -7,6 +7,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                NavigationLink {
+                    HRVGuideView()
+                } label: {
+                    Label("HRV 가이드", systemImage: "book.closed")
+                }
+
                 // 일반 사용자는 약 등록·알림 설정·문의하기만 쓰면 되고, 분석용 화면들은 연구자/관리자
                 // 대상이라 혼란만 준다 — 이 화면 자체는 사용자 요청으로 값을 바꿀 수 없는 역할이라
                 // (docs/architecture.md), 여기서 감춰도 실제 권한과 어긋나지 않는다.
@@ -364,6 +370,84 @@ private func bullets(_ items: [String]) -> some View {
                 paragraph(item)
             }
         }
+    }
+}
+
+private struct HRVGuideView: View {
+    var body: some View {
+        List {
+            policySection("🌿 HRV란?") {
+                paragraph("HRV(Heart Rate Variability)는 심장 박동 사이 시간(RR 간격)이 얼마나 변화하는지를 나타내는 지표입니다.")
+                paragraph("예를 들어 심박수가 60bpm이라고 해서 매번 정확히 1초마다 뛰는 것은 아닙니다.")
+                bullets(["980ms", "1020ms", "995ms", "1015ms"])
+                paragraph("처럼 조금씩 달라집니다.")
+                paragraph("이러한 변화의 크기를 HRV라고 합니다.")
+                paragraph("HRV는 자율신경계의 영향을 받으며, 수면, 운동, 스트레스, 질병, 음주, 카페인 등 다양한 요인에 의해 달라질 수 있습니다.")
+                paragraph("중요한 것은 다른 사람과 비교하는 것보다 자신의 평소 패턴과 비교하는 것입니다.")
+            }
+
+            policySection("❤️ rMSSD란?") {
+                paragraph("rMSSD(Root Mean Square of Successive Differences)는 HRV를 계산하는 여러 방법 중 하나입니다.")
+                paragraph("인접한 심장 박동 간격(RR interval)의 차이를 이용하여 계산하며, 짧은 시간(약 1~5분) 측정에서도 비교적 안정적으로 사용할 수 있어 스마트워치에서 가장 많이 사용하는 HRV 지표 중 하나입니다.")
+                paragraph("일반적으로 rMSSD는 부교감신경 활동과 관련된 변화를 잘 반영하는 것으로 알려져 있습니다.")
+            }
+
+            policySection("📊 회복지수는 어떻게 계산되나요?") {
+                paragraph("회복지수는 절대적인 건강 점수가 아닙니다.")
+                paragraph("최근 30일 동안의 나의 데이터를 기준으로 오늘이 평소보다 얼마나 회복되었는지를 보여주는 개인화된 지표입니다.")
+                paragraph("계산 과정은 다음과 같습니다.")
+                bullets([
+                    "1. 수면, 오전, 오후로 시간을 구분합니다.",
+                    "2. 각 시간대에서 최근 30일 rMSSD 중앙값과 오늘의 중앙값을 비교합니다.",
+                    "3. MAD(Median Absolute Deviation)를 이용하여 평소와의 차이를 계산합니다.",
+                    "4. 각 시간대의 결과를 통합하여 회복지수를 계산합니다.",
+                ])
+                paragraph("회복지수는 다른 사람과 비교하기 위한 점수가 아니라 자신의 평소 상태와 비교하기 위한 점수입니다.")
+            }
+
+            policySection("📈 HRV Trend 읽는 법") {
+                paragraph("하루 동안 HRV는 계속 변합니다.")
+                paragraph("높다고 항상 좋은 것도 아니고, 낮다고 항상 나쁜 것도 아닙니다.")
+                paragraph("HRV는 다음과 같은 영향을 받을 수 있습니다.")
+                bullets(["수면", "운동", "식사", "업무", "스트레스", "휴식", "질병", "음주"])
+                paragraph("중요한 것은 하루의 한 번 측정이 아니라 장기적인 패턴입니다.")
+                paragraph("최근 며칠 또는 몇 주 동안 어떤 변화가 이어지는지 함께 살펴보는 것이 좋습니다.")
+            }
+
+            policySection("🌙 수면과 HRV") {
+                paragraph("수면은 HRV에 가장 큰 영향을 주는 요인 중 하나입니다.")
+                paragraph("충분한 수면을 취하면 다음 날 HRV가 높게 나타나는 경우가 많지만, 모든 사람에게 항상 같은 결과가 나타나는 것은 아닙니다.")
+                paragraph("다음과 같은 요소들이 함께 영향을 줄 수 있습니다.")
+                bullets(["수면 시간", "수면 연속성", "깊은 수면", "REM 수면", "수면 중 각성", "취침 시간"])
+                paragraph("HRV는 수면의 질을 이해하는 하나의 참고 자료로 활용할 수 있습니다.")
+            }
+
+            policySection("💪 운동과 HRV") {
+                paragraph("운동 직후에는 HRV가 일시적으로 낮아질 수 있습니다.")
+                paragraph("이는 몸이 운동에 적응하고 회복하는 과정에서 자연스럽게 나타날 수 있는 변화입니다.")
+                paragraph("반대로 충분히 회복한 이후에는 평소보다 높은 HRV가 나타나는 경우도 있습니다.")
+                paragraph("운동 효과를 평가할 때는 하루의 수치보다 며칠간의 변화와 함께 살펴보는 것이 좋습니다.")
+            }
+
+            policySection("🧠 스트레스와 HRV") {
+                paragraph("심리적 스트레스는 HRV에 영향을 줄 수 있습니다.")
+                paragraph("하지만 HRV만으로 스트레스를 정확하게 판단할 수는 없습니다.")
+                paragraph("업무, 시험, 발표뿐 아니라")
+                bullets(["감기", "통증", "수면 부족", "탈수", "카페인", "운동"])
+                paragraph("등 다양한 요인도 HRV에 영향을 줄 수 있습니다.")
+                paragraph("따라서 HRV는 스트레스를 진단하는 도구가 아니라 몸의 변화를 이해하기 위한 참고 지표로 사용하는 것이 좋습니다.")
+            }
+
+            policySection("⌚ Apple Watch는 어떻게 측정하나요?") {
+                paragraph("Apple Watch는 광학 심박 센서를 이용하여 심박을 측정합니다.")
+                paragraph("일부 측정에서는 심장 박동 간격(RR interval)을 이용하여 HRV를 계산합니다.")
+                paragraph("Mind Profiler는 Apple Health의 Heartbeat Series 데이터를 이용하여 rMSSD를 계산합니다.")
+                paragraph("측정 환경이나 센서 상태에 따라 일부 측정은 제외될 수 있으며, 손목 착용 상태나 움직임에 따라서도 결과가 달라질 수 있습니다.")
+            }
+        }
+        .contentMargins(.top, 10, for: .scrollContent)
+        .navigationTitle("HRV 가이드")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

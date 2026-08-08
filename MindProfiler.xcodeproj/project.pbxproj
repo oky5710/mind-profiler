@@ -45,8 +45,6 @@
 		67D4236C19A80BCD330D964C /* RMSSDThreshold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */; };
 		6D57DF092916206B7C46BDEF /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 228203F978C4084F09581D10 /* architecture.md */; };
 		74074EBF4D97CE2930D14F3D /* ExerciseEntryForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0B5D1CE4EB02DD91EA6588 /* ExerciseEntryForm.swift */; };
-		C47000022026080700000002 /* CatPhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47000012026080700000001 /* CatPhotoService.swift */; };
-		C47000042026080700000004 /* CatPhotos in Resources */ = {isa = PBXBuildFile; fileRef = C47000032026080700000003 /* CatPhotos */; };
 		75C5B90ECCACF1ED2784C11A /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7DDFF01F16845FF8A38C2A /* AuthViewModel.swift */; };
 		76290FB360BF775A63C7A1B8 /* GoogleSignInConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */; };
 		76ECCF2EF2222FA3CD2C7379 /* EntryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156BA80323127255242AD216 /* EntryType.swift */; };
@@ -55,7 +53,6 @@
 		7DDECF50D46F3C75048EB9E7 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */; };
 		85C4223F22492C762B79054C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8EB2D685ED1EB34689D7FE /* Theme.swift */; };
 		8627AF0119810E14E200A3C3 /* ReminderListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */; };
-		9D1647913BF2A3B6BCE0664A /* RecoveryScoreDistributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */; };
 		8775A42F16ADA0407A8B3800 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B05A056CFA92F81D8A6069DF /* GoogleSignInSwift */; };
 		882C8F5E28EB1454B31D97BC /* DrugSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05B181C370B03A692EA67F8 /* DrugSearchSheet.swift */; };
 		899FC47E47D11B5983F178D8 /* HRVAnalysisView+Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */; };
@@ -72,6 +69,7 @@
 		9B1F4A2C5E6D7089ABCDEF0D /* ReportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1F4A2C5E6D7089ABCDEF0E /* ReportViewModel.swift */; };
 		9CCDF3F0ADBA1417FEDAE8BA /* features.md in Resources */ = {isa = PBXBuildFile; fileRef = 1AD2015ED40BC9A2F87BFF8D /* features.md */; };
 		9CD347F437BB315AF5E68BB3 /* ExerciseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59197C66879A601A9A0A99AF /* ExerciseModels.swift */; };
+		9D1647913BF2A3B6BCE0664A /* RecoveryScoreDistributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */; };
 		A0DB1FCE4A61A20127D9E5CA /* LifeEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103D4339A35AEFDC9FC1E005 /* LifeEventService.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* Toast.swift */; };
 		A434A2EBA7FA9B4AABF06E27 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A1D7FAE7389AD9C68237E1 /* CalendarViewModel.swift */; };
@@ -89,6 +87,8 @@
 		C0AD659C6217B774BCD74C30 /* api.md in Resources */ = {isa = PBXBuildFile; fileRef = A057223BD13A5592F8E7E5E0 /* api.md */; };
 		C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */; };
 		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
+		C47000022026080700000002 /* CatPhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47000012026080700000001 /* CatPhotoService.swift */; };
+		C47000042026080700000004 /* CatPhotos in Resources */ = {isa = PBXBuildFile; fileRef = C47000032026080700000003 /* CatPhotos */; };
 		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
 		C9DF57A158B2ADA443EBCFD4 /* CorrelationAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */; };
 		CC01D98EE1EB71DBA6C81341 /* HRVAnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B588CDF5FB4797B328D6336D /* HRVAnalysisViewModel.swift */; };
@@ -102,11 +102,11 @@
 		EB37991551E75348B8DE84B0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225DD3DE88849264BC0A42B7 /* AppDelegate.swift */; };
 		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
 		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
-		F912D8A8A9749327632D32C9 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */; };
 		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
 		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
 		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
+		F912D8A8A9749327632D32C9 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */; };
 		FEBC1514EADEF6E98B1D64E9 /* CoffeeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0933E651496C8E1E00026E6A /* CoffeeService.swift */; };
 /* End PBXBuildFile section */
 
@@ -120,6 +120,7 @@
 		139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdAlertCenter.swift; sourceTree = "<group>"; };
 		156BA80323127255242AD216 /* EntryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryType.swift; sourceTree = "<group>"; };
 		16CA71A1B2C3D4E5F607182A /* CorrelationAnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisViewModel.swift; sourceTree = "<group>"; };
+		181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 		1AD2015ED40BC9A2F87BFF8D /* features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = features.md; sourceTree = "<group>"; };
 		21D63CA734994647CAA7014D /* HeartLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartLoader.swift; sourceTree = "<group>"; };
 		225DD3DE88849264BC0A42B7 /* AppDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -133,8 +134,6 @@
 		2F284358300A4D1100CE1C47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F28435F300A596100CE1C47 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		2F950C3BBB94758A24ADCF50 /* CoffeeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoffeeModels.swift; sourceTree = "<group>"; };
-		C47000012026080700000001 /* CatPhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhotoService.swift; sourceTree = "<group>"; };
-		C47000032026080700000003 /* CatPhotos */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CatPhotos; sourceTree = "<group>"; };
 		3555D0751DE02929F06A9684 /* RMSSDThreshold.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThreshold.swift; sourceTree = "<group>"; };
 		3C79742243835DC0370C6F78 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3E922C72C21453864B098F86 /* LifeEventModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeEventModels.swift; sourceTree = "<group>"; };
@@ -144,6 +143,7 @@
 		49C9F76A5CAB9CB0ED7B93A0 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		4BCE4AEE9A3EA049D41D1DE3 /* RRIntervalExportView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RRIntervalExportView.swift; sourceTree = "<group>"; };
 		4CE7ECB87862084848E2504A /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryScoreDistributionView.swift; sourceTree = "<group>"; };
 		51F1B18BCD9373A56C4E8AA1 /* GoogleSignInConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInConfig.swift; sourceTree = "<group>"; };
 		59197C66879A601A9A0A99AF /* ExerciseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseModels.swift; sourceTree = "<group>"; };
 		59D553D84925EA368698C8FF /* RMSSDEventService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventService.swift; sourceTree = "<group>"; };
@@ -190,11 +190,12 @@
 		BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventModels.swift; sourceTree = "<group>"; };
 		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
+		C47000012026080700000001 /* CatPhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhotoService.swift; sourceTree = "<group>"; };
+		C47000032026080700000003 /* CatPhotos */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CatPhotos; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
 		C9DF57A158B2ADA443EBCFD5 /* CorrelationAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationAnalysisView.swift; sourceTree = "<group>"; };
 		CC8EB2D685ED1EB34689D7FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		CD7FEC3207AB5E9A89A4EBB5 /* ReminderListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReminderListView.swift; sourceTree = "<group>"; };
-		4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryScoreDistributionView.swift; sourceTree = "<group>"; };
 		D3486E1D4075802139193DE2 /* RRIntervalExportViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RRIntervalExportViewModel.swift; sourceTree = "<group>"; };
 		D406E7D6B4DE3F230832DE06 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D6FD4A212BF049BFEA0D104E /* HRVAnalysisView+Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HRVAnalysisView+Charts.swift"; sourceTree = "<group>"; };
@@ -206,7 +207,6 @@
 		EB6EF92D711C1B7DCA2FF3B2 /* RMSSDThresholdMonitorService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDThresholdMonitorService.swift; sourceTree = "<group>"; };
 		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
-		181F1477EC29521F0E6C24ED /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
 		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
 		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
@@ -328,7 +328,6 @@
 			children = (
 				FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */,
 			);
-			name = RMSSDEvent;
 			path = RMSSDEvent;
 			sourceTree = "<group>";
 		};
