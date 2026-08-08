@@ -437,6 +437,24 @@ final class HRVAnalysisViewModel {
         }
         activeLoadTask = task
         let result = await task.value
+
+        // task의 내부 루프가 "더 이상 pending 없음"을 확인하고 반환한 뒤, 바로 아래에서
+        // activeLoadTask를 nil로 정리하기 전까지 아주 짧은 틈이 있다 — 그 사이(위 `await
+        // task.value`가 재개되기를 기다리는 동안) 다른 호출자가 들어오면 activeLoadTask가 아직
+        // 있으니 pendingWindowRequest에만 기록하고 이미 끝난 이 task의 결과를 그대로 받아가 버려서,
+        // 그 요청은 어디서도 처리되지 않은 채 사라진다. activeLoadTask를 정리하기 직전에 pending을
+        // 한 번 더 확인해서, 그 틈에 들어온 요청이 있으면 이어서 처리한다.
+        if let pending = pendingWindowRequest {
+            pendingWindowRequest = nil
+            activeLoadTask = nil
+            let followUpReloaded = await ensureHealthKitDataLoaded(
+                visibleStart: pending.start,
+                visibleEnd: pending.end,
+                force: pending.force
+            )
+            return result || followUpReloaded
+        }
+
         activeLoadTask = nil
         return result
     }
