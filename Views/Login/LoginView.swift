@@ -39,10 +39,13 @@ struct LoginView: View {
                         Label("Google로 로그인", systemImage: "person.crop.circle")
                             .font(.system(size: 16, weight: .semibold))
                             .frame(maxWidth: .infinity)
+                            // borderedProminent의 배경은 라벨 크기에 맞춰 그려져서, 바깥쪽에만
+                            // frame(height:)를 주면 그 배경은 그대로고 남는 공간만 빈 채로 커진다 —
+                            // 라벨 자체를 이 높이로 채워야 보라색 배경도 같이 늘어난다.
+                            .frame(height: Self.googleButtonHeight)
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.roundedRectangle(radius: Self.buttonCornerRadius))
-                    .frame(height: Self.googleButtonHeight)
                     .padding(.horizontal, 40)
 
                     SignInWithAppleButton(.signIn) { request in
