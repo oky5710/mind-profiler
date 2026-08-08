@@ -30,13 +30,18 @@ struct HomeView: View {
     }
 
     // 오늘 날짜로 처음 열었는데 보여줄 게 전혀 없으면(수면 기록이 아예 없어 회복 지수도 못 구하는
-    // 경우 등) 빈 화면 대신 전날 것을 기본으로 보여준다. 최초 진입 시 한 번만 시도하고, 이후
+    // 경우 등) 빈 화면 대신 전날 것을 기본으로 보여준다. recoveryScore·사건 일자뿐 아니라 요약
+    // 카드(최근 HRV 등)·오늘 확보한 단서·오늘의 신호까지 전부 비었을 때만 넘어간다 — 이 중 하나라도
+    // 있으면 오늘 볼 게 있다는 뜻이라 넘어가면 안 된다. 최초 진입 시 한 번만 시도하고, 이후
     // 사용자가 직접 고른 날짜에는 있는 그대로(빈 상태 포함) 보여준다.
     private func fallBackToPreviousDayIfNeeded() {
         guard !hasAutoFallenBackToPreviousDay,
               Calendar.current.isDateInToday(selectedDate),
               viewModel.recoveryScore == nil,
               viewModel.briefingCaseType == nil,
+              !hasSummaryStats,
+              viewModel.todayBriefingClues.isEmpty,
+              viewModel.dailySummaryHighlights.isEmpty,
               let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)
         else { return }
         hasAutoFallenBackToPreviousDay = true

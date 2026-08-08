@@ -108,10 +108,11 @@ final class AuthViewModel {
     private func applySignIn(_ response: AuthTokenResponse) {
         KeychainService.save(token: response.accessToken, forKey: Self.tokenKey)
         role = Self.decodeRole(fromToken: response.accessToken)
-        if response.isNewUser == true {
-            UserDefaults.standard.set(true, forKey: Self.onboardingPendingKey)
-            shouldShowOnboarding = true
-        }
+        // 이전에 로그인했던(다른) 계정이 온보딩을 마치지 않고 로그아웃했을 수 있어서, 기존
+        // 사용자 로그인에서도 명시적으로 false를 써 그 상태가 이 계정까지 넘어오지 않게 한다.
+        let isNewUser = response.isNewUser == true
+        UserDefaults.standard.set(isNewUser, forKey: Self.onboardingPendingKey)
+        shouldShowOnboarding = isNewUser
         isAuthenticated = true
     }
 
@@ -120,6 +121,8 @@ final class AuthViewModel {
         KeychainService.deleteToken(forKey: Self.tokenKey)
         isAuthenticated = false
         role = nil
+        shouldShowOnboarding = false
+        UserDefaults.standard.set(false, forKey: Self.onboardingPendingKey)
     }
 
     // JWT의 서명은 검증하지 않는다 — 여기서는 화면에 보여줄 용어/메뉴를 정하는 용도일 뿐이고, 실제

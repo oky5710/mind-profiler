@@ -227,7 +227,6 @@ final class HRVAnalysisViewModel {
     private static let longRangeThreshold: TimeInterval = 30 * 24 * 60 * 60
     // 지금까지 불러온 HealthKit 데이터가 커버하는 실제 기간.
     private var loadedHealthKitRange: ClosedRange<Date>?
-    private var isLoadingHealthKitWindow = false
 
     func hasLoadedHealthKitData(start: Date, end: Date) -> Bool {
         guard let loadedHealthKitRange else { return false }
@@ -372,6 +371,9 @@ final class HRVAnalysisViewModel {
     // 그 사이에 스크롤이 더 진행됐는지 확인해 최신 위치로 이어서 불러오게 한다(가장 최신 요청만
     // 의미가 있으므로 매번 덮어쓴다 — 중간 요청들을 다 큐잉할 필요는 없다).
     private var pendingWindowRequest: (start: Date, end: Date, force: Bool)?
+    // 실제 로딩 루프를 이 Task 하나가 계속 소유한다 — View가 자기 쪽 debounce Task를 취소해도
+    // (탭 전환·빠른 스크롤), 이미 시작된 로딩과 그 뒤에 이어붙는 최신 요청은 영향받지 않는다.
+    private var activeLoadTask: Task<Bool, Never>?
 
     private func isWithinLoadedRange(start: Date, end: Date) -> Bool {
         guard let loadedHealthKitRange else { return false }
@@ -396,34 +398,44 @@ final class HRVAnalysisViewModel {
         guard visibleEnd.timeIntervalSince(visibleStart) > 0 else { return false }
         if !force, isWithinLoadedRange(start: visibleStart, end: visibleEnd) { return false }
 
-        guard !isLoadingHealthKitWindow else {
-            pendingWindowRequest = (visibleStart, visibleEnd, force)
-            return false
+        // 이미 로딩 중이면 이번 요청은 큐에 남기고, 그 로딩을 끝까지 이어서 처리하는 activeLoadTask의
+        // 결과를 그대로 기다린다 — 이 함수를 호출한 View 쪽 Task가 취소돼도(탭 전환 등) 그 취소는
+        // 여기서 기다리는 것뿐이고, activeLoadTask 자체는 별도로 계속 실행되므로 최신 요청까지 함께
+        // 취소되는 일이 없다.
+        if let activeLoadTask {
+            let mergedForce = force || (pendingWindowRequest?.force ?? false)
+            pendingWindowRequest = (visibleStart, visibleEnd, mergedForce)
+            return await activeLoadTask.value
         }
-        isLoadingHealthKitWindow = true
-        defer { isLoadingHealthKitWindow = false }
 
-        var requestStart = visibleStart
-        var requestEnd = visibleEnd
-        var didReload = false
+        let task = Task<Bool, Never> { [weak self] in
+            guard let self else { return false }
+            var requestStart = visibleStart
+            var requestEnd = visibleEnd
+            var didReload = false
 
-        // 로딩하는 동안 더 최신 요청(pendingWindowRequest)이 들어왔으면, 이번 결과를 반영한 뒤
-        // 그 최신 위치를 이어서 불러온다 — 그렇게 안 하면 로딩 도중 스크롤된 요청이 통째로
-        // 사라지고, 그 뒤로 스크롤이 멈추면 다시 시도할 기회 자체가 없다.
-        while true {
-            if await fetchAndApplyHealthKitWindow(visibleStart: requestStart, visibleEnd: requestEnd) {
-                didReload = true
+            // 로딩하는 동안 더 최신 요청(pendingWindowRequest)이 들어왔으면, 이번 결과를 반영한 뒤
+            // 그 최신 위치를 이어서 불러온다 — 그렇게 안 하면 로딩 도중 스크롤된 요청이 통째로
+            // 사라지고, 그 뒤로 스크롤이 멈추면 다시 시도할 기회 자체가 없다.
+            while true {
+                if await self.fetchAndApplyHealthKitWindow(visibleStart: requestStart, visibleEnd: requestEnd) {
+                    didReload = true
+                }
+                guard let pending = self.pendingWindowRequest else { break }
+                self.pendingWindowRequest = nil
+                // force로 큐잉된 요청은 이미 그 범위가 로드돼 있어도(예: 방금 끝난 로딩이 우연히
+                // 겹쳐서) 건너뛰지 않는다 — pull-to-refresh의 "무조건 새로 받아온다"는 의도를
+                // 큐잉 과정에서 잃어버리면 안 된다.
+                if !pending.force, self.isWithinLoadedRange(start: pending.start, end: pending.end) { break }
+                requestStart = pending.start
+                requestEnd = pending.end
             }
-            guard let pending = pendingWindowRequest else { break }
-            pendingWindowRequest = nil
-            // force로 큐잉된 요청은 이미 그 범위가 로드돼 있어도(예: 방금 끝난 로딩이 우연히
-            // 겹쳐서) 건너뛰지 않는다 — pull-to-refresh의 "무조건 새로 받아온다"는 의도를
-            // 큐잉 과정에서 잃어버리면 안 된다.
-            if !pending.force, isWithinLoadedRange(start: pending.start, end: pending.end) { break }
-            requestStart = pending.start
-            requestEnd = pending.end
+            return didReload
         }
-        return didReload
+        activeLoadTask = task
+        let result = await task.value
+        activeLoadTask = nil
+        return result
     }
 
     // 실제 HealthKit 조회 + 배열 갱신 한 번. visibleStart/visibleEnd(1배 폭) 기준으로 그
