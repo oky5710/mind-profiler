@@ -71,7 +71,10 @@ final class ReportViewModel {
 
     private(set) var sleepRanges: [SleepRange] = []
     private(set) var averageSleepDuration: TimeInterval?
-    private(set) var averageSleepScore: Double?
+    // "그 밤의 10시부터 몇 시간 후에 잠들었는가" — ReportView의 수면 막대 차트 y축(hourOffset)과
+    // 같은 기준이라, 자정을 넘나드는 취침 시각도 단순 평균으로 안전하게 계산되고 차트에 그대로
+    // 겹쳐 그릴 수 있다.
+    private(set) var averageSleepStartHourOffset: Double?
     private(set) var cvFindings: CVFindings?
     private(set) var hourOfDayPattern: [HourOfDayPoint] = []
     private(set) var rmssdFindings: RMSSDLowestFindings?
@@ -149,11 +152,14 @@ final class ReportViewModel {
 
             if sleepRanges.isEmpty {
                 averageSleepDuration = nil
-                averageSleepScore = nil
+                averageSleepStartHourOffset = nil
             } else {
                 let totalDuration = sleepRanges.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
                 averageSleepDuration = totalDuration / Double(sleepRanges.count)
-                averageSleepScore = Double(sleepRanges.map(\.estimatedScore).reduce(0, +)) / Double(sleepRanges.count)
+                let totalStartOffset = sleepRanges.reduce(0.0) {
+                    $0 + Self.hourOffset($1.start, from: SleepAnalysisService.nightLabel(for: $1.start))
+                }
+                averageSleepStartHourOffset = totalStartOffset / Double(sleepRanges.count)
             }
 
             let periodRMSSD = allRMSSDSamples.filter { $0.date >= start && $0.date < end }
@@ -406,6 +412,13 @@ final class ReportViewModel {
                 previousDayExerciseSummary: previousDayExerciseSummary
             )
         }
+    }
+
+    // ReportView의 수면 막대 차트 y축과 정확히 같은 기준(그 밤 날짜의 오전 10시부터 경과한 시간)
+    // 으로 계산해야, 여기서 낸 평균을 그 차트에 그대로 겹쳐 그려도 위치가 맞는다.
+    private static func hourOffset(_ date: Date, from nightLabel: Date) -> Double {
+        guard let reference = Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: nightLabel) else { return 0 }
+        return date.timeIntervalSince(reference) / 3600
     }
 
 }

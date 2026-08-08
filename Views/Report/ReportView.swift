@@ -218,6 +218,19 @@ struct ReportView: View {
             + Text("분").font(Typography.caption2).foregroundStyle(.secondary)
     }
 
+    // averageSleepStartHourOffset(그 밤 오전 10시부터 경과한 시간)을 실제 시:분으로 되돌려서
+    // durationText와 같은 스타일(숫자 크게, "시"/"분" 단위는 작게)로 보여준다.
+    private func sleepStartTimeText(hourOffset: Double) -> Text {
+        let minutesFromTenAM = Int((hourOffset * 60).rounded())
+        let minutesOfDay = ((10 * 60 + minutesFromTenAM) % (24 * 60) + 24 * 60) % (24 * 60)
+        let hour = minutesOfDay / 60
+        let minute = minutesOfDay % 60
+        return Text("\(hour)").font(Typography.bigStatValue)
+            + Text("시 ").font(Typography.caption2).foregroundStyle(.secondary)
+            + Text("\(minute)").font(Typography.bigStatValue)
+            + Text("분").font(Typography.caption2).foregroundStyle(.secondary)
+    }
+
     // MARK: - 수면
 
     private var sleepSection: some View {
@@ -225,10 +238,10 @@ struct ReportView: View {
             Text("수면").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
-            if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
+            if let avgDuration = viewModel.averageSleepDuration, let avgStartOffset = viewModel.averageSleepStartHourOffset {
                 HStack(spacing: 10) {
                     bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
-                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Typography.bigStatValue), unit: "점")
+                    bigStat(title: "평균 수면 시작 시간", value: sleepStartTimeText(hourOffset: avgStartOffset))
                 }
             }
 
@@ -318,6 +331,12 @@ struct ReportView: View {
                 )
                 .foregroundStyle(Theme.sleep.opacity(0.7))
                 .cornerRadius(4)
+            }
+
+            if let avgStartOffset = viewModel.averageSleepStartHourOffset {
+                RuleMark(y: .value("평균 수면 시작 시각", avgStartOffset))
+                    .foregroundStyle(Theme.systemGray)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
         }
         .frame(height: 260)
