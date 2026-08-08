@@ -663,6 +663,7 @@ struct HRVAnalysisView: View {
             }
             Text(event.title)
                 .font(Typography.secondary.bold())
+                .lineLimit(1)
             Text(calendarEventTimeRangeText(event))
                 .font(Typography.caption2)
             if let location = event.location, !location.isEmpty {
@@ -693,6 +694,7 @@ struct HRVAnalysisView: View {
         return VStack(alignment: .leading, spacing: 2) {
             Text(workout.displayName)
                 .font(Typography.secondary.bold())
+                .lineLimit(1)
             Text(
                 "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDuration(duration)) · " +
                     "\(Self.hourMinuteFormatter.string(from: workout.start)) ~ \(Self.hourMinuteFormatter.string(from: workout.end))"
@@ -767,6 +769,7 @@ struct HRVAnalysisView: View {
             if marker.kind != .medication {
                 Text(marker.title)
                     .font(Typography.secondary.bold())
+                    .lineLimit(1)
             }
             if let intensity = marker.intensity {
                 Text("강도 \(intensity)")
@@ -1456,6 +1459,7 @@ private struct SleepOverviewView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(continuitySummary.title)
                 .font(Typography.cardTitle)
+                .lineLimit(1)
             Text(continuitySummary.detail)
                 .font(Typography.secondary)
                 .foregroundStyle(.secondary)
@@ -1478,6 +1482,7 @@ private struct SleepOverviewView: View {
             Text(title)
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
                 .font(Typography.cardTitle)
         }

@@ -78,6 +78,16 @@ struct SettingsView: View {
                     Label("이용약관", systemImage: "doc.text")
                 }
 
+                if authViewModel.role == .admin {
+                    Section("관리자") {
+                        NavigationLink {
+                            UserManagementView()
+                        } label: {
+                            Label("사용자 권한 관리", systemImage: "person.badge.key")
+                        }
+                    }
+                }
+
                 Section {
                     Button(role: .destructive) {
                         isShowingSignOutConfirmation = true

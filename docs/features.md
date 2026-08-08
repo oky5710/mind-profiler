@@ -703,6 +703,11 @@ rMSSD가 측정 시각에 해당하는 최근 30일 시간대별 중앙값(수�
 실제 내용은 각각 별도 화면으로 푸시된다 — 전부 `SettingsView`의 `NavigationStack` 안에서 열리므로
 자기 자신은 새 `NavigationStack`을 만들지 않는다.
 
+- **사용자 권한 관리 (`UserManagementView`, admin 전용)**: `role`이 `admin`인 계정에만 메뉴 자체가
+  보인다. 전체 사용자 목록(`GET /users`)을 이름·이메일과 함께 보여주고, `user`/`researcher` 행은
+  세그먼트 Picker로 즉시 전환할 수 있다(`PATCH /users/:id/role`). `admin`으로의 승격/강등은 이 API로
+  받지 않아(DB에서만) admin 행에는 Picker 대신 "관리자" 텍스트만 표시하고, 자기 자신·다른 admin의
+  권한을 바꾸려 하면 서버가 거부한 메시지를 그대로 보여준다(docs/architecture.md).
 - **개발자에게 문의하기 (`DeveloperContactView`)**: 여러 줄 `TextEditor`에서 길이 제한 없이 문의를
   작성한다. 공백만 입력한 상태에서는 보내기 버튼이 비활성화되며, 버튼을 누르면 수신자·제목·본문을
   채운 `mailto` URL로 시스템 메일 앱을 연다. 실제 발송 전에는 메일 앱에서 내용을 다시 확인할 수

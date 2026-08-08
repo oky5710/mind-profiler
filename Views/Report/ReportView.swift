@@ -167,6 +167,7 @@ struct ReportView: View {
             Text(title)
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value ?? "—")
                     .font(Typography.bigStatValue)
@@ -193,6 +194,7 @@ struct ReportView: View {
             Text(title)
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 value
                 if let unit {
@@ -236,6 +238,7 @@ struct ReportView: View {
     private var sleepSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("수면").font(Typography.reportSectionTitle)
+                .lineLimit(1)
                 .padding(.bottom, 8)
 
             if let avgDuration = viewModel.averageSleepDuration {
@@ -511,6 +514,7 @@ struct ReportView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text("rMSSD 추이").font(Typography.reportSectionTitle)
+                    .lineLimit(1)
                 if let findings = viewModel.cvFindings {
                     averageCVChip(findings.overallCV)
                 }
@@ -672,6 +676,7 @@ struct ReportView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("시간대별 rMSSD 분포")
                 .font(Typography.reportSectionTitle)
+                .lineLimit(1)
                 .padding(.bottom, 8)
 
             if viewModel.hourOfDayPattern.isEmpty {
@@ -846,6 +851,7 @@ struct ReportView: View {
     private var rmssdLowestDaysTableSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("rMSSD 낮은 날 Top \(viewModel.rmssdLowestDayRows.count)").font(Typography.reportSectionTitle)
+                .lineLimit(1)
                 .padding(.bottom, 8)
 
             if viewModel.rmssdLowestDayRows.isEmpty {
@@ -882,9 +888,17 @@ struct ReportView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 12) {
-                        lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
-                        lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+                    // 수면/운동 값이 길면 한 줄에 다 안 들어갈 수 있어 — 먼저 가로로 나란히 시도하고,
+                    // 안 들어가면 운동을 수면 아래로 내리는 세로 배치로 대체한다.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                            lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            lowestDayInlineDetail(label: "수면", value: row.previousNightSleepDuration.map(SleepAnalysisService.formattedDuration))
+                            lowestDayInlineDetail(label: "운동", value: row.previousDayExerciseSummary)
+                        }
                     }
                     lowestDayDetailLine(label: "스케줄", value: row.scheduleTitles.isEmpty ? nil : row.scheduleTitles.joined(separator: ", "))
                 }
@@ -901,6 +915,7 @@ struct ReportView: View {
             Text(label)
                 .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             value
                 .foregroundStyle(Theme.primary600)
         }
@@ -915,8 +930,10 @@ struct ReportView: View {
             Text(label)
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value ?? "—")
                 .font(Typography.caption.bold())
+                .lineLimit(1)
         }
     }
 

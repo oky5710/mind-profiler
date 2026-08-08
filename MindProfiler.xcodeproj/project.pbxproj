@@ -88,6 +88,9 @@
 		C0F98DB8487C6919863E2AAD /* UnsolvedCasesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */; };
 		C39E0AD5939C0EB5A1A980DB /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CFECE3B36B10B001F3857 /* ReminderNotificationService.swift */; };
 		C47000022026080700000002 /* CatPhotoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47000012026080700000001 /* CatPhotoService.swift */; };
+		66EF3F4F99DA52CF4F35B929 /* UserManagementModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2726F238504ACA2BCB9768E /* UserManagementModels.swift */; };
+		CB3468889BDDFDD2B56C6928 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E6305BB139A2CF35700BC21 /* UserManagementViewModel.swift */; };
+		7F4DEECDB9842F80C9F41FF2 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462520FAFF87FED33D486938 /* UserManagementView.swift */; };
 		68C79993D36235A178B507C4 /* RecoveryScoreCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8BF7E78F78167E7D9F5 /* RecoveryScoreCache.swift */; };
 		C47000042026080700000004 /* CatPhotos in Resources */ = {isa = PBXBuildFile; fileRef = C47000032026080700000003 /* CatPhotos */; };
 		C9DF57A158B2ADA443EBCFD3 /* AnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CB8F7A36CB84B71D60BAB /* AnalysisSettingsView.swift */; };
@@ -193,6 +196,9 @@
 		C02FE656A679D89E7B2D2F41 /* MedicationManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationManagementView.swift; sourceTree = "<group>"; };
 		C0C2A31C7EEC92E0F59D209C /* MoodEntryForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodEntryForm.swift; sourceTree = "<group>"; };
 		C47000012026080700000001 /* CatPhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPhotoService.swift; sourceTree = "<group>"; };
+		D2726F238504ACA2BCB9768E /* UserManagementModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementModels.swift; sourceTree = "<group>"; };
+		2E6305BB139A2CF35700BC21 /* UserManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementViewModel.swift; sourceTree = "<group>"; };
+		462520FAFF87FED33D486938 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
 		4B03E8BF7E78F78167E7D9F5 /* RecoveryScoreCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryScoreCache.swift; sourceTree = "<group>"; };
 		C47000032026080700000003 /* CatPhotos */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CatPhotos; sourceTree = "<group>"; };
 		C68DBBE4CFFC691126AEB83B /* MedicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationService.swift; sourceTree = "<group>"; };
@@ -357,6 +363,7 @@
 				7CDFD43E9DE8836ACC23F1A5 /* ReminderListViewModel.swift */,
 				983499A19453EDA9306531D6 /* RMSSDEventEntryViewModel.swift */,
 				9FB3FB167A4D277B218D4D74 /* UnsolvedCasesViewModel.swift */,
+				2E6305BB139A2CF35700BC21 /* UserManagementViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -436,6 +443,7 @@
 				FF8C8BAD1216B0BFE0EC0187 /* ReminderEntryForm.swift */,
 				E367001CF5415C9598B08B72 /* UnsolvedCasesView.swift */,
 				4F4A0577C2AC88415F9CDB85 /* RecoveryScoreDistributionView.swift */,
+				462520FAFF87FED33D486938 /* UserManagementView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -476,6 +484,7 @@
 				BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */,
 				A7C0010220260801A7C00102 /* SleepContinuityModels.swift */,
 				A7C0020220260801A7C00202 /* DailyBriefingModels.swift */,
+				D2726F238504ACA2BCB9768E /* UserManagementModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -583,6 +592,9 @@
 				B4FC20525F341F604B1B7E6B /* LoginView.swift in Sources */,
 				B4FC20525F341F604B1B7E6C /* OnboardingView.swift in Sources */,
 				C47000022026080700000002 /* CatPhotoService.swift in Sources */,
+				66EF3F4F99DA52CF4F35B929 /* UserManagementModels.swift in Sources */,
+				CB3468889BDDFDD2B56C6928 /* UserManagementViewModel.swift in Sources */,
+				7F4DEECDB9842F80C9F41FF2 /* UserManagementView.swift in Sources */,
 				68C79993D36235A178B507C4 /* RecoveryScoreCache.swift in Sources */,
 				B27AD6E63F4A1BBF2727E4FC /* HomeViewModel.swift in Sources */,
 				ABDF614B3C9F6467480DE264 /* MoodModels.swift in Sources */,

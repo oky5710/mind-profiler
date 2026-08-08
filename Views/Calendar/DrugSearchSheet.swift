@@ -98,7 +98,7 @@ struct DrugSearchSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(drug.itemName).font(Typography.secondary.bold())
+                    Text(drug.itemName).font(Typography.secondary.bold()).lineLimit(1)
                     Text(drug.entpName).font(Typography.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
