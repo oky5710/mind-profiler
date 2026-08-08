@@ -208,7 +208,7 @@ extension HRVAnalysisView {
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
                             )
-                            .symbolSize(90)
+                            .symbolSize(35)
                             .foregroundStyle(Theme.rmssdHigh)
                         } else if matchedEvent != nil {
                             // 여기 도달했다는 건 위에서 높음(high)이 아니라고 걸러졌다는 뜻이라 낮음뿐이다.
