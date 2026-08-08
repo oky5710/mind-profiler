@@ -169,7 +169,7 @@ struct ReportView: View {
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value ?? "—")
-                    .font(Typography.largeTitle)
+                    .font(Typography.bigStatValue)
                 if value != nil, let unit {
                     Text(unit)
                         .font(Typography.caption2)
