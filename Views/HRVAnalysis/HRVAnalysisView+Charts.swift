@@ -124,6 +124,25 @@ extension HRVAnalysisView {
         let recentMedianSegments = viewModel.recentMedianSegments(start: visibleStart, end: visibleEnd)
 
         return Chart {
+            // 시간별 모드에서만 rMSSD 선 아래를 그라데이션으로 채운다 — 다른 모든 마크보다 먼저
+            // 선언해서(Swift Charts는 먼저 선언된 마크를 뒤에 깔아 그린다) 항상 제일 뒤에 보이게 한다.
+            if chartMode == .hourly, !hiddenSeries.contains(.rmssd) {
+                ForEach(currentRMSSDPoints) { point in
+                    AreaMark(
+                        x: .value("시간", point.date),
+                        y: .value("rMSSD", point.value),
+                        series: .value("구간", "rmssd-\(point.segment)")
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.primary.opacity(0.25), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+            }
+
             // SDNN은 rMSSD와의 값 차이를 참고만 하려는 용도라, 시간별 모드에서만 눈에 덜 띄게
             // 시스템 회색(systemGray4)으로 뒤쪽에 깔아서 그린다 — rMSSD 라인이 항상 위에 보인다.
             // 두께를 rMSSD보다 굵게 하면 흐린 색과 별개로 오히려 더 튀어 보여서, 두께는 rMSSD와
