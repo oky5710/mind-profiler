@@ -15,7 +15,7 @@ struct LoginView: View {
             Spacer()
 
             Text("Mind Profiler")
-                .font(Typography.font(size: 28, weight: .semibold, relativeTo: .title2))
+                .font(.system(size: 28, weight: .semibold))
 
             VStack(spacing: 16) {
                 if authViewModel.isLoading {
@@ -25,7 +25,7 @@ struct LoginView: View {
                         Task { await authViewModel.signInWithGoogle() }
                     } label: {
                         Label("Google로 로그인", systemImage: "person.crop.circle")
-                            .font(Typography.font(size: 16, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -52,7 +52,7 @@ struct LoginView: View {
 
                 if let errorMessage = authViewModel.errorMessage {
                     Text(errorMessage)
-                        .font(Typography.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)

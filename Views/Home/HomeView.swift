@@ -78,6 +78,7 @@ struct HomeView: View {
                 ToolbarItem(placement: .principal) {
                     Text("오늘의 수사 노트")
                         .font(Typography.screenTitle)
+                        .lineLimit(1)
                 }
             }
         }
@@ -154,6 +155,7 @@ struct HomeView: View {
         Text(title)
             .font(Typography.caption)
             .foregroundStyle(.secondary)
+            .lineLimit(1)
             .frame(width: 72)
             .padding(.vertical, 6)
             .background(Theme.systemGray6, in: Capsule())
@@ -373,6 +375,7 @@ struct HomeView: View {
             Text(title)
                 .font(Typography.body.weight(.bold))
                 .foregroundStyle(Theme.primary800)
+                .lineLimit(1)
 
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -407,8 +410,11 @@ struct HomeView: View {
         var result = Text("")
         var remaining = value.startIndex..<value.endIndex
 
+        // "14:32" 같은 시각은 \d+만으로 매칭하면 ":" 앞뒤로 서로 다른 Text 런(런 경계)으로
+        // 쪼개져, 공백이 없는 자리에서도 줄바꿈이 일어날 수 있다 — 시:분을 하나의 매칭으로 묶어
+        // 한 Text 런으로 유지한다.
         while let numberRange = value.range(
-            of: #"\d+"#,
+            of: #"\d+(?::\d+)?"#,
             options: .regularExpression,
             range: remaining
         ) {
