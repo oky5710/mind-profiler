@@ -101,6 +101,9 @@ struct SettingsView: View {
                         NavigationLink("회복 지수 분포 확인") {
                             RecoveryScoreDistributionView()
                         }
+                        NavigationLink("온보딩 페이지 테스트") {
+                            OnboardingPreviewView()
+                        }
                     }
                 }
                 #endif
@@ -604,6 +607,18 @@ private struct TermsOfServiceView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+#if DEBUG
+// 온보딩 UI 자체만 확인하려는 용도라, 실제 로그인/온보딩 완료 상태(AuthViewModel.shouldShowOnboarding)는
+// 건드리지 않고 "시작하기"를 누르면 그냥 이 화면(설정)으로 돌아가게 dismiss만 부른다.
+private struct OnboardingPreviewView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        OnboardingView { dismiss() }
+    }
+}
+#endif
 
 #Preview {
     SettingsView()
