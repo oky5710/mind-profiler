@@ -48,6 +48,10 @@ final class HomeViewModel {
 
     private(set) var hasMorningMedicationTaken = false
     private(set) var hasBedtimeMedicationTaken = false
+    // 그 시간대로 등록된 약이 하나도 없으면 퀵버튼 자체를 숨긴다 — 눌러도 로그가 안 생기는
+    // 버튼을 보여주고 실패 문구로 안내하는 대신, 처음부터 없는 버튼으로 보여준다.
+    private(set) var hasMorningMedicationRegistered = false
+    private(set) var hasBedtimeMedicationRegistered = false
     private(set) var medicationErrorMessage: String?
 
     private var hasCheckedCoffee = false
@@ -453,9 +457,13 @@ final class HomeViewModel {
     @discardableResult
     private func refreshTodayMedicationLogs() async -> Bool {
         do {
-            let logs = try await MedicationService.logs(on: Date())
+            async let logsTask = MedicationService.logs(on: Date())
+            async let medicationsTask = MedicationService.allMedications()
+            let (logs, medications) = try await (logsTask, medicationsTask)
             hasMorningMedicationTaken = logs.contains { $0.timing == MedicationTiming.morning.rawValue && $0.taken }
             hasBedtimeMedicationTaken = logs.contains { $0.timing == MedicationTiming.bedtime.rawValue && $0.taken }
+            hasMorningMedicationRegistered = medications.contains { $0.timings.contains(MedicationTiming.morning.rawValue) }
+            hasBedtimeMedicationRegistered = medications.contains { $0.timings.contains(MedicationTiming.bedtime.rawValue) }
             return true
         } catch {
             medicationErrorMessage = error.localizedDescription

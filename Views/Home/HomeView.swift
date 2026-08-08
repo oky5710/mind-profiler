@@ -334,8 +334,12 @@ struct HomeView: View {
 
                     HStack(spacing: 16) {
                         coffeeButton
-                        medicationButton(timing: .morning, isTaken: viewModel.hasMorningMedicationTaken)
-                        medicationButton(timing: .bedtime, isTaken: viewModel.hasBedtimeMedicationTaken)
+                        if viewModel.hasMorningMedicationRegistered {
+                            medicationButton(timing: .morning, isTaken: viewModel.hasMorningMedicationTaken)
+                        }
+                        if viewModel.hasBedtimeMedicationRegistered {
+                            medicationButton(timing: .bedtime, isTaken: viewModel.hasBedtimeMedicationTaken)
+                        }
                     }
                     if let coffeeErrorMessage = viewModel.coffeeErrorMessage {
                         inlineError(coffeeErrorMessage)
