@@ -10,6 +10,13 @@ struct SleepRange: Identifiable {
     // 가중치 구성(수면시간 50 + 취침시간 일관성 30 + 각성 20)으로 흉내 낸 추정치일 뿐이다 —
     // 애플의 정확한 채점 곡선은 비공개라 실제 Health 앱 점수와는 다를 수 있다.
     let estimatedScore: Int
+
+    // `end - start`는 병합 중 뀄던 각성 공백(최대 2시간, SleepAnalysisService.mergeGapThreshold)까지
+    // 포함해버려 실제로 잔 시간보다 더 크게 나온다 — 실제 수면시간은 항상 이 프로퍼티로 계산해야
+    // 화면마다(홈/오늘의 패턴/장기 미제 사건/보고서/상관분석) 같은 값이 나온다.
+    var actualSleepDuration: TimeInterval {
+        stageDurations.values.reduce(0, +)
+    }
 }
 
 enum SleepAnalysisService {

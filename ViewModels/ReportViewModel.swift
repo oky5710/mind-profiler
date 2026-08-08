@@ -154,11 +154,11 @@ final class ReportViewModel {
                 averageSleepDuration = nil
                 averageSleepStartHourOffset = nil
             } else {
-                let totalDuration = sleepRanges.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
+                let totalDuration = sleepRanges.reduce(0.0) { $0 + $1.actualSleepDuration }
                 averageSleepDuration = totalDuration / Double(sleepRanges.count)
 
                 // 낮잠 등 짧은(2시간 미만) 수면은 "취침 시각"으로서 의미가 없어 평균에서 뺀다.
-                let rangesForStartTime = sleepRanges.filter { $0.end.timeIntervalSince($0.start) >= 2 * 3_600 }
+                let rangesForStartTime = sleepRanges.filter { $0.actualSleepDuration >= 2 * 3_600 }
                 if rangesForStartTime.isEmpty {
                     averageSleepStartHourOffset = nil
                 } else {
@@ -380,7 +380,7 @@ final class ReportViewModel {
                     calendar.isDate(SleepAnalysisService.nightLabel(for: $0.start), inSameDayAs: prev)
                 }
                 guard !matching.isEmpty else { return nil }
-                return matching.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
+                return matching.reduce(0.0) { $0 + $1.actualSleepDuration }
             }
 
             // 시작일만 비교하면 여러 날에 걸친 일정(휴가·출장 등)이 둘째 날부터는 누락된다 —

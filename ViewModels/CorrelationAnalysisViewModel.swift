@@ -95,7 +95,7 @@ final class CorrelationAnalysisViewModel {
         var sleepMetricsByDay: [Date: (duration: Double, weightedScore: Double)] = [:]
         for range in sleepRanges {
             let day = SleepAnalysisService.nightLabel(for: range.start)
-            let duration = range.end.timeIntervalSince(range.start) / 3600
+            let duration = range.actualSleepDuration / 3600
             let existing = sleepMetricsByDay[day] ?? (duration: 0, weightedScore: 0)
             sleepMetricsByDay[day] = (
                 duration: existing.duration + duration,
