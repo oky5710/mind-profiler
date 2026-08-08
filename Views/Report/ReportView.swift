@@ -620,7 +620,7 @@ struct ReportView: View {
             Text("\(Int(standardDeviation.rounded()))ms")
                 .bold()
         }
-        .font(Typography.caption2)
+        .font(Typography.caption)
         .lineLimit(1)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -689,7 +689,7 @@ struct ReportView: View {
         HStack(spacing: 4) {
             swatch()
             Text(label)
-                .font(Typography.caption2)
+                .font(Typography.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -779,7 +779,7 @@ struct ReportView: View {
             Text("\(Int(point.standardDeviation.rounded()))")
                 .bold()
         }
-        .font(Typography.caption2)
+        .font(Typography.caption)
         .lineLimit(1)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -878,7 +878,7 @@ struct ReportView: View {
     private func lowestDayChip(label: String, value: Text, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(Typography.caption2.bold())
+                .font(Typography.caption.bold())
                 .foregroundStyle(.secondary)
             value
                 .foregroundStyle(Theme.primary600)
@@ -892,10 +892,10 @@ struct ReportView: View {
     private func lowestDayInlineDetail(label: String, value: String?) -> some View {
         HStack(spacing: 4) {
             Text(label)
-                .font(Typography.caption2)
+                .font(Typography.caption)
                 .foregroundStyle(.secondary)
             Text(value ?? "—")
-                .font(Typography.caption2.bold())
+                .font(Typography.caption.bold())
         }
     }
 
@@ -904,10 +904,10 @@ struct ReportView: View {
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(Typography.caption2.bold())
+                .font(Typography.caption.bold())
                 .foregroundStyle(.secondary)
             Text(value ?? "—")
-                .font(Typography.caption2)
+                .font(Typography.caption)
         }
     }
 
