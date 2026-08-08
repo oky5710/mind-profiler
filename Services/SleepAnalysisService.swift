@@ -50,12 +50,6 @@ enum SleepAnalysisService {
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분"
     }
 
-    // "07:30"처럼 시:분을 두 자리로 맞춰 보여준다 — SleepDetailPanel의 총 수면 시간 전용.
-    nonisolated static func formattedDurationClock(_ interval: TimeInterval) -> String {
-        let totalMinutes = Int(interval) / 60
-        return String(format: "%02d:%02d", totalMinutes / 60, totalMinutes % 60)
-    }
-
     static func mergeIntervals(
         _ intervals: [(start: Date, end: Date)]
     ) -> [(start: Date, end: Date)] {
