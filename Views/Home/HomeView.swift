@@ -505,7 +505,9 @@ private struct RecoveryScoreInfoView: View {
 
                     Text("회복지수는 다른 사람과 비교하기 위한 점수가 아니라 자신의 평소 상태와 비교하기 위한 점수입니다.")
                 }
-                .padding()
+                .font(Typography.secondary)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
             }
             .navigationTitle("회복지수는 어떻게 계산되나요?")
             .navigationBarTitleDisplayMode(.inline)
