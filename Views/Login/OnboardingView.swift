@@ -8,7 +8,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 28) {
                 introduction
                 section(
-                    number: "2",
+                    number: "1",
                     title: "이 앱이 하는 일",
                     body: "패턴을 찾는 앱입니다.",
                     items: ["하루의 변화 기록", "장기적인 추세 확인", "생활 습관과의 관계 탐색"],
@@ -73,16 +73,21 @@ struct OnboardingView: View {
 
     private var interpretationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("3. 해석할 때 주의할 점")
+            Text("2. 해석할 때 주의할 점")
                 .font(.title3.bold())
             Text("한 번의 측정보다 추세가 중요합니다.")
                 .font(.body.bold())
             Text("HRV는 다음과 같은 영향을 받을 수 있습니다.")
             let factors = ["수면", "운동", "스트레스", "카페인", "음주", "측정 환경"]
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], alignment: .leading, spacing: 8) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                alignment: .leading,
+                spacing: 8
+            ) {
                 ForEach(factors, id: \.self) { factor in
                     Text(factor)
                         .font(.subheadline)
+                        .frame(maxWidth: .infinity)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .background(Theme.primary50, in: Capsule())
@@ -97,7 +102,7 @@ struct OnboardingView: View {
 
     private var closingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("4. 마지막")
+            Text("3. 마지막")
                 .font(.title3.bold())
             Text("당신의 데이터는 당신을 이해하기 위한 단서입니다.")
             Text("숫자는 정답이 아니라,\n스스로를 이해하기 위한 시작점입니다.")
