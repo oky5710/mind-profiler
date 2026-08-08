@@ -184,6 +184,7 @@ struct HomeView: View {
             Text("전날 수면시간")
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
 
             HStack(alignment: .bottom, spacing: 6) {
                 if let hours, let minutes {
@@ -193,13 +194,15 @@ struct HomeView: View {
                         Text("\(hours)")
                             .font(Typography.sectionTitle.weight(.bold))
                         Text("시간")
-                            .font(Typography.caption)
+                            .font(Typography.caption2)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                         Text("\(minutes)")
                             .font(Typography.sectionTitle.weight(.bold))
                         Text("분")
-                            .font(Typography.caption)
+                            .font(Typography.caption2)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                 } else {
                     Text("—")

@@ -29,6 +29,8 @@ enum Typography {
     static let secondary = font(size: 15, weight: .regular, relativeTo: .subheadline)
     // 13pt Regular — 일반 캡션. 수면 단계 차트 라벨만 아래 전용 토큰을 사용한다.
     static let caption = font(size: 13, weight: .regular, relativeTo: .caption)
+    // 11pt Regular — 숫자 옆에 붙는 단위(시간/분/ms 등)처럼 caption보다 한 단계 더 작아야 하는 경우.
+    static let caption2 = font(size: 11, weight: .regular, relativeTo: .caption2)
     // 12pt Regular — 수면 단계 차트의 행 라벨 전용.
     static let sleepStageLabel = font(size: 12, weight: .regular, relativeTo: .caption2)
     // 17pt Semibold — 수면 패턴 상단 날짜 전용.
