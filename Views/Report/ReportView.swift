@@ -867,7 +867,8 @@ struct ReportView: View {
                         value: findings.mostFrequentLowestHour.map { hour in
                             Text("\(hour)").font(Typography.bigStatValue)
                                 + Text("시").font(Typography.caption2).foregroundStyle(.primary)
-                                + Text("~\(hour + 1)").font(Typography.bigStatValue)
+                                + Text("~").font(Typography.caption2).foregroundStyle(.primary)
+                                + Text("\(hour + 1)").font(Typography.bigStatValue)
                                 + Text("시").font(Typography.caption2).foregroundStyle(.primary)
                         } ?? Text("—").font(Typography.bigStatValue)
                     )
