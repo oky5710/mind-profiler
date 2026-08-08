@@ -622,9 +622,18 @@ final class HomeViewModel {
             exerciseMinutesByDay[day, default: 0] += entryEnd.timeIntervalSince(entryStart) / 60
         }
         let todayExerciseMinutes = exerciseMinutesByDay[todayKey] ?? 0
-        let exerciseDurationChangePercent = exerciseMinutesByDay
-            .filter { $0.key != todayKey }
-            .map(\.value)
+        // exerciseMinutesByDay에는 운동이 있었던 날짜만 들어있어, 그 값들만으로 중앙값을 내면
+        // "운동한 날들의 중앙값"이 되어버린다 — 실제로는 운동 안 한 날이 더 많을 수 있으니, 오늘을
+        // 뺀 최근 30일의 모든 달력 날짜를 만들어 기록 없는 날은 0분으로 채운 뒤 중앙값을 낸다.
+        var recentExerciseDays: [Date] = []
+        var exerciseCursorDay = calendar.startOfDay(for: recentStart)
+        while exerciseCursorDay < todayKey {
+            recentExerciseDays.append(exerciseCursorDay)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: exerciseCursorDay) else { break }
+            exerciseCursorDay = next
+        }
+        let exerciseDurationChangePercent = recentExerciseDays
+            .map { exerciseMinutesByDay[$0] ?? 0 }
             .median
             .map { percentChange(current: todayExerciseMinutes, baseline: $0) }
         // 오늘이면 아직 운동할 시간이 남아있으니 지정한 시각 이후에만 "적었다"고 말한다. 지난
