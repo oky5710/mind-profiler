@@ -30,7 +30,7 @@ struct CalendarView: View {
 
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.red)
                             .padding()
                     }
@@ -95,7 +95,7 @@ struct CalendarView: View {
             }
             Spacer()
             Text(monthTitle)
-                .font(.headline)
+                .font(Typography.cardTitle)
             Spacer()
             Button {
                 viewModel.goToNextMonth()
@@ -116,7 +116,7 @@ struct CalendarView: View {
         HStack {
             ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { index, symbol in
                 Text(symbol)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(color(forColumn: index))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -231,7 +231,7 @@ struct CalendarView: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(day)")
-                    .font(.footnote.bold())
+                    .font(Typography.caption.bold())
                     .foregroundStyle(color(forColumn: columnIndex))
                     .frame(width: Self.dateCircleSize, height: Self.dateCircleSize)
                     .background(isToday ? Color.accentColor.opacity(0.2) : .clear, in: Circle())
@@ -241,7 +241,7 @@ struct CalendarView: View {
                 // 따로 시작해서 이모지와 겹치지 않고 자기 줄부터 줄바꿈한다.
                 if let moodEmoji {
                     Text(moodEmoji)
-                        .font(.caption2)
+                        .font(Typography.caption2)
                         // "기분 N점"으로 아래 배지 접근성 요약에 이미 포함되므로 중복으로 읽히지
                         // 않게 감춘다.
                         .accessibilityHidden(true)

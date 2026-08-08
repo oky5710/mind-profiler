@@ -32,7 +32,7 @@ struct ReminderListView: View {
                     ProgressView()
                 } else if viewModel.reminders.isEmpty {
                     Text("등록된 알림이 없어요. 아래에서 추가해보세요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.reminders) { reminder in
@@ -40,7 +40,7 @@ struct ReminderListView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(MedicationTiming(rawValue: reminder.timing)?.label ?? reminder.timing)
                                 Text(summary(for: reminder))
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                             // 꺼진 알림은 옅게 표시해서 "꺼져 있음" 상태를 바로 알 수 있게 한다
@@ -69,11 +69,11 @@ struct ReminderListView: View {
                     ProgressView()
                 } else {
                     Text("앞으로 예약된 알림 \(viewModel.scheduledNotificationCount)개")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.red)
                     }
                 }
@@ -82,7 +82,7 @@ struct ReminderListView: View {
             if viewModel.availableTimings.isEmpty && !viewModel.isLoading {
                 Section {
                     Text("먼저 설정의 \"약 등록\"에서 약을 등록해야 알림을 만들 수 있어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 }
             }

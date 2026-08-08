@@ -56,13 +56,13 @@ struct SleepDetailPanel: View {
             // 애플 Health 앱이 보여주는 수면 점수는 HealthKit으로 못 받아와서, 애플이 공개한 가중치
             // 구성(수면시간+취침 일관성+각성)을 흉내 낸 추정치라는 걸 "추정"으로 명시한다.
             Text("추정 수면 점수 \(sleepRange.estimatedScore)점 · \(SleepAnalysisService.scoreLabel(sleepRange.estimatedScore))")
-                .font(.subheadline.bold())
+                .font(Typography.secondary.bold())
             Text(
                 "\(HRVAnalysisView.monthDayFormatter.string(from: sleepRange.start)) · " +
                     "\(SleepAnalysisService.formattedDuration(totalDuration)) · " +
                     "\(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.end))"
             )
-            .font(.caption2)
+            .font(Typography.caption2)
 
             HStack(alignment: .center, spacing: 16) {
                 Chart(slices) { slice in
@@ -90,7 +90,7 @@ struct SleepDetailPanel: View {
                             }
                             Text(SleepAnalysisService.formattedDuration(slice.duration))
                         }
-                        .font(.caption2)
+                        .font(Typography.caption2)
                     }
                 }
             }

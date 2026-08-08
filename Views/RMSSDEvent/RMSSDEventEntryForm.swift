@@ -26,9 +26,9 @@ struct RMSSDEventEntryForm: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.pendingEvent.direction == .low ? "\(authViewModel.hrvTerm)가 급격히 낮아졌어요" : "\(authViewModel.hrvTerm)가 평소보다 크게 높아졌어요")
-                            .font(.headline)
+                            .font(Typography.cardTitle)
                         Text("\(Self.timeFormatter.string(from: viewModel.pendingEvent.occurredAt)) · \(Int(viewModel.pendingEvent.rmssdValue))ms")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -44,7 +44,7 @@ struct RMSSDEventEntryForm: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
 
@@ -115,7 +115,7 @@ struct RMSSDEventEntryForm: View {
                 )
                 .overlay(
                     Text(emotion.label)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(textColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
