@@ -327,7 +327,10 @@ final class HomeViewModel {
     }
 
     // 가장 최근 측정과 같은 시간대(수면 중/비수면 오전/비수면 오후)의 이전 30일 값만 비교한다.
-    // 오늘 값은 "평소" 분포를 움직이지 않도록 기준에서 제외한다.
+    // 오늘 값은 "평소" 분포를 움직이지 않도록 기준에서 제외한다. raw 샘플이 아니라 날짜별 중앙값
+    // 하나씩만 기준에 넣어, 측정을 많이 한 날이 과도하게 반영되지 않게 한다. 평소값(일별 중앙값들의
+    // 중앙값)과 MAD로 강건 표준편차(MAD × 1.4826)를 구해, 110ms 같은 극단값 하나가 기준 범위를
+    // 지나치게 넓히지 않도록 한다.
     private static func latestRMSSDComparison(
         for latest: (date: Date, value: Double),
         samples: [(date: Date, value: Double)],
@@ -338,23 +341,33 @@ final class HomeViewModel {
         let latestIsMorning = !latestIsSleeping && calendar.component(.hour, from: latest.date) < 12
         let latestDay = calendar.startOfDay(for: latest.date)
 
-        let baselineValues = samples.compactMap { sample -> Double? in
-            guard sample.date < latestDay else { return nil }
+        let baselineSamples = samples.filter { sample in
+            guard sample.date < latestDay else { return false }
             let isSleeping = sleepRanges.contains { sample.date >= $0.start && sample.date <= $0.end }
-            if latestIsSleeping { return isSleeping ? sample.value : nil }
-            guard !isSleeping else { return nil }
+            if latestIsSleeping { return isSleeping }
+            guard !isSleeping else { return false }
             let isMorning = calendar.component(.hour, from: sample.date) < 12
-            return isMorning == latestIsMorning ? sample.value : nil
+            return isMorning == latestIsMorning
         }
-        guard baselineValues.count >= 2 else { return nil }
 
-        let median = HRVStatistics.median(baselineValues)
-        let standardDeviation = HRVStatistics.standardDeviation(baselineValues)
-        let difference = latest.value - median
+        let dailyMedians = Dictionary(grouping: baselineSamples) { calendar.startOfDay(for: $0.date) }
+            .values
+            .map { HRVStatistics.median($0.map(\.value)) }
+        // 최소 7일치 일별 중앙값이 있어야 기준으로 믿을 만하다고 본다.
+        guard dailyMedians.count >= 7 else { return nil }
+
+        let baselineMedian = HRVStatistics.median(dailyMedians)
+        let mad = HRVStatistics.median(dailyMedians.map { abs($0 - baselineMedian) })
+        // MAD가 0이면(변동이 전혀 없던 기준) 강건 표준편차도 0이 되어 아주 작은 차이에도 상태가
+        // 갈려버리므로, 이때는 상태를 표시하지 않는다.
+        guard mad > 0 else { return nil }
+        let robustStandardDeviation = mad * 1.4826
+
+        let difference = latest.value - baselineMedian
         let status: LatestRMSSDComparison.Status
-        if difference > standardDeviation {
+        if difference > robustStandardDeviation {
             status = .good
-        } else if difference < -standardDeviation {
+        } else if difference < -robustStandardDeviation {
             status = .overload
         } else {
             status = .stable
