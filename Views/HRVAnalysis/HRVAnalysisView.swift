@@ -453,10 +453,13 @@ struct HRVAnalysisView: View {
             // ensureHealthKitDataLoaded 자체는 이 Task가 취소돼도 끝까지 실행되지만(최신 요청까지
             // 함께 취소되는 걸 막기 위해서), 그 실행 중에 이 Task가 취소됐다면 recomputeRange()는
             // 이미 그 최신 요청을 이어받은 다른 Task가 호출하므로 여기서는 중복으로 부를 필요가 없다.
-            if await viewModel.ensureHealthKitDataLoaded(visibleStart: viewport.start, visibleEnd: viewport.end),
-               !Task.isCancelled {
-                recomputeRange()
-            }
+            await viewModel.ensureHealthKitDataLoaded(visibleStart: viewport.start, visibleEnd: viewport.end)
+            guard !Task.isCancelled else { return }
+            // 이미 로드돼 있어 새로 불러온 게 없어도, 스크롤로 보이는 구간 자체가 바뀌었으니 y축
+            // 범위는 다시 계산해야 한다 — 안 그러면 예전 구간 기준으로 캐시된 범위가 그대로 남아,
+            // 그보다 값이 큰 새 구간으로 스크롤했을 때 선이 y축 위로 넘어가 잘려서(차트 밖으로
+            // 나가) 안 보이는 것처럼 보인다.
+            recomputeRange()
         }
     }
 
