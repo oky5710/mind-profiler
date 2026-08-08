@@ -35,7 +35,7 @@ enum CatPhotoService {
     }
 
     // 회복 지수가 낮으면(RecoveryScore.label의 "회복이 필요해요" 기준과 동일하게 70 미만) funny/licking
-    // 폴더에서, 그게 아니고 지금이 새벽 3~5시면 drowsy에서, 그 외 밤(22시~6시)이면 sleeping에서 고른다
+    // 폴더에서, 그게 아니고 지금이 오후 15~17시면 drowsy에서, 그 외 밤(22시~6시)이면 sleeping에서 고른다
     // — 아무 조건도 해당하지 않으면(또는 해당 카테고리 폴더들이 모두 비어 있으면) 전체에서 무작위로
     // 고르는 기존 동작으로 되돌아간다.
     private static func preferredCategories() -> [String] {
@@ -43,7 +43,7 @@ enum CatPhotoService {
             return ["funny", "licking"]
         }
         let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 3 && hour < 5 {
+        if hour >= 15 && hour < 17 {
             return ["drowsy"]
         }
         if hour >= 22 || hour < 6 {
