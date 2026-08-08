@@ -13,7 +13,7 @@ struct LoginView: View {
     var body: some View {
         VStack(spacing: 16) {
             Text("Mind Profiler")
-                .font(Typography.sectionTitle)
+                .font(Typography.font(size: 20, weight: .semibold, relativeTo: .title2))
 
             VStack(spacing: 16) {
                 if authViewModel.isLoading {
