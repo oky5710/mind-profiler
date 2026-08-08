@@ -683,7 +683,7 @@ struct HRVAnalysisView: View {
             Text(workout.displayName)
                 .font(Typography.secondary.bold())
             Text(
-                "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDuration(duration)) · " +
+                "\(Self.monthDayFormatter.string(from: workout.start)) · \(SleepAnalysisService.formattedDurationClock(duration)) · " +
                     "\(Self.hourMinuteFormatter.string(from: workout.start)) ~ \(Self.hourMinuteFormatter.string(from: workout.end))"
             )
             .font(Typography.caption2)

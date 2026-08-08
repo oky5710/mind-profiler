@@ -59,7 +59,7 @@ struct SleepDetailPanel: View {
                 .font(Typography.secondary.bold())
             Text(
                 "\(HRVAnalysisView.monthDayFormatter.string(from: sleepRange.start)) · " +
-                    "\(SleepAnalysisService.formattedDuration(totalDuration)) · " +
+                    "\(SleepAnalysisService.formattedDurationClock(totalDuration)) · " +
                     "\(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.start)) ~ \(HRVAnalysisView.hourMinuteFormatter.string(from: sleepRange.end))"
             )
             .font(Typography.caption2)
