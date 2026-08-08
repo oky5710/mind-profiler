@@ -23,7 +23,7 @@ struct LoginView: View {
                         Task { await authViewModel.signInWithGoogle() }
                     } label: {
                         Label("Google로 로그인", systemImage: "person.crop.circle")
-                            .font(Typography.button)
+                            .font(Typography.font(size: 16, weight: .semibold))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
