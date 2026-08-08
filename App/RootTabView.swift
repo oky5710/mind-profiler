@@ -3,9 +3,13 @@ import SwiftUI
 struct RootTabView: View {
     @Environment(RMSSDThresholdAlertCenter.self) private var rmssdThresholdAlertCenter
     @Environment(SleepUpdateNavigationCenter.self) private var sleepUpdateNavigationCenter
+    @Environment(PatternNavigationCenter.self) private var patternNavigationCenter
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: RootTab = .home
     @State private var homeRefreshRequestID: UUID?
+    @State private var patternOpenSleepRequestID: UUID?
+    @State private var patternRequestedSleepDate: Date?
+    @State private var patternOpenHRVTrendRequestID: UUID?
 
     private enum RootTab: Hashable {
         case home, calendar, report, pattern, settings
@@ -20,7 +24,11 @@ struct RootTabView: View {
                     Label("홈", systemImage: "house")
                 }
 
-            HRVAnalysisView()
+            HRVAnalysisView(
+                openSleepRequestID: patternOpenSleepRequestID,
+                requestedSleepDate: patternRequestedSleepDate,
+                openHRVTrendRequestID: patternOpenHRVTrendRequestID
+            )
                 .tag(RootTab.pattern)
                 .tabItem {
                     Label("오늘의 패턴", systemImage: "waveform.path.ecg")
@@ -63,6 +71,19 @@ struct RootTabView: View {
             homeRefreshRequestID = UUID()
             sleepUpdateNavigationCenter.consumeOpenHomeRequest()
         }
+        .onChange(of: patternNavigationCenter.openSleepRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            selectedTab = .pattern
+            patternRequestedSleepDate = patternNavigationCenter.requestedSleepDate
+            patternOpenSleepRequestID = UUID()
+            patternNavigationCenter.consumeOpenSleepRequest()
+        }
+        .onChange(of: patternNavigationCenter.openHRVTrendRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            selectedTab = .pattern
+            patternOpenHRVTrendRequestID = UUID()
+            patternNavigationCenter.consumeOpenHRVTrendRequest()
+        }
         .fullScreenCover(item: $rmssdThresholdAlertCenter.pendingEvent) { pendingEvent in
             RMSSDEventEntryForm(pendingEvent: pendingEvent) {
                 rmssdThresholdAlertCenter.pendingEvent = nil
@@ -76,4 +97,5 @@ struct RootTabView: View {
         .environment(ToastCenter())
         .environment(RMSSDThresholdAlertCenter())
         .environment(SleepUpdateNavigationCenter())
+        .environment(PatternNavigationCenter())
 }

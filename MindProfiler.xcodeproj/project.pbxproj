@@ -103,6 +103,7 @@
 		EF283D9C7ACC9B0E29E6165F /* RMSSDEventModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAB03229C503C619F49C218 /* RMSSDEventModels.swift */; };
 		F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100022026080200000002 /* SleepUpdateMonitorService.swift */; };
 		F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */; };
+		122713903A057494E811BE9A /* PatternNavigationCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A9C328772BA4F1930D8727F /* PatternNavigationCenter.swift */; };
 		F00200012026080200000001 /* RMSSDCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200022026080200000002 /* RMSSDCacheModels.swift */; };
 		F00200032026080200000003 /* RMSSDLocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00200042026080200000004 /* RMSSDLocalStore.swift */; };
 		F6F232961AAE6A11D163DCA7 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1766680CA806EB1906FDC82 /* CalendarView.swift */; };
@@ -208,6 +209,7 @@
 		EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		F00100022026080200000002 /* SleepUpdateMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateMonitorService.swift; sourceTree = "<group>"; };
 		F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepUpdateNavigationCenter.swift; sourceTree = "<group>"; };
+		3A9C328772BA4F1930D8727F /* PatternNavigationCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternNavigationCenter.swift; sourceTree = "<group>"; };
 		F00200022026080200000002 /* RMSSDCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDCacheModels.swift; sourceTree = "<group>"; };
 		F00200042026080200000004 /* RMSSDLocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RMSSDLocalStore.swift; sourceTree = "<group>"; };
 		FA31FAE9F896349E1F3AD369 /* RMSSDEventEntryForm.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RMSSDEventEntryForm.swift; sourceTree = "<group>"; };
@@ -412,6 +414,7 @@
 				EEFD8F2F0C0CCE3E7DF8CA48 /* Typography.swift */,
 				139E3CF4ED07491A02871909 /* RMSSDThresholdAlertCenter.swift */,
 				F00100042026080200000004 /* SleepUpdateNavigationCenter.swift */,
+				3A9C328772BA4F1930D8727F /* PatternNavigationCenter.swift */,
 				92C6791E850C70DF2165A9F7 /* BadgeFlowLayout.swift */,
 				DF79381217C0C3402ABD4A62 /* WeekStrip.swift */,
 			);
@@ -640,6 +643,7 @@
 				F00100012026080200000001 /* SleepUpdateMonitorService.swift in Sources */,
 				F912D8A8A9749327632D32C9 /* NotificationPreferences.swift in Sources */,
 				F00100032026080200000003 /* SleepUpdateNavigationCenter.swift in Sources */,
+				122713903A057494E811BE9A /* PatternNavigationCenter.swift in Sources */,
 				1CAE04A8D9E6C667B6320118 /* RMSSDEventEntryForm.swift in Sources */,
 				470335F3BD9457EF2A626FDF /* RMSSDEventEntryViewModel.swift in Sources */,
 				06EF8C1EA1FB1B5275A4EFFB /* MedicationLogEditForm.swift in Sources */,

@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     let refreshRequestID: UUID?
     @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(PatternNavigationCenter.self) private var patternNavigationCenter
     @State private var viewModel = HomeViewModel()
     @State private var selectedDate = Date()
     // 오늘 날짜에 표시할 데이터가 전혀 없으면(수면 기록이 아예 없어 회복 지수도 못 구하는 등) 빈
@@ -188,6 +189,13 @@ struct HomeView: View {
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: viewModel.briefingDate ?? selectedDate)
+            let previousNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+            patternNavigationCenter.requestSleepView(for: previousNight)
+        }
     }
 
     // 화살표만 방향에 따라 색을 준다 — 높음(초록)/낮음(빨강, 눈을 덜 아프게 절반쯽 밝기). 나머지
@@ -233,6 +241,10 @@ struct HomeView: View {
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            patternNavigationCenter.requestHRVTrendView()
+        }
     }
 
     private var briefingBody: some View {
@@ -456,4 +468,5 @@ struct HomeView: View {
 #Preview {
     HomeView()
         .environment(AuthViewModel())
+        .environment(PatternNavigationCenter())
 }

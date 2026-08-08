@@ -98,6 +98,22 @@ struct HRVAnalysisView: View {
         let end: Date
     }
 
+    // 홈 화면의 요약 카드를 탭했을 때 다른 탭에서 이 탭의 특정 섹션/날짜를 열어달라는 요청 —
+    // RootTabView가 PatternNavigationCenter를 관찰해 넘겨준다(HomeView의 refreshRequestID와 같은 패턴).
+    let openSleepRequestID: UUID?
+    let requestedSleepDate: Date?
+    let openHRVTrendRequestID: UUID?
+
+    init(
+        openSleepRequestID: UUID? = nil,
+        requestedSleepDate: Date? = nil,
+        openHRVTrendRequestID: UUID? = nil
+    ) {
+        self.openSleepRequestID = openSleepRequestID
+        self.requestedSleepDate = requestedSleepDate
+        self.openHRVTrendRequestID = openHRVTrendRequestID
+    }
+
     static let maximumRMSSDChartValue = 150.0
     // 핀치 줌 배율 범위. 1.0이 chartMode의 기본 visibleDomain이고, 배율이 커질수록(최대 5배)
     // 화면에 보이는 기간이 좁아지고(확대), 작아질수록(최소 0.5배) 넓어진다(축소).
@@ -318,7 +334,10 @@ struct HRVAnalysisView: View {
                 .onChange(of: geo.size.height) { _, newHeight in availableHeight = newHeight }
                     }
                 } else {
-                    SleepOverviewView()
+                    SleepOverviewView(
+                        openRequestID: openSleepRequestID,
+                        requestedNight: requestedSleepDate
+                    )
                 }
             }
             .navigationTitle("오늘의 패턴")
@@ -365,6 +384,16 @@ struct HRVAnalysisView: View {
         .onChange(of: shouldNotifyNoRawBeatData) { _, shouldNotify in
             guard shouldNotify else { return }
             toastCenter.show("이 기간에는 \(authViewModel.hrvTerm)를 계산할 원시 박동 데이터가 없어요", duration: .seconds(2))
+        }
+        .onChange(of: openSleepRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            selectedPatternSection = .sleep
+        }
+        .onChange(of: openHRVTrendRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            selectedPatternSection = .hrv
+            chartMode = .hourly
+            hrvScrollPosition = Date().addingTimeInterval(-HRVChartMode.hourly.visibleDomain)
         }
         .onChange(of: chartMode) { _, newMode in
             resetZoom(for: newMode)
@@ -1257,6 +1286,10 @@ private final class SleepOverviewViewModel {
 }
 
 private struct SleepOverviewView: View {
+    // 다른 탭에서 특정 날짜의 수면을 열어달라는 요청 — HRVAnalysisView가 그대로 전달한다.
+    let openRequestID: UUID?
+    let requestedNight: Date?
+
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var viewModel = SleepOverviewViewModel()
     @State private var selectedRMSSDDate: Date?
@@ -1312,6 +1345,10 @@ private struct SleepOverviewView: View {
         .refreshable { await viewModel.load(force: true) }
         .simultaneousGesture(daySwipeGesture)
         .task { await viewModel.load() }
+        .onChange(of: openRequestID) { _, requestID in
+            guard requestID != nil, let requestedNight else { return }
+            Task { await viewModel.selectNight(requestedNight) }
+        }
         .sheet(isPresented: $showsDatePicker) {
             sleepDatePickerSheet
                 .presentationDetents([.medium])
