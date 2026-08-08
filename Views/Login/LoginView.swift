@@ -17,6 +17,13 @@ struct LoginView: View {
         VStack(spacing: 16) {
             Spacer()
 
+            Image("LoginLogo")
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(146.0 / 111.0, contentMode: .fit)
+                .foregroundStyle(.primary)
+                .containerRelativeFrame(.horizontal) { width, _ in width * 0.6 }
+
             Text("Mind Profiler")
                 .font(.system(size: 28, weight: .semibold))
 
