@@ -118,7 +118,7 @@ struct HomeView: View {
                     briefingHeaderLabel("회복 지수")
 
                     Text(String(score.value))
-                        .font(Typography.sectionTitle.weight(.bold))
+                        .font(Typography.screenTitle)
 
                     Text(score.label)
                         .font(Typography.secondary)
@@ -220,14 +220,14 @@ struct HomeView: View {
                 // 같은 위계를 시간·분 두 쌍 모두에 적용한다.
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(hours)")
-                        .font(Typography.sectionTitle.weight(.bold))
+                        .font(Typography.screenTitle)
                         .lineLimit(1)
                     Text("시간")
                         .font(Typography.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Text("\(minutes)")
-                        .font(Typography.sectionTitle.weight(.bold))
+                        .font(Typography.screenTitle)
                         .lineLimit(1)
                     Text("분")
                         .font(Typography.caption2)
@@ -236,7 +236,7 @@ struct HomeView: View {
                 }
             } else {
                 Text("—")
-                    .font(Typography.sectionTitle.weight(.bold))
+                    .font(Typography.screenTitle)
             }
         }
     }
@@ -296,7 +296,7 @@ struct HomeView: View {
     private var latestHRVValue: some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
-                .font(Typography.sectionTitle.weight(.bold))
+                .font(Typography.screenTitle)
                 .lineLimit(1)
             if viewModel.latestRMSSDValue != nil {
                 Text("ms")
@@ -421,7 +421,7 @@ struct HomeView: View {
             }
 
             Text(title)
-                .font(Typography.body.weight(.bold))
+                .font(Typography.cardTitle)
                 .foregroundStyle(Theme.primary800)
                 .lineLimit(1)
 
@@ -437,7 +437,7 @@ struct HomeView: View {
                 .font(Typography.caption.weight(.semibold))
                 .foregroundStyle(Theme.primary800)
             textWithBoldNumbers(message)
-                .font(Typography.body)
+                .font(Typography.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .layoutPriority(1)
@@ -449,7 +449,7 @@ struct HomeView: View {
     // 더하면 중복돼 보인다 — 그래서 아이콘 없이 텍스트만 보여준다.
     private func highlightRow(_ message: String) -> some View {
         Text(message)
-            .font(Typography.body)
+            .font(Typography.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
     }
