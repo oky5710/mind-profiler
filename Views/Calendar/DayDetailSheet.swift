@@ -60,7 +60,7 @@ struct DayDetailSheet: View {
             List {
                 if isEmpty {
                     Text("이 날 입력된 기록이 없어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 }
 
@@ -85,13 +85,13 @@ struct DayDetailSheet: View {
                                     Text(entry.type ?? "커피")
                                     if let entryDate = DateKey.parseISODate(entry.date) {
                                         Text(DateKey.timeString(from: entryDate))
-                                            .font(.caption)
+                                            .font(Typography.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
                                 if let memo = entry.memo, !memo.isEmpty {
                                     Text(memo)
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
@@ -113,7 +113,7 @@ struct DayDetailSheet: View {
                                     if let start = DateKey.parseISODate(entry.startedAt),
                                        let end = DateKey.parseISODate(entry.endedAt) {
                                         Text("\(DateKey.timeString(from: start)) ~ \(DateKey.timeString(from: end))")
-                                            .font(.caption)
+                                            .font(Typography.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
@@ -141,7 +141,7 @@ struct DayDetailSheet: View {
                                 Spacer()
                                 if let takenAt = group.earliestTakenAt {
                                     Text(DateKey.timeString(from: takenAt))
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                                 Button {
@@ -168,12 +168,12 @@ struct DayDetailSheet: View {
                                 }
                                 if let eventDate = DateKey.parseISODate(entry.date) {
                                     Text(DateKey.timeString(from: eventDate))
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                                 if let description = entry.description, !description.isEmpty {
                                     Text(description)
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -193,7 +193,7 @@ struct DayDetailSheet: View {
                                     Text(entry.title)
                                     if let eventDate = DateKey.parseISODate(entry.date) {
                                         Text(DateKey.timeString(from: eventDate))
-                                            .font(.caption)
+                                            .font(Typography.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
@@ -206,7 +206,7 @@ struct DayDetailSheet: View {
 
                 if let deletionErrorMessage {
                     Text(deletionErrorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             }

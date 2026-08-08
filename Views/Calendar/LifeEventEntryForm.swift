@@ -43,7 +43,7 @@ struct LifeEventEntryForm: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -64,7 +64,7 @@ struct LifeEventEntryForm: View {
                     ProgressView()
                 } else if entries.isEmpty {
                     Text("이 날 기록된 이벤트가 없어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(entries) { entry in
@@ -72,7 +72,7 @@ struct LifeEventEntryForm: View {
                             Text(entry.title)
                             if let eventDate = DateKey.parseISODate(entry.date) {
                                 Text(DateKey.timeString(from: eventDate))
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -82,7 +82,7 @@ struct LifeEventEntryForm: View {
                     }
                 }
                 if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
             }
         }
@@ -184,7 +184,7 @@ struct SymptomEntryForm: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -205,7 +205,7 @@ struct SymptomEntryForm: View {
                     ProgressView()
                 } else if entries.isEmpty {
                     Text("이 날 기록된 증상이 없어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(entries) { entry in
@@ -218,12 +218,12 @@ struct SymptomEntryForm: View {
                             }
                             if let eventDate = DateKey.parseISODate(entry.date) {
                                 Text(DateKey.timeString(from: eventDate))
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                             if let description = entry.description, !description.isEmpty {
                                 Text(description)
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -235,7 +235,7 @@ struct SymptomEntryForm: View {
 
                 if let entriesErrorMessage {
                     Text(entriesErrorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             }

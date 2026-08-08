@@ -64,9 +64,9 @@ struct DrugSearchSheet: View {
             if isSearching {
                 ProgressView()
             } else if let searchErrorMessage {
-                Text(searchErrorMessage).font(.footnote).foregroundStyle(.red)
+                Text(searchErrorMessage).font(Typography.caption).foregroundStyle(.red)
             } else if !searchTerm.isEmpty && results.isEmpty {
-                Text("검색 결과가 없어요").font(.footnote).foregroundStyle(.secondary)
+                Text("검색 결과가 없어요").font(Typography.caption).foregroundStyle(.secondary)
             }
 
             List(results) { item in
@@ -78,12 +78,12 @@ struct DrugSearchSheet: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.itemName).font(.subheadline)
-                            Text(item.entpName).font(.caption).foregroundStyle(.secondary)
+                            Text(item.itemName).font(Typography.secondary)
+                            Text(item.entpName).font(Typography.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
                         Text(isActive ? "복용 중" : "선택 ›")
-                            .font(.caption)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -98,8 +98,8 @@ struct DrugSearchSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(drug.itemName).font(.subheadline.bold())
-                    Text(drug.entpName).font(.caption).foregroundStyle(.secondary)
+                    Text(drug.itemName).font(Typography.secondary.bold())
+                    Text(drug.entpName).font(Typography.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -113,7 +113,7 @@ struct DrugSearchSheet: View {
             }
 
             if let registerErrorMessage {
-                Text(registerErrorMessage).font(.footnote).foregroundStyle(.red)
+                Text(registerErrorMessage).font(Typography.caption).foregroundStyle(.red)
             }
 
             Button {
