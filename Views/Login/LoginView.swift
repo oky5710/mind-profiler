@@ -12,7 +12,8 @@ struct LoginView: View {
     // 부모(Spacer가 있는 VStack)가 제안하는 임의의 큰 높이와 그 내부 제약이 충돌해 오토레이아웃
     // 경고를 낸다 — 반드시 그 범위(30~64) 안의 고정 높이를 줘야 한다. 두 버튼 다 같은 값을 써서
     // 굳이 서로의 실제 렌더링 높이를 측정할 필요도 없다.
-    private static let buttonHeight: CGFloat = 44
+    private static let appleButtonHeight: CGFloat = 44
+    private static let googleButtonHeight: CGFloat = 54
 
     var body: some View {
         VStack(spacing: 16) {
@@ -41,7 +42,7 @@ struct LoginView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.roundedRectangle(radius: Self.buttonCornerRadius))
-                    .frame(height: Self.buttonHeight)
+                    .frame(height: Self.googleButtonHeight)
                     .padding(.horizontal, 40)
 
                     SignInWithAppleButton(.signIn) { request in
@@ -57,7 +58,7 @@ struct LoginView: View {
                     .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                     .cornerRadius(Self.buttonCornerRadius)
                     .frame(maxWidth: .infinity)
-                    .frame(height: Self.buttonHeight)
+                    .frame(height: Self.appleButtonHeight)
                     .padding(.horizontal, 40)
                 }
 
