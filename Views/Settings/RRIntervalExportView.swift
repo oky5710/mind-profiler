@@ -50,7 +50,7 @@ struct RRIntervalExportView: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             } header: {

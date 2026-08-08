@@ -42,7 +42,7 @@ struct AnalysisSettingsView: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             } header: {
@@ -74,10 +74,10 @@ struct AnalysisSettingsView: View {
                     scatterChart
                     if let selectedPairDate {
                         Text(Self.scatterDateFormatter.string(from: selectedPairDate))
-                            .font(.footnote)
+                            .font(Typography.caption)
                     } else {
                         Text("점을 탭하면 날짜가 표시돼요")
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     }
                 } header: {

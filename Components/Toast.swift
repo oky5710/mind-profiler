@@ -69,7 +69,7 @@ struct ToastOverlay: View {
                 Text(message)
                     .foregroundStyle(.white)
             }
-            .font(.caption.bold())
+            .font(Typography.caption.bold())
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(.black.opacity(0.75), in: Capsule())

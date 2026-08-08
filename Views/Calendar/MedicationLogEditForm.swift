@@ -44,7 +44,7 @@ struct MedicationLogEditForm: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 

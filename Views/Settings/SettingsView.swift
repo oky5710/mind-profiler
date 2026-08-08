@@ -223,7 +223,7 @@ private struct PrivacyPolicyView: View {
         List {
             Section {
                 Text("최종 업데이트: 2026년 8월 8일")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
                 paragraph("Mind Profiler(이하 \"앱\")는 이용자의 개인정보를 중요하게 생각하며, 관련 법령을 준수합니다. 본 개인정보 처리방침은 앱에서 수집하는 정보와 이용 목적, 보관 방법 및 이용자의 권리를 안내하기 위해 작성되었습니다.")
             }
@@ -362,7 +362,7 @@ private func policySection<Content: View>(
 }
 
 private func subheading(_ text: String) -> some View {
-    Text(text).font(.subheadline.bold())
+    Text(text).font(Typography.secondary.bold())
 }
 
 private func paragraph(_ text: String) -> some View {
@@ -500,7 +500,7 @@ private struct FAQView: View {
                     }
                     .padding(.top, 4)
                 } label: {
-                    Text(item.question).font(.subheadline.bold())
+                    Text(item.question).font(Typography.secondary.bold())
                 }
             }
         }
@@ -528,7 +528,7 @@ private struct TermsOfServiceView: View {
         List {
             Section {
                 Text("최종 업데이트: 2026년 8월 8일")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
                 paragraph("본 이용약관은 Mind Profiler(이하 \"앱\")의 이용과 관련하여 이용자와 운영자 간의 권리, 의무 및 책임사항을 규정합니다.")
             }

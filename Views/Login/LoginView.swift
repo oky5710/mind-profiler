@@ -13,7 +13,7 @@ struct LoginView: View {
     // 경고를 낸다 — 반드시 그 범위(30~64) 안의 고정 높이를 줘야 한다. 두 버튼 다 같은 값을 써서
     // 굳이 서로의 실제 렌더링 높이를 측정할 필요도 없다.
     private static let appleButtonHeight: CGFloat = 44
-    private static let googleButtonHeight: CGFloat = 44
+    private static let googleButtonHeight: CGFloat = 30
 
     var body: some View {
         VStack(spacing: 16) {
@@ -27,7 +27,7 @@ struct LoginView: View {
                 .containerRelativeFrame(.horizontal) { width, _ in width * 0.6 }
 
             Text("Mind Profiler")
-                .font(.system(size: 28, weight: .semibold))
+                .font(Typography.largeTitle.weight(.semibold))
 
             VStack(spacing: 16) {
                 if authViewModel.isLoading {
@@ -37,7 +37,7 @@ struct LoginView: View {
                         Task { await authViewModel.signInWithGoogle() }
                     } label: {
                         Label("Google로 로그인", systemImage: "person.crop.circle")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(Typography.cardTitle)
                             .frame(maxWidth: .infinity)
                             // borderedProminent의 배경은 라벨 크기에 맞춰 그려져서, 바깥쪽에만
                             // frame(height:)를 주면 그 배경은 그대로고 남는 공간만 빈 채로 커진다 —

@@ -26,7 +26,7 @@ struct CorrelationAnalysisView: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             } header: {
@@ -68,7 +68,7 @@ struct CorrelationAnalysisView: View {
 
     private func tableText(_ value: String, isHeader: Bool = false) -> some View {
         Text(value)
-            .font(.caption2)
+            .font(Typography.caption2)
             .foregroundStyle(isHeader ? .secondary : .primary)
     }
 

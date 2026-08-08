@@ -16,7 +16,7 @@ struct MedicationManagementView: View {
                     ProgressView()
                 } else if medications.isEmpty {
                     Text("등록된 약이 없어요. 아래에서 추가해보세요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(medications) { medication in
@@ -24,7 +24,7 @@ struct MedicationManagementView: View {
                             Text(medication.name)
                             if !medication.timings.isEmpty {
                                 Text(medication.timings.compactMap { MedicationTiming(rawValue: $0)?.label }.joined(separator: ", "))
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -34,7 +34,7 @@ struct MedicationManagementView: View {
                     }
                 }
                 if let loadErrorMessage {
-                    Text(loadErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(loadErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
             }
 
