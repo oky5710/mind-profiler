@@ -1055,7 +1055,8 @@ private final class SleepOverviewViewModel {
         guard minimum < maximum else {
             return (minimum - 1)...(maximum + 1)
         }
-        return minimum...maximum
+        // 최솟값이 그대로 y축 하단과 겹쳐 라인이 축에 붙어 보이는 걸 막기 위한 여백.
+        return (minimum - 3)...maximum
     }
 
     func moveDay(by value: Int) async {
