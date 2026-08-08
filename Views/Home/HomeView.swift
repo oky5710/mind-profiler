@@ -56,20 +56,25 @@ struct HomeView: View {
 
                 Divider()
 
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if hasBriefingHeader {
-                            briefingHeader(score: viewModel.recoveryScore, date: viewModel.briefingDate)
-                        }
+                if viewModel.isInitialLoading || viewModel.isLoadingDailyBriefing {
+                    investigatingView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if hasBriefingHeader {
+                                briefingHeader(score: viewModel.recoveryScore, date: viewModel.briefingDate)
+                            }
 
-                        briefingBody
+                            briefingBody
 
-                        if let errorMessage = viewModel.errorMessage {
-                            inlineError(errorMessage)
-                                .padding(.horizontal, 24)
+                            if let errorMessage = viewModel.errorMessage {
+                                inlineError(errorMessage)
+                                    .padding(.horizontal, 24)
+                            }
                         }
+                        .padding(.bottom, 24)
                     }
-                    .padding(.bottom, 24)
                 }
             }
             .navigationTitle("오늘의 수사 노트")
@@ -86,12 +91,9 @@ struct HomeView: View {
         // 기분·커피·복약은 각 IfNeeded 함수가 성공적으로 확인한 항목을 자체적으로 건너뛴다.
         .onAppear {
             Task {
-                await viewModel.loadDailyBriefing(for: selectedDate, hrvTerm: authViewModel.hrvTerm)
+                await viewModel.loadHome(for: selectedDate, hrvTerm: authViewModel.hrvTerm)
                 fallBackToPreviousDayIfNeeded()
             }
-            Task { await viewModel.loadTodayMoodIfNeeded() }
-            Task { await viewModel.loadTodayCoffeeCountIfNeeded() }
-            Task { await viewModel.loadTodayMedicationLogsIfNeeded() }
         }
         .onChange(of: refreshRequestID) { _, requestID in
             guard requestID != nil else { return }
@@ -354,15 +356,7 @@ struct HomeView: View {
             // 두지 않고 아직 조사 중이라는 걸 알려준다. 섹션 제목이 아니라 가운데 정렬된 상태
             // 문구라 briefingSection을 쓰지 않는다.
             if viewModel.todayBriefingClues.isEmpty && viewModel.dailySummaryHighlights.isEmpty {
-                VStack(spacing: 6) {
-                    Image("InvestigatingIllustration")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 150, height: 121)
-                    Text("수사중")
-                        .font(Typography.secondary)
-                        .foregroundStyle(.secondary)
-                }
+                investigatingView
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
             }
@@ -525,6 +519,23 @@ struct HomeView: View {
                             .offset(x: 4, y: -4)
                     }
                 }
+        }
+        .frame(
+            maxWidth: viewModel.hasMorningMedicationRegistered || viewModel.hasBedtimeMedicationRegistered
+                ? .infinity
+                : 200
+        )
+    }
+
+    private var investigatingView: some View {
+        VStack(spacing: 6) {
+            Image("InvestigatingIllustration")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 150, height: 121)
+            Text("수사중")
+                .font(Typography.secondary)
+                .foregroundStyle(.secondary)
         }
     }
 

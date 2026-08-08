@@ -4,12 +4,12 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Mind Profiler</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Mind Profiler</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -35,12 +35,16 @@
 	<string>일정을 읽어와 HRV 추이와 함께 보여주는 데 사용합니다.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>안정시 심박수, 심박변이(HRV), 수면, 운동 데이터를 읽어와 정신 건강 패턴을 분석하고, 백그라운드에서 rMSSD의 급격한 변화를 감지해 알림을 보내는 데 사용합니다.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>HealthKit 연동을 지원하기 위해 필요합니다. Mind Profiler는 건강 데이터를 읽기만 하며 Apple 건강 앱에는 데이터를 저장하지 않습니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIRequiresFullScreen</key>
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>

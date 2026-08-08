@@ -23,6 +23,7 @@ struct LatestRMSSDComparison {
 @MainActor
 @Observable
 final class HomeViewModel {
+    private(set) var isInitialLoading = true
     private(set) var errorMessage: String?
     private(set) var briefingCaseType: BriefingCaseType?
     private(set) var recoveryScore: RecoveryScore?
@@ -56,11 +57,28 @@ final class HomeViewModel {
 
     private var hasCheckedCoffee = false
     private var hasCheckedMedicationLogs = false
-    private var isLoadingDailyBriefing = false
+    private(set) var isLoadingDailyBriefing = false
     // 로딩 도중 다른 날짜가 또 선택되면(주 스트립을 빠르게 스와이프/탭) 그 요청을 잃어버리지 않고
     // 기억해뒀다가, 지금 로드가 끝나는 즉시 이어서 그 날짜로 다시 로드한다 — 항상 마지막으로 선택한
     // 날짜가 최종적으로 반영된다.
     private var latestRequestedBriefingDate: Date?
+
+    /// 첫 진입에서는 각 비동기 결과가 도착할 때마다 카드가 하나씩 나타나지 않도록, 홈에 필요한
+    /// 조회가 모두 끝날 때까지 로딩 화면을 유지한다. 이후 탭 재진입은 기존 화면을 보존한 채
+    /// 브리핑만 새로 고친다.
+    func loadHome(for selectedDate: Date = Date(), hrvTerm: String) async {
+        guard isInitialLoading else {
+            await loadDailyBriefing(for: selectedDate, hrvTerm: hrvTerm)
+            return
+        }
+
+        defer { isInitialLoading = false }
+        async let briefing: Void = loadDailyBriefing(for: selectedDate, hrvTerm: hrvTerm)
+        async let mood: Void = loadTodayMoodIfNeeded()
+        async let coffee: Void = loadTodayCoffeeCountIfNeeded()
+        async let medication: Void = loadTodayMedicationLogsIfNeeded()
+        _ = await (briefing, mood, coffee, medication)
+    }
 
     // hrvTerm: 연구자/관리자는 "rMSSD", 일반 사용자는 "HRV"(AuthViewModel.hrvTerm) — 이 뷰모델은
     // View가 아니라 environment에 직접 접근할 수 없어 호출부(HomeView)가 넘겨준다.

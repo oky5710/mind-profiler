@@ -127,6 +127,7 @@ struct CalendarView: View {
 
     private static let rowSpacing: CGFloat = 4
     private static let columnSpacing: CGFloat = 4
+    private static let cellHorizontalPadding: CGFloat = 3
     private static let dateCircleSize: CGFloat = 24
     private static let minRowHeight: CGFloat = 40
     // 실제 그 달의 주 수(4~6주)와 무관하게 항상 6주 기준으로 칸 높이를 나눈다 — 달마다 칸 크기가
@@ -265,6 +266,9 @@ struct CalendarView: View {
                     eventCount: eventCount
                 ))
             }
+            // 인접한 날짜의 원형 배지가 한 덩어리처럼 붙어 보이지 않도록 각 날짜 셀 안쪽에도
+            // 좌우 여백을 둔다. 버튼의 전체 터치 영역은 그대로 유지한다.
+            .padding(.horizontal, Self.cellHorizontalPadding)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: cellHeight, alignment: .topLeading)
             .clipped()
