@@ -184,7 +184,7 @@ extension HRVAnalysisView {
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
                             )
-                            .symbolSize(90)
+                            .symbolSize(127)
                             .foregroundStyle(Theme.rmssdHigh.opacity(0.5))
 
                             PointMark(
