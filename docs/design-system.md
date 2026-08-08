@@ -299,12 +299,14 @@ Typography.caption
 | `Typography.reportSectionTitle` | 19pt | Bold | 여러 패널이 반복되는 보고서 섹션 제목 |
 | `Typography.cardTitle` | 16pt | Semibold | 카드 제목 |
 | `Typography.body` | 17pt | Regular | 본문 |
-| `Typography.button` | 17pt | Semibold | 버튼 |
+| `Typography.button` | 18pt | Semibold | 버튼 |
 | `Typography.secondary` | 15pt | Regular | 보조 설명 |
 | `Typography.caption` | 13pt | Regular | 캡션 |
+| `Typography.caption2` | 11pt | Regular | 숫자 옆 단위(시간/분/ms 등) — caption보다 한 단계 작음 |
 | `Typography.sleepStageLabel` | 12pt | Regular | 수면 단계 차트 행 라벨 전용 |
 | `Typography.sleepDate` | 17pt | Semibold | 수면 패턴 상단 날짜 전용 |
-| `Typography.chartAxisLabel` | 9pt | Regular | 오늘의 패턴 차트 x축 라벨 전용 |
+| `Typography.bigStatValue` | 24pt | Bold | 보고서의 강조 수치(평균 수면 시간·점수 등) 전용 |
+| `Typography.chartAxisLabel` | 9pt | Regular | 오늘의 패턴/보고서 차트 x축 라벨 전용(Dynamic Type 미적용) |
 
 ---
 

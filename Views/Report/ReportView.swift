@@ -32,7 +32,7 @@ struct ReportView: View {
         AxisValueLabel {
             if let date = value.as(Date.self) {
                 Text(HRVAnalysisView.monthDayFormatter.string(from: date))
-                    .font(.system(size: 10))
+                    .font(Typography.chartAxisLabel)
                     .tracking(1)
                     .foregroundStyle(.primary)
             }
@@ -82,7 +82,7 @@ struct ReportView: View {
 
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.red)
                     }
 
@@ -97,7 +97,7 @@ struct ReportView: View {
                         HeartLoader(height: 200)
                     } else {
                         Text("분석 기간을 선택해주세요")
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -154,7 +154,7 @@ struct ReportView: View {
                 }
             } else {
                 Text("해당 기간에 심박수/HRV 데이터가 없어요")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -165,14 +165,14 @@ struct ReportView: View {
     private func vitalPanel(title: String, value: String?, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value ?? "—")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(Typography.largeTitle)
                 if value != nil, let unit {
                     Text(unit)
-                        .font(.caption2)
+                        .font(Typography.caption2)
                         .foregroundStyle(.primary)
                 }
             }
@@ -191,13 +191,13 @@ struct ReportView: View {
     private func bigStat(title: String, value: Text, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 value
                 if let unit {
                     Text(unit)
-                        .font(.caption2)
+                        .font(Typography.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -207,17 +207,15 @@ struct ReportView: View {
         .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private static let bigStatValueFont = Font.system(size: 24, weight: .bold)
-
     // "N시간 M분"에서 숫자(24pt Bold)와 "시간"/"분" 단위(caption2)를 따로 스타일링해서 이어붙인다.
     private func durationText(_ interval: TimeInterval) -> Text {
         let totalMinutes = Int(interval) / 60
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
-        return Text("\(hours)").font(Self.bigStatValueFont)
-            + Text("시간 ").font(.caption2).foregroundStyle(.secondary)
-            + Text("\(minutes)").font(Self.bigStatValueFont)
-            + Text("분").font(.caption2).foregroundStyle(.secondary)
+        return Text("\(hours)").font(Typography.bigStatValue)
+            + Text("시간 ").font(Typography.caption2).foregroundStyle(.secondary)
+            + Text("\(minutes)").font(Typography.bigStatValue)
+            + Text("분").font(Typography.caption2).foregroundStyle(.secondary)
     }
 
     // MARK: - 수면
@@ -230,13 +228,13 @@ struct ReportView: View {
             if let avgDuration = viewModel.averageSleepDuration, let avgScore = viewModel.averageSleepScore {
                 HStack(spacing: 10) {
                     bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
-                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Self.bigStatValueFont), unit: "점")
+                    bigStat(title: "평균 수면 점수", value: Text("\(Int(avgScore.rounded()))").font(Typography.bigStatValue), unit: "점")
                 }
             }
 
             if viewModel.sleepRanges.isEmpty {
                 Text("해당 기간에 수면 데이터가 없어요")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             } else {
                 sleepBarChart.chartLoadingOverlay(viewModel.isAnalyzing)
@@ -475,7 +473,7 @@ struct ReportView: View {
                     .stroke(Color.gray.opacity(0.12), lineWidth: 1)
 
                     Text(label(value))
-                        .font(.system(size: 9))
+                        .font(Typography.chartAxisLabel)
                         .tracking(1)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 3)
@@ -520,7 +518,7 @@ struct ReportView: View {
                 }
             } else {
                 Text("해당 기간에 rMSSD 데이터가 없어요")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -531,7 +529,7 @@ struct ReportView: View {
     // "평균"으로 오해하지 않도록 CV라고 명시한다.
     private func averageCVChip(_ value: Double) -> some View {
         Text("CV \(String(format: "%.1f", value))%")
-            .font(.system(size: 15, weight: .semibold))
+            .font(Typography.secondary.weight(.semibold))
             .foregroundStyle(Theme.primary)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
@@ -622,7 +620,7 @@ struct ReportView: View {
             Text("\(Int(standardDeviation.rounded()))ms")
                 .bold()
         }
-        .font(.caption2)
+        .font(Typography.caption2)
         .lineLimit(1)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -657,7 +655,7 @@ struct ReportView: View {
 
             if viewModel.hourOfDayPattern.isEmpty {
                 Text("해당 기간에 rMSSD 데이터가 없어요")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             } else {
                 if let displayedPoint = hourlyPatternDisplayedPoint(in: viewModel.hourOfDayPattern) {
@@ -691,7 +689,7 @@ struct ReportView: View {
         HStack(spacing: 4) {
             swatch()
             Text(label)
-                .font(.caption2)
+                .font(Typography.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -731,7 +729,7 @@ struct ReportView: View {
                 AxisValueLabel {
                     if let hour = value.as(Int.self) {
                         Text("\(hour)시")
-                            .font(.system(size: 10))
+                            .font(Typography.chartAxisLabel)
                             .tracking(1)
                             .foregroundStyle(.primary)
                     }
@@ -781,7 +779,7 @@ struct ReportView: View {
             Text("\(Int(point.standardDeviation.rounded()))")
                 .bold()
         }
-        .font(.caption2)
+        .font(Typography.caption2)
         .lineLimit(1)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -831,7 +829,7 @@ struct ReportView: View {
 
             if viewModel.rmssdLowestDayRows.isEmpty {
                 Text("해당 기간에 비교할 데이터가 없어요")
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             } else {
                 // 표(Grid)는 "스케줄" 칸이 길어지면 다른 칸까지 좁아져 읽기 불편했다 — 날짜별로
@@ -851,14 +849,14 @@ struct ReportView: View {
     private func lowestDayRow(_ row: ReportViewModel.RMSSDLowestDayRow) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Self.dateFormatter.string(from: row.date))
-                .font(.caption.bold())
+                .font(Typography.caption.bold())
 
             HStack(alignment: .top, spacing: 12) {
                 lowestDayChip(
                     label: "rMSSD",
                     value: Text("\(Int(row.rmssd.rounded()))")
-                        .font(.system(size: 20, weight: .bold))
-                        + Text("ms").font(.caption2).fontWeight(.regular),
+                        .font(Typography.sectionTitle)
+                        + Text("ms").font(Typography.caption2).fontWeight(.regular),
                     color: Theme.primary50
                 )
 
@@ -880,7 +878,7 @@ struct ReportView: View {
     private func lowestDayChip(label: String, value: Text, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
             value
                 .foregroundStyle(Theme.primary600)
@@ -894,10 +892,10 @@ struct ReportView: View {
     private func lowestDayInlineDetail(label: String, value: String?) -> some View {
         HStack(spacing: 4) {
             Text(label)
-                .font(.caption2)
+                .font(Typography.caption2)
                 .foregroundStyle(.secondary)
             Text(value ?? "—")
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
         }
     }
 
@@ -906,10 +904,10 @@ struct ReportView: View {
     private func lowestDayDetailLine(label: String, value: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption2.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
             Text(value ?? "—")
-                .font(.caption2)
+                .font(Typography.caption2)
         }
     }
 
@@ -1066,7 +1064,7 @@ private struct PeriodRangeSheet: View {
 
                 if !hasValidDraftRange {
                     Text("종료일은 시작일과 같거나 이후여야 해요.")
-                        .font(.caption)
+                        .font(Typography.caption)
                         .foregroundStyle(.red)
                 }
             }
