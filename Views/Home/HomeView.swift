@@ -199,7 +199,7 @@ struct HomeView: View {
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
-        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
         .onTapGesture {
             let calendar = Calendar.current
@@ -286,7 +286,7 @@ struct HomeView: View {
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
-        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 12))
+        .background(Theme.systemGray6, in: RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
         .onTapGesture {
             patternNavigationCenter.requestHRVTrendView()
@@ -521,7 +521,7 @@ struct HomeView: View {
                             .font(.system(size: 9).bold())
                             .foregroundStyle(.white)
                             .padding(4)
-                            .background(Color.red, in: Circle())
+                            .background(Theme.systemRed, in: Circle())
                             .offset(x: 4, y: -4)
                     }
                 }

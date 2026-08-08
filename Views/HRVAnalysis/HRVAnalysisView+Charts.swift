@@ -338,7 +338,7 @@ extension HRVAnalysisView {
                         yStart: .value("아래", ganttBarYStart),
                         yEnd: .value("위", ganttBarYEnd)
                     )
-                    .foregroundStyle((isShort ? Color.red : sleepColor).opacity(0.7))
+                    .foregroundStyle((isShort ? Theme.systemRed : sleepColor).opacity(0.7))
                     .cornerRadius(4)
                     .annotation(position: .overlay) {
                         if isShort {
