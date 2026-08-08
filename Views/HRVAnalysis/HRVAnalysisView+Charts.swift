@@ -162,41 +162,30 @@ extension HRVAnalysisView {
                 ForEach(currentRMSSDPoints) { point in
                     // 선 자체는 브랜드 색(primary)으로 통일하고, rmssdColor(iris)는 그 위에 찍히는
                     // 포인트(정상/저하/상승 등 의미가 있는 색 구분)에만 남겨서 선과 점의 역할을
-                    // 시각적으로 분리한다. 다만 저장된(로그된) 높음 이벤트 지점은 채운 원이 더 잘
-                    // 보이도록 그 지점으로 이어지는 선을 반투명하고 굵게 그린다.
+                    // 시각적으로 분리한다.
                     let matchedEvent = matchedRMSSDEvent(for: point.date)
                     let isLoggedHigh = matchedEvent?.direction == RMSSDThresholdDirection.high.rawValue
 
-                    if isLoggedHigh {
-                        LineMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value),
-                            series: .value("구간", "rmssd-\(point.segment)")
-                        )
-                        .foregroundStyle(Theme.primary.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                    } else {
-                        LineMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value),
-                            series: .value("구간", "rmssd-\(point.segment)")
-                        )
-                        .foregroundStyle(Theme.primary)
-                    }
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("rMSSD", point.value),
+                        series: .value("구간", "rmssd-\(point.segment)")
+                    )
+                    .foregroundStyle(Theme.primary)
 
                     if showRMSSDPointMarkers {
                         // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
                         // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강. 응답하지 않은 낮음/높음 포인트는
                         // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
                         if isLoggedHigh {
-                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 테두리(링)는 없애고
-                            // 불투명하게 채워서 "저장된 이벤트"임을 나타낸다.
+                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 반투명한(50%) 큰 원(halo)
+                            // 뒤에, 불투명한 작은 원(반지름 2 작게)을 겹쳐서 "저장된 이벤트"임을 나타낸다.
                             PointMark(
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
                             )
-                            .symbolSize(110)
-                            .foregroundStyle(.clear)
+                            .symbolSize(90)
+                            .foregroundStyle(Theme.rmssdHigh.opacity(0.5))
 
                             PointMark(
                                 x: .value("시간", point.date),
@@ -239,44 +228,6 @@ extension HRVAnalysisView {
                             )
                             .symbolSize(32)
                             .foregroundStyle(.white)
-                        }
-                    }
-                }
-
-                // Swift Charts는 같은 series를 공유하는 마크들을 하나의 연속된 경로로 합쳐 그리기
-                // 때문에, 위 ForEach 안에서 특정 지점의 LineMark만 나중에 다시 선언해도 전체 경로의
-                // z-순서는 바뀌지 않아 점 마커 아래에 계속 가려진다. 로그된 높음 지점 양옆만 별도의
-                // series(다른 마크들과 안 이어지는 독립된 짧은 선분)로 떼어내 마커 ForEach보다 뒤에
-                // 선언하면 그 구간만 확실히 점 위로 그려진다.
-                if showRMSSDPointMarkers {
-                    ForEach(Array(currentRMSSDPoints.enumerated()), id: \.element.id) { index, point in
-                        if matchedRMSSDEvent(for: point.date)?.direction == RMSSDThresholdDirection.high.rawValue {
-                            let previous = index > 0 ? currentRMSSDPoints[index - 1] : nil
-                            let next = index < currentRMSSDPoints.count - 1 ? currentRMSSDPoints[index + 1] : nil
-
-                            if let previous, previous.segment == point.segment {
-                                ForEach([previous, point]) { segmentPoint in
-                                    LineMark(
-                                        x: .value("시간", segmentPoint.date),
-                                        y: .value("rMSSD", segmentPoint.value),
-                                        series: .value("구간", "rmssd-highlight-before-\(point.id)")
-                                    )
-                                    .foregroundStyle(Theme.primary.opacity(0.5))
-                                    .lineStyle(StrokeStyle(lineWidth: 2))
-                                }
-                            }
-
-                            if let next, next.segment == point.segment {
-                                ForEach([point, next]) { segmentPoint in
-                                    LineMark(
-                                        x: .value("시간", segmentPoint.date),
-                                        y: .value("rMSSD", segmentPoint.value),
-                                        series: .value("구간", "rmssd-highlight-after-\(point.id)")
-                                    )
-                                    .foregroundStyle(Theme.primary.opacity(0.5))
-                                    .lineStyle(StrokeStyle(lineWidth: 2))
-                                }
-                            }
                         }
                     }
                 }
