@@ -272,9 +272,10 @@ struct HomeView: View {
             // 문구라 briefingSection을 쓰지 않는다.
             if viewModel.todayBriefingClues.isEmpty && viewModel.dailySummaryHighlights.isEmpty {
                 VStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.secondary)
+                    Image("InvestigatingIllustration")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 100, height: 81)
                     Text("수사중")
                         .font(Typography.body)
                         .foregroundStyle(.secondary)
