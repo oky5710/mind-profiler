@@ -181,8 +181,6 @@ struct ReportView: View {
         .padding(12)
         .background(Theme.primary50, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
-        // 광원이 좌상단에 있다고 가정 — 그림자는 반대 방향인 우하단으로 옅게 떨어뜨린다.
-        .shadow(color: .black.opacity(0.1), radius: 3, x: 1, y: 1)
     }
 
     // vitalPanel과 같은 "작은 라벨 + 큰 굵은 값" 조합이지만, 이미 panelCard로 감싸인 섹션
@@ -455,7 +453,6 @@ struct ReportView: View {
                     .fill(Theme.sleep)
                     .frame(width: sleepBarWidth, height: abs(yBottom - yTop))
                     .position(x: plotRect.minX + x, y: plotRect.minY + (yTop + yBottom) / 2)
-                    .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
                     .allowsHitTesting(false)
             }
         }
@@ -927,8 +924,6 @@ private extension View {
             .padding(16)
             .background(.white, in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
-            // 광원이 좌상단에 있다고 가정 — 그림자는 반대 방향인 우하단으로 옅게 떨어뜨린다.
-            .shadow(color: .black.opacity(0.1), radius: 3, x: 1, y: 1)
     }
 }
 
