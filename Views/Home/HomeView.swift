@@ -271,11 +271,16 @@ struct HomeView: View {
             // 두지 않고 아직 조사 중이라는 걸 알려준다. 섹션 제목이 아니라 가운데 정렬된 상태
             // 문구라 briefingSection을 쓰지 않는다.
             if viewModel.todayBriefingClues.isEmpty && viewModel.dailySummaryHighlights.isEmpty {
-                Text("수사중")
-                    .font(Typography.body)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 24)
+                VStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text("수사중")
+                        .font(Typography.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             }
 
             briefingSection(title: "수사 기록하기") {
