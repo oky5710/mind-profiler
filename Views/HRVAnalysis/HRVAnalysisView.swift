@@ -1511,6 +1511,17 @@ private struct SleepOverviewView: View {
     private var rmssdChart: some View {
         metricChart {
             Chart {
+                // AreaMark를 먼저 선언해서 뒤에 깔고, 선 색이 위쪽에서 아래쪽(투명)으로 옅어지게 한다.
+                ForEach(viewModel.rmssdPoints) { point in
+                    AreaMark(x: .value("시간", point.date), y: .value("rMSSD", point.value))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Theme.rmssd.opacity(0.25), .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
                 ForEach(viewModel.rmssdPoints) { point in
                     LineMark(x: .value("시간", point.date), y: .value("rMSSD", point.value))
                         .foregroundStyle(Theme.rmssd)
@@ -1569,6 +1580,19 @@ private struct SleepOverviewView: View {
         metricChart {
             Chart {
                 ForEach(viewModel.heartRatePoints) { point in
+                    AreaMark(
+                        x: .value("시간", point.date),
+                        y: .value("심박수", point.value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.heart.opacity(0.25), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+                ForEach(viewModel.heartRatePoints) { point in
                     LineMark(
                         x: .value("시간", point.date),
                         y: .value("심박수", point.value)
@@ -1618,12 +1642,27 @@ private struct SleepOverviewView: View {
 
     private var respiratoryRateChart: some View {
         metricChart {
-            Chart(viewModel.respiratoryRatePoints) { point in
-                LineMark(
-                    x: .value("시간", point.date),
-                    y: .value("호흡수", point.value)
-                )
-                .foregroundStyle(Theme.systemTeal)
+            Chart {
+                ForEach(viewModel.respiratoryRatePoints) { point in
+                    AreaMark(
+                        x: .value("시간", point.date),
+                        y: .value("호흡수", point.value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.systemTeal.opacity(0.25), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+                ForEach(viewModel.respiratoryRatePoints) { point in
+                    LineMark(
+                        x: .value("시간", point.date),
+                        y: .value("호흡수", point.value)
+                    )
+                    .foregroundStyle(Theme.systemTeal)
+                }
             }
             .chartXScale(domain: viewModel.chartDomain)
             .sleepTimeGrid()
