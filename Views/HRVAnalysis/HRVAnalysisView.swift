@@ -158,9 +158,20 @@ struct HRVAnalysisView: View {
     let sleepColor = Theme.sleep
     let calendarEventColor = Theme.systemBlue
 
-    static let hourMinuteFormatter: DateFormatter = {
+    // 시간별 모드 x축 눈금 전용 — 눈금은 항상 정시에만 찍히므로(HRVAnalysisView+Axes.xAxisLabel)
+    // 분까지 보여줄 필요가 없다.
+    static let axisHourFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    // 툴팁·상세 카드에서 실제 시각(예: "23:30")을 보여줄 때 쓴다 — 위 axisHourFormatter와 달리
+    // 분까지 포함한다.
+    static let hourMinuteFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()

@@ -443,7 +443,7 @@ extension HRVAnalysisView {
                 if Calendar.current.component(.hour, from: date) == 0 {
                     Text(Self.monthDayFormatter.string(from: date)).bold()
                 } else {
-                    Text(Self.hourMinuteFormatter.string(from: date))
+                    Text(Self.axisHourFormatter.string(from: date))
                 }
             case .daily, .monthly:
                 Text(Self.monthDayFormatter.string(from: date))
