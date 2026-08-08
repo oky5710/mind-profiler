@@ -17,9 +17,38 @@ enum CatPhotoService {
     // .jpg 파일을 찾는다.
     private static func randomPhotoURL() -> URL? {
         guard let root = Bundle.main.url(forResource: "CatPhotos", withExtension: nil) else { return nil }
-        let urls = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])?
+        let pooled = preferredCategories().flatMap { jpegs(in: root.appendingPathComponent($0, isDirectory: true)) }
+        if let photo = pooled.randomElement() {
+            return photo
+        }
+        return randomJPEG(in: root)
+    }
+
+    private static func jpegs(in directory: URL) -> [URL] {
+        FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])?
             .compactMap { $0 as? URL }
             .filter { $0.pathExtension.lowercased() == "jpg" } ?? []
-        return urls.randomElement()
+    }
+
+    private static func randomJPEG(in directory: URL) -> URL? {
+        jpegs(in: directory).randomElement()
+    }
+
+    // 회복 지수가 낮으면(RecoveryScore.label의 "회복이 필요해요" 기준과 동일하게 70 미만) funny/licking
+    // 폴더에서, 그게 아니고 지금이 새벽 3~5시면 drowsy에서, 그 외 밤(22시~6시)이면 sleeping에서 고른다
+    // — 아무 조건도 해당하지 않으면(또는 해당 카테고리 폴더들이 모두 비어 있으면) 전체에서 무작위로
+    // 고르는 기존 동작으로 되돌아간다.
+    private static func preferredCategories() -> [String] {
+        if let score = RecoveryScoreCache.value, score < 70 {
+            return ["funny", "licking"]
+        }
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour >= 3 && hour < 5 {
+            return ["drowsy"]
+        }
+        if hour >= 22 || hour < 6 {
+            return ["sleeping"]
+        }
+        return []
     }
 }

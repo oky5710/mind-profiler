@@ -136,6 +136,11 @@ final class HomeViewModel {
                 day: now
             )
             recoveryScore = recoveryZScore.map { RecoveryScoreBuilder.score(forZ: $0) }
+            // 스플래시 화면의 고양이 사진 선택(CatPhotoService)이 참고할 수 있도록, 오늘 날짜로
+            // 계산됐을 때만 최신 회복 지수를 캐시한다 — 과거 날짜를 조회할 때는 건드리지 않는다.
+            if calendar.isDateInToday(selectedDate) {
+                RecoveryScoreCache.value = recoveryScore?.value
+            }
             let latestRMSSDSample = rmssdSamples
                 .filter { $0.date <= now }
                 .max { $0.date < $1.date }
@@ -184,6 +189,9 @@ final class HomeViewModel {
                     forZ: recoveryZScore,
                     sleepDurationHours: currentNightSleepDuration / 3_600
                 )
+                if calendar.isDateInToday(selectedDate) {
+                    RecoveryScoreCache.value = recoveryScore?.value
+                }
             }
             let currentNight = SleepAnalysisService.nightLabel(for: currentRange.start)
 
