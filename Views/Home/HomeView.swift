@@ -176,41 +176,22 @@ struct HomeView: View {
     }
 
     private var previousNightSleepStat: some View {
-        let totalMinutes = viewModel.previousNightSleepDuration.map { Int($0) / 60 }
-        let hours = totalMinutes.map { $0 / 60 }
-        let minutes = totalMinutes.map { $0 % 60 }
-
-        return VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 9) {
             Text("전날 수면시간")
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            HStack(alignment: .bottom, spacing: 6) {
-                if let hours, let minutes {
-                    // 숫자만 크게, "시간"/"분" 단위 글자는 작게 — 최근 HRV 카드의 값+단위(ms)와
-                    // 같은 위계를 시간·분 두 쌍 모두에 적용한다.
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("\(hours)")
-                            .font(Typography.sectionTitle.weight(.bold))
-                        Text("시간")
-                            .font(Typography.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        Text("\(minutes)")
-                            .font(Typography.sectionTitle.weight(.bold))
-                        Text("분")
-                            .font(Typography.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                } else {
-                    Text("—")
-                        .font(Typography.sectionTitle.weight(.bold))
+            // 값(시간/분)과 화살표 이후 비교문구는 각각 한 줄로 붙어 있어야 하지만, 둘을 나란히
+            // 놓을 자리가 없으면 비교문구를 통째로 다음 줄로 내린다 — 최근 HRV 카드와 같은 패턴.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: 6) {
+                    previousNightSleepValue
+                    previousNightSleepComparison
                 }
-
-                if let difference = viewModel.previousNightSleepDurationDifferenceMinutes {
-                    comparisonText(isHigher: difference >= 0, detail: "\(Int(abs(difference).rounded()))분")
+                VStack(alignment: .leading, spacing: 4) {
+                    previousNightSleepValue
+                    previousNightSleepComparison
                 }
             }
         }
@@ -225,6 +206,45 @@ struct HomeView: View {
             let today = calendar.startOfDay(for: viewModel.briefingDate ?? selectedDate)
             let previousNight = calendar.date(byAdding: .day, value: -1, to: today) ?? today
             patternNavigationCenter.requestSleepView(for: previousNight)
+        }
+    }
+
+    private var previousNightSleepValue: some View {
+        let totalMinutes = viewModel.previousNightSleepDuration.map { Int($0) / 60 }
+        let hours = totalMinutes.map { $0 / 60 }
+        let minutes = totalMinutes.map { $0 % 60 }
+
+        return Group {
+            if let hours, let minutes {
+                // 숫자만 크게, "시간"/"분" 단위 글자는 작게 — 최근 HRV 카드의 값+단위(ms)와
+                // 같은 위계를 시간·분 두 쌍 모두에 적용한다.
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(hours)")
+                        .font(Typography.sectionTitle.weight(.bold))
+                        .lineLimit(1)
+                    Text("시간")
+                        .font(Typography.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text("\(minutes)")
+                        .font(Typography.sectionTitle.weight(.bold))
+                        .lineLimit(1)
+                    Text("분")
+                        .font(Typography.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            } else {
+                Text("—")
+                    .font(Typography.sectionTitle.weight(.bold))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var previousNightSleepComparison: some View {
+        if let difference = viewModel.previousNightSleepDurationDifferenceMinutes {
+            comparisonText(isHigher: difference >= 0, detail: "\(Int(abs(difference).rounded()))분")
         }
     }
 
