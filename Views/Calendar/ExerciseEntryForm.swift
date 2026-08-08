@@ -80,13 +80,13 @@ struct ExerciseEntryForm: View {
                 }
                 .pickerStyle(.segmented)
                 Text(ExerciseService.intensityLabels[intensity])
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             }
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -108,7 +108,7 @@ struct ExerciseEntryForm: View {
                         ProgressView()
                     } else if entries.isEmpty {
                         Text("이 날 기록된 운동이 없어요.")
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(entries) { entry in
@@ -117,7 +117,7 @@ struct ExerciseEntryForm: View {
                                 if let start = DateKey.parseISODate(entry.startedAt),
                                    let end = DateKey.parseISODate(entry.endedAt) {
                                     Text("\(DateKey.timeString(from: start)) ~ \(DateKey.timeString(from: end))")
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -127,7 +127,7 @@ struct ExerciseEntryForm: View {
                         }
                     }
                     if let entriesErrorMessage {
-                        Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                        Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                     }
                 }
             }

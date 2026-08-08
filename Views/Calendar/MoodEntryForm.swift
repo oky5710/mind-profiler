@@ -17,7 +17,7 @@ struct MoodEntryForm: View {
     var body: some View {
         VStack(spacing: 24) {
             Text("오늘 기분은 어땠나요?")
-                .font(.headline)
+                .font(Typography.cardTitle)
 
             HStack(spacing: 20) {
                 ForEach(MoodService.options, id: \.score) { option in
@@ -37,7 +37,7 @@ struct MoodEntryForm: View {
             }
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
             }
@@ -64,7 +64,7 @@ struct MoodEntryForm: View {
         } else if !entries.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("이 날의 기록")
-                    .font(.subheadline.bold())
+                    .font(Typography.secondary.bold())
                 ForEach(entries) { entry in
                     HStack {
                         Text(MoodService.options.first { $0.score == entry.score }?.emoji ?? "\(entry.score)")
@@ -77,7 +77,7 @@ struct MoodEntryForm: View {
                     }
                 }
                 if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

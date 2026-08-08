@@ -45,7 +45,7 @@ struct CoffeeEntryForm: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -67,7 +67,7 @@ struct CoffeeEntryForm: View {
                         ProgressView()
                     } else if entries.isEmpty {
                         Text("이 날 기록된 커피가 없어요.")
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(entries) { entry in
@@ -76,14 +76,14 @@ struct CoffeeEntryForm: View {
                                     Text(entry.type ?? "커피")
                                     if let entryDate = DateKey.parseISODate(entry.date) {
                                         Text(DateKey.timeString(from: entryDate))
-                                            .font(.caption)
+                                            .font(Typography.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
                                 if let memo = entry.memo, !memo.isEmpty {
                                     Spacer()
                                     Text(memo)
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -93,7 +93,7 @@ struct CoffeeEntryForm: View {
                         }
                     }
                     if let entriesErrorMessage {
-                        Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                        Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                     }
                 }
             }

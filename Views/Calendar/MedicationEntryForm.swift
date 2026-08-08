@@ -22,7 +22,7 @@ struct MedicationEntryForm: View {
                     Toggle(timing.label, isOn: timingBinding(timing))
                 }
                 if let saveErrorMessage {
-                    Text(saveErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(saveErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
                 Button {
                     Task { await saveQuickLogs() }
@@ -42,7 +42,7 @@ struct MedicationEntryForm: View {
                     ProgressView()
                 } else if entries.isEmpty {
                     Text("이 날 복용 기록이 없어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(entries) { entry in
@@ -51,7 +51,7 @@ struct MedicationEntryForm: View {
                             Spacer()
                             if let timing = entry.timing.flatMap(MedicationTiming.init(rawValue:)) {
                                 Text(timing.label)
-                                    .font(.caption)
+                                    .font(Typography.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -61,7 +61,7 @@ struct MedicationEntryForm: View {
                     }
                 }
                 if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
             }
         }

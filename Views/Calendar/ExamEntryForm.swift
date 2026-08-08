@@ -64,7 +64,7 @@ struct ExamEntryForm: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(.red)
             }
 
@@ -85,7 +85,7 @@ struct ExamEntryForm: View {
                     ProgressView()
                 } else if entries.isEmpty {
                     Text("이 날 기록된 검사가 없어요.")
-                        .font(.footnote)
+                        .font(Typography.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(entries) { entry in
@@ -94,13 +94,13 @@ struct ExamEntryForm: View {
                                 Text("RMSSD \(entry.rmssd, specifier: "%.1f")")
                                 if let examinedAt = DateKey.parseISODate(entry.examinedAt) {
                                     Text(DateKey.timeString(from: examinedAt))
-                                        .font(.caption)
+                                        .font(Typography.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
                             Spacer()
                             Text(entry.result)
-                                .font(.caption)
+                                .font(Typography.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -109,7 +109,7 @@ struct ExamEntryForm: View {
                     }
                 }
                 if let entriesErrorMessage {
-                    Text(entriesErrorMessage).font(.footnote).foregroundStyle(.red)
+                    Text(entriesErrorMessage).font(Typography.caption).foregroundStyle(.red)
                 }
             }
         }
