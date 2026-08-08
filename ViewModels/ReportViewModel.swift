@@ -156,10 +156,17 @@ final class ReportViewModel {
             } else {
                 let totalDuration = sleepRanges.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
                 averageSleepDuration = totalDuration / Double(sleepRanges.count)
-                let totalStartOffset = sleepRanges.reduce(0.0) {
-                    $0 + Self.hourOffset($1.start, from: SleepAnalysisService.nightLabel(for: $1.start))
+
+                // 낮잠 등 짧은(2시간 미만) 수면은 "취침 시각"으로서 의미가 없어 평균에서 뺀다.
+                let rangesForStartTime = sleepRanges.filter { $0.end.timeIntervalSince($0.start) >= 2 * 3_600 }
+                if rangesForStartTime.isEmpty {
+                    averageSleepStartHourOffset = nil
+                } else {
+                    let totalStartOffset = rangesForStartTime.reduce(0.0) {
+                        $0 + Self.hourOffset($1.start, from: SleepAnalysisService.nightLabel(for: $1.start))
+                    }
+                    averageSleepStartHourOffset = totalStartOffset / Double(rangesForStartTime.count)
                 }
-                averageSleepStartHourOffset = totalStartOffset / Double(sleepRanges.count)
             }
 
             let periodRMSSD = allRMSSDSamples.filter { $0.date >= start && $0.date < end }

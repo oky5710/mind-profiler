@@ -238,10 +238,12 @@ struct ReportView: View {
             Text("수면").font(Typography.reportSectionTitle)
                 .padding(.bottom, 8)
 
-            if let avgDuration = viewModel.averageSleepDuration, let avgStartOffset = viewModel.averageSleepStartHourOffset {
+            if let avgDuration = viewModel.averageSleepDuration {
                 HStack(spacing: 10) {
                     bigStat(title: "평균 수면 시간", value: durationText(avgDuration))
-                    bigStat(title: "평균 수면 시작 시간", value: sleepStartTimeText(hourOffset: avgStartOffset))
+                    if let avgStartOffset = viewModel.averageSleepStartHourOffset {
+                        bigStat(title: "평균 수면 시작 시간", value: sleepStartTimeText(hourOffset: avgStartOffset))
+                    }
                 }
             }
 
