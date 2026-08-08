@@ -176,22 +176,21 @@ extension HRVAnalysisView {
                         // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
                         let matchedEvent = matchedRMSSDEvent(for: point.date)
                         if let event = matchedEvent, event.direction == RMSSDThresholdDirection.high.rawValue {
-                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 같은 색의 옅은(10%) 테두리를
-                            // 살짝 더 큰 원을 뒤에 겹쳐 그려서 흉내 낸다(PointMark는 실제 stroke를
-                            // 지원하지 않는다).
+                            // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 테두리(링)는 없애고
+                            // 반투명(50%)으로 채워서 "저장된 이벤트"임을 나타낸다.
                             PointMark(
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
                             )
                             .symbolSize(110)
-                            .foregroundStyle(Theme.rmssdHigh.opacity(0.1))
+                            .foregroundStyle(.clear)
 
                             PointMark(
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
                             )
                             .symbolSize(90)
-                            .foregroundStyle(Theme.rmssdHigh)
+                            .foregroundStyle(Theme.rmssdHigh.opacity(0.5))
                         } else if matchedEvent != nil {
                             // 여기 도달했다는 건 위에서 높음(high)이 아니라고 걸러졌다는 뜻이라 낮음뿐이다.
                             PointMark(
