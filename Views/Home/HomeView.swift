@@ -109,18 +109,7 @@ struct HomeView: View {
 
             if let score {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    HStack(spacing: 4) {
-                        briefingHeaderLabel("회복 지수")
-
-                        Button {
-                            isShowingRecoveryScoreInfo = true
-                        } label: {
-                            Image(systemName: "info.circle")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    briefingHeaderLabel("회복 지수")
 
                     Text(String(score.value))
                         .font(Typography.sectionTitle.weight(.bold))
@@ -128,7 +117,21 @@ struct HomeView: View {
                     Text(score.label)
                         .font(Typography.secondary)
                         .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        isShowingRecoveryScoreInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
