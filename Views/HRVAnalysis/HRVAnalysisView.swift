@@ -502,7 +502,13 @@ struct HRVAnalysisView: View {
         case .monthly:
             values += viewModel.wearableRMSSDMonthlyStats.flatMap { [$0.q1, $0.median, $0.q3] }
         }
-        cachedRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
+        let newRange = values.isEmpty ? (min: 0.0, max: 100.0) : (min: values.min()!, max: values.max()!)
+        // y축 범위가 바뀔 때마다 즉시 스냅되면 스크롤 중 화면이 끊기는 것처럼 보인다 — 값이
+        // 바뀔 때만(범위가 그대로면 애니메이션도 없음) 부드럽게 전환한다.
+        guard newRange != cachedRange else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            cachedRange = newRange
+        }
     }
 
     private var hrvChart: some View {
