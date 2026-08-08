@@ -36,12 +36,12 @@ struct OnboardingView: View {
     private var introduction: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Mind Profiler")
-                .font(.largeTitle.weight(.semibold))
+                .font(Typography.largeTitle.weight(.semibold))
                 .foregroundStyle(Theme.primary)
             Text("당신의 하루를 숫자로 이해해 보세요.")
-                .font(.title3.bold())
+                .font(Typography.sectionTitle)
             Text("심박변이도(HRV), 수면, 운동 등의 데이터를 통해 나만의 패턴을 발견할 수 있습니다.")
-                .font(.body)
+                .font(Typography.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -56,7 +56,7 @@ struct OnboardingView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(number). \(title)")
-                .font(.title3.bold())
+                .font(Typography.sectionTitle)
             Text(body)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(items, id: \.self) { item in
@@ -64,9 +64,9 @@ struct OnboardingView: View {
                         .foregroundStyle(.primary)
                 }
             }
-            .font(.subheadline)
+            .font(Typography.secondary)
             Text(footnote)
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.secondary.weight(.semibold))
                 .foregroundStyle(Theme.primary)
         }
     }
@@ -74,9 +74,9 @@ struct OnboardingView: View {
     private var interpretationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("2. 해석할 때 주의할 점")
-                .font(.title3.bold())
+                .font(Typography.sectionTitle)
             Text("한 번의 측정보다 추세가 중요합니다.")
-                .font(.body.bold())
+                .font(Typography.body.weight(.bold))
             Text("HRV는 다음과 같은 영향을 받을 수 있습니다.")
             let factors = ["수면", "운동", "스트레스", "카페인", "음주", "측정 환경"]
             LazyVGrid(
@@ -86,7 +86,7 @@ struct OnboardingView: View {
             ) {
                 ForEach(factors, id: \.self) { factor in
                     Text(factor)
-                        .font(.subheadline)
+                        .font(Typography.secondary)
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
@@ -94,7 +94,7 @@ struct OnboardingView: View {
                 }
             }
             Text("오늘 수치가 낮다고 해서 반드시 건강이 나쁘다는 의미는 아닙니다.")
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.secondary.weight(.semibold))
                 .foregroundStyle(Theme.primary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -103,10 +103,10 @@ struct OnboardingView: View {
     private var closingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("3. 마지막")
-                .font(.title3.bold())
+                .font(Typography.sectionTitle)
             Text("당신의 데이터는 당신을 이해하기 위한 단서입니다.")
             Text("숫자는 정답이 아니라,\n스스로를 이해하기 위한 시작점입니다.")
-                .font(.body.bold())
+                .font(Typography.body.weight(.bold))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
