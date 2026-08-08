@@ -165,7 +165,7 @@ struct ReportView: View {
     private func vitalPanel(title: String, value: String?, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(Typography.caption2.bold())
+                .font(Typography.caption)
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value ?? "—")
@@ -191,7 +191,7 @@ struct ReportView: View {
     private func bigStat(title: String, value: Text, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(Typography.caption2.bold())
+                .font(Typography.caption)
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 value
