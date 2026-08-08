@@ -162,22 +162,35 @@ extension HRVAnalysisView {
                 ForEach(currentRMSSDPoints) { point in
                     // 선 자체는 브랜드 색(primary)으로 통일하고, rmssdColor(iris)는 그 위에 찍히는
                     // 포인트(정상/저하/상승 등 의미가 있는 색 구분)에만 남겨서 선과 점의 역할을
-                    // 시각적으로 분리한다.
-                    LineMark(
-                        x: .value("시간", point.date),
-                        y: .value("rMSSD", point.value),
-                        series: .value("구간", "rmssd-\(point.segment)")
-                    )
-                    .foregroundStyle(Theme.primary)
+                    // 시각적으로 분리한다. 다만 저장된(로그된) 높음 이벤트 지점은 채운 원이 더 잘
+                    // 보이도록 그 지점으로 이어지는 선을 반투명하고 굵게 그린다.
+                    let matchedEvent = matchedRMSSDEvent(for: point.date)
+                    let isLoggedHigh = matchedEvent?.direction == RMSSDThresholdDirection.high.rawValue
+
+                    if isLoggedHigh {
+                        LineMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value),
+                            series: .value("구간", "rmssd-\(point.segment)")
+                        )
+                        .foregroundStyle(Theme.primary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 2))
+                    } else {
+                        LineMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value),
+                            series: .value("구간", "rmssd-\(point.segment)")
+                        )
+                        .foregroundStyle(Theme.primary)
+                    }
 
                     if showRMSSDPointMarkers {
                         // 실제로 알림에 응답해 기분까지 기록한 포인트(RMSSDEventEntry)는 원 테두리
                         // 대신 꽉 찬 다이아몬드로 — 낮음이면 빨강. 응답하지 않은 낮음/높음 포인트는
                         // 기존처럼 테두리(바깥쪽 링)만 그 색으로 바꿔서 표시한다.
-                        let matchedEvent = matchedRMSSDEvent(for: point.date)
-                        if let event = matchedEvent, event.direction == RMSSDThresholdDirection.high.rawValue {
+                        if isLoggedHigh {
                             // 높음(150%+) 로그는 다이아몬드 대신 원으로 — 테두리(링)는 없애고
-                            // 반투명(50%)으로 채워서 "저장된 이벤트"임을 나타낸다.
+                            // 불투명하게 채워서 "저장된 이벤트"임을 나타낸다.
                             PointMark(
                                 x: .value("시간", point.date),
                                 y: .value("rMSSD", point.value)
@@ -190,7 +203,7 @@ extension HRVAnalysisView {
                                 y: .value("rMSSD", point.value)
                             )
                             .symbolSize(90)
-                            .foregroundStyle(Theme.rmssdHigh.opacity(0.5))
+                            .foregroundStyle(Theme.rmssdHigh)
                         } else if matchedEvent != nil {
                             // 여기 도달했다는 건 위에서 높음(high)이 아니라고 걸러졌다는 뜻이라 낮음뿐이다.
                             PointMark(
