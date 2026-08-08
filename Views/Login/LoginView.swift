@@ -12,6 +12,8 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            Spacer()
+
             Text("Mind Profiler")
                 .font(Typography.font(size: 28, weight: .semibold, relativeTo: .title2))
 
@@ -57,6 +59,13 @@ struct LoginView: View {
                 }
             }
             .padding(.top, 16)
+
+            Spacer()
+
+            Text("건강 데이터는 사용자의 기기에서만 분석됩니다.")
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 24)
         }
     }
 }
