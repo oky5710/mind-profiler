@@ -8,7 +8,10 @@ struct LoginView: View {
     // 두 버튼이 같은 라운드 사각형 모양을 쓰도록, Apple 버튼의 코너 radius를 기준값으로 두고
     // Google 버튼도 buttonBorderShape로 맞춘다.
     private static let buttonCornerRadius: CGFloat = 8
-    private static let buttonHeight: CGFloat = 44
+    // SignInWithAppleButton은 UIKit 버튼(ASAuthorizationAppleIDButton)을 감싸고 있어 .frame(height:)를
+    // 줘도 내부적으로 자기 높이를 그대로 쓸 수 있다 — 두 버튼을 같은 값으로 그냥 강제하는 대신,
+    // Apple 버튼이 실제로 렌더링된 높이를 측정해서 Google 버튼에 그대로 적용한다.
+    @State private var appleButtonHeight: CGFloat?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -30,7 +33,7 @@ struct LoginView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.roundedRectangle(radius: Self.buttonCornerRadius))
-                    .frame(height: Self.buttonHeight)
+                    .frame(height: appleButtonHeight)
                     .padding(.horizontal, 40)
 
                     SignInWithAppleButton(.signIn) { request in
@@ -46,7 +49,11 @@ struct LoginView: View {
                     .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                     .cornerRadius(Self.buttonCornerRadius)
                     .frame(maxWidth: .infinity)
-                    .frame(height: Self.buttonHeight)
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { newHeight in
+                        appleButtonHeight = newHeight
+                    }
                     .padding(.horizontal, 40)
                 }
 
