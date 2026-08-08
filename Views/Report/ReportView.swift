@@ -184,6 +184,29 @@ struct ReportView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
     }
 
+    // value를 Text로 직접 받는 vitalPanel — "3시~4시"처럼 값 문자열 안에 "시" 같은 단위 글자가
+    // 섞여 있어 그 부분만 작게 스타일링해야 할 때 쓴다(durationText 참고).
+    private func vitalPanel(title: String, value: Text, unit: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                value
+                if let unit {
+                    Text(unit)
+                        .font(Typography.caption2)
+                        .foregroundStyle(.primary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Theme.primary50, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.systemGray5, lineWidth: 1))
+    }
+
     // vitalPanel과 같은 "작은 라벨 + 큰 굵은 값" 조합이지만, 이미 panelCard로 감싸인 섹션
     // 안에서 쓰는 용도라 테두리/그림자는 따로 두지 않고 배경(Theme.primary50)만 준다. value를
     // 문자열이 아니라 Text로 받는 이유는, 평균 수면 시간처럼 "N시간 M분"에서 숫자는 크게·단위
@@ -841,7 +864,12 @@ struct ReportView: View {
                     )
                     vitalPanel(
                         title: "낮은 시간대",
-                        value: findings.mostFrequentLowestHour.map { "\($0)시~\($0 + 1)시" }
+                        value: findings.mostFrequentLowestHour.map { hour in
+                            Text("\(hour)").font(Typography.bigStatValue)
+                                + Text("시").font(Typography.caption2).foregroundStyle(.primary)
+                                + Text("~\(hour + 1)").font(Typography.bigStatValue)
+                                + Text("시").font(Typography.caption2).foregroundStyle(.primary)
+                        } ?? Text("—").font(Typography.bigStatValue)
                     )
                 }
             }
