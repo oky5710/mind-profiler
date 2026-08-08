@@ -307,9 +307,9 @@ struct HomeView: View {
                     Image("InvestigatingIllustration")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 100, height: 81)
+                        .frame(width: 120, height: 97)
                     Text("수사중")
-                        .font(Typography.body)
+                        .font(Typography.secondary)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
