@@ -238,6 +238,7 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
         }
         .font(Typography.caption)
+        .lineLimit(1)
     }
 
     private var latestHRVStat: some View {
@@ -245,24 +246,19 @@ struct HomeView: View {
             Text("최근 HRV")
                 .font(Typography.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
 
-            HStack(alignment: .bottom, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
-                        .font(Typography.sectionTitle.weight(.bold))
-                    if viewModel.latestRMSSDValue != nil {
-                        Text("ms")
-                            .font(Typography.caption)
-                            .foregroundStyle(.secondary)
-                    }
+            // 값+단위, 화살표+비교문구는 각각 한 줄로 붙어 있어야 하지만, 둘을 나란히 놓을 자리가
+            // 없으면(좁은 화면·큰 텍스트 크기) 억지로 압축해 줄바꿈시키는 대신 비교문구를 통째로
+            // 아래 줄로 내린다 — ViewThatFits가 가로로 안 맞으면 두 번째(세로) 후보를 고른다.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: 6) {
+                    latestHRVValue
+                    latestHRVComparison
                 }
-
-                if let comparison = viewModel.latestRMSSDComparison {
-                    let roundedDifference = Int(abs(comparison.difference).rounded())
-                    comparisonText(
-                        isHigher: comparison.difference >= 0,
-                        detail: "\(roundedDifference)ms · \(comparison.status.label)"
-                    )
+                VStack(alignment: .leading, spacing: 4) {
+                    latestHRVValue
+                    latestHRVComparison
                 }
             }
         }
@@ -274,6 +270,31 @@ struct HomeView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             patternNavigationCenter.requestHRVTrendView()
+        }
+    }
+
+    private var latestHRVValue: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(viewModel.latestRMSSDValue.map { "\(Int($0.rounded()))" } ?? "—")
+                .font(Typography.sectionTitle.weight(.bold))
+                .lineLimit(1)
+            if viewModel.latestRMSSDValue != nil {
+                Text("ms")
+                    .font(Typography.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var latestHRVComparison: some View {
+        if let comparison = viewModel.latestRMSSDComparison {
+            let roundedDifference = Int(abs(comparison.difference).rounded())
+            comparisonText(
+                isHigher: comparison.difference >= 0,
+                detail: "\(roundedDifference)ms · \(comparison.status.label)"
+            )
         }
     }
 
