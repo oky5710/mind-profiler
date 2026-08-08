@@ -163,7 +163,9 @@ extension HRVAnalysisView {
                     // 선 자체는 브랜드 색(primary)으로 통일하고, rmssdColor(iris)는 그 위에 찍히는
                     // 포인트(정상/저하/상승 등 의미가 있는 색 구분)에만 남겨서 선과 점의 역할을
                     // 시각적으로 분리한다.
-                    let matchedEvent = matchedRMSSDEvent(for: point.date)
+                    // 일별 모드에서는 낮음/높음 구분 없이 항상 기본(정상) 스타일로만 찍는다 — 그
+                    // 값은 그날의 대표값(중앙값)이라 시간별처럼 순간적인 급변을 표시할 이유가 없다.
+                    let matchedEvent = chartMode == .daily ? nil : matchedRMSSDEvent(for: point.date)
                     let isLoggedHigh = matchedEvent?.direction == RMSSDThresholdDirection.high.rawValue
 
                     LineMark(
@@ -206,7 +208,7 @@ extension HRVAnalysisView {
                             // 최근 30일 중앙값의 50% 미만/150% 이상으로 급격히 변한 값은 눈에 띄게
                             // 원 테두리를 빨강/초록으로 — 백그라운드 급격한 변화 알림(RMSSDThreshold)과
                             // 같은 기준을 쓴다.
-                            let direction = viewModel.recentPeriodMedian(at: point.date).flatMap {
+                            let direction = chartMode == .daily ? nil : viewModel.recentPeriodMedian(at: point.date).flatMap {
                                 RMSSDThreshold.direction(value: point.value, median: $0)
                             }
                             let ringColor: Color = switch direction {
