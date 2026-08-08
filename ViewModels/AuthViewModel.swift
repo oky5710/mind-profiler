@@ -36,8 +36,8 @@ final class AuthViewModel {
 
         // 저장된 JWT가 만료/폐기됐으면 어느 화면에서 API를 호출하든 401이 뜨는데, 그때까지는 앱이
         // 계속 "로그인된 상태"인 척 각 화면에 오류 메시지만 보여줬다 — 401을 로그아웃 신호로 받는다.
-        APIClient.onUnauthorized = { [weak self] in
-            Task { @MainActor in
+        APIClient.onUnauthorized = {
+            Task { @MainActor [weak self] in
                 self?.signOut()
             }
         }

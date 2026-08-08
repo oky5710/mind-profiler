@@ -9,7 +9,7 @@ enum CalendarEventServiceError: Error, LocalizedError {
     }
 }
 
-enum CalendarEventCategory: Equatable {
+nonisolated enum CalendarEventCategory: Equatable {
     case holiday
     case vacation
     case general
@@ -18,7 +18,9 @@ enum CalendarEventCategory: Equatable {
 enum CalendarEventService {
     typealias Event = (title: String, start: Date, end: Date, isAllDay: Bool, location: String?, category: CalendarEventCategory)
 
-    private static let store = EKEventStore()
+    // EKEventStore는 어느 스레드에서든 안전하게 호출할 수 있고(Apple 문서), fetchEvents가 이
+    // store를 detached task(메인 액터 밖)에서 쓰는 게 의도된 설계다.
+    nonisolated(unsafe) private static let store = EKEventStore()
 
     static func requestAuthorization() async throws {
         guard try await store.requestFullAccessToEvents() else {
@@ -60,7 +62,7 @@ enum CalendarEventService {
 
     // EventKit에는 "공휴일"/"휴가" 같은 일정 유형 개념이 없어서, 애플이 구독 캘린더로 제공하는
     // "Holidays in ..." 캘린더 이름과 사용자가 직접 만든 "휴가" 캘린더 이름으로 구분한다.
-    private static func category(forCalendarTitle title: String) -> CalendarEventCategory {
+    private nonisolated static func category(forCalendarTitle title: String) -> CalendarEventCategory {
         let lowercased = title.lowercased()
         if lowercased.contains("holiday") || title.contains("공휴일") {
             return .holiday
@@ -73,12 +75,12 @@ enum CalendarEventService {
 
     // "관공서의 공휴일에 관한 규정" 기준 법정 공휴일 이름만 화이트리스트로 남긴다 — 어버이날,
     // 스승의날, 국군의날 같은 기념일은 이 목록에 없어서 자동으로 제외된다.
-    private static let legalHolidayTitleKeywords = [
+    private nonisolated static let legalHolidayTitleKeywords = [
         "신정", "설날", "삼일절", "어린이날", "부처님", "현충일", "광복절",
         "추석", "개천절", "한글날", "성탄절", "크리스마스", "대체공휴일", "임시공휴일"
     ]
 
-    private static func isLegalHolidayTitle(_ title: String) -> Bool {
+    private nonisolated static func isLegalHolidayTitle(_ title: String) -> Bool {
         legalHolidayTitleKeywords.contains { title.contains($0) }
     }
 }

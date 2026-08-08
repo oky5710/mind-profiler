@@ -10,21 +10,24 @@ final class HRVAnalysisViewModel {
         var id: Date { date }
     }
 
-    struct HRVPoint: Identifiable, DatedPoint {
+    // 값 타입일 뿐 격리된 상태가 없는데, HRVAnalysisViewModel(@MainActor) 안에 중첩돼 있으면 그
+    // 격리를 그대로 물려받아 DatedPoint/Identifiable 준수가 MainActor에 격리된 것으로 취급된다 —
+    // nonisolated로 명시해 제네릭 컨텍스트(ForEach 등)에서 그 준수를 문제없이 쓸 수 있게 한다.
+    nonisolated struct HRVPoint: Identifiable, DatedPoint {
         let date: Date
         let value: Double
         let segment: Int
         var id: Date { date }
     }
 
-    struct DailySleepPoint: Identifiable, DatedPoint {
+    nonisolated struct DailySleepPoint: Identifiable, DatedPoint {
         // 해당 밤이 시작되는 날짜의 자정. rMSSD/안정시 심박수 일별 포인트와 같은 x 좌표를 쓴다.
         let date: Date
         let hours: Double
         var id: Date { date }
     }
 
-    struct DailyDaylightPoint: Identifiable, DatedPoint {
+    nonisolated struct DailyDaylightPoint: Identifiable, DatedPoint {
         let date: Date
         let minutes: Double
         var id: Date { date }

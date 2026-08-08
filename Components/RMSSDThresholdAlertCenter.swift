@@ -15,13 +15,17 @@ final class RMSSDThresholdAlertCenter {
     var pendingEvent: PendingEvent?
 
     init() {
-        ReminderNotificationService.onRMSSDThresholdTapped = { [weak self] userInfo in
+        ReminderNotificationService.onRMSSDThresholdTapped = { userInfo in
+            // userInfo([AnyHashable: Any])는 Sendable이 아니라 Task 클로저로 그대로 넘길 수 없다 —
+            // 여기(비격리 컨텍스트)에서 Sendable한 원시값만 먼저 꺼내고, MainActor 격리가 필요한
+            // DateKey.parseISODate 호출과 pendingEvent 대입만 Task 안에서 한다.
             guard let directionRaw = userInfo[RMSSDThresholdMonitorService.userInfoDirectionKey] as? String,
                   let direction = RMSSDThresholdDirection(rawValue: directionRaw),
                   let value = userInfo[RMSSDThresholdMonitorService.userInfoValueKey] as? Double,
-                  let occurredAtRaw = userInfo[RMSSDThresholdMonitorService.userInfoOccurredAtKey] as? String,
-                  let occurredAt = DateKey.parseISODate(occurredAtRaw) else { return }
-            Task { @MainActor in
+                  let occurredAtRaw = userInfo[RMSSDThresholdMonitorService.userInfoOccurredAtKey] as? String
+            else { return }
+            Task { @MainActor [weak self] in
+                guard let occurredAt = DateKey.parseISODate(occurredAtRaw) else { return }
                 self?.pendingEvent = PendingEvent(direction: direction, rmssdValue: value, occurredAt: occurredAt)
             }
         }

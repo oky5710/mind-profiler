@@ -131,7 +131,7 @@ struct ReminderListView: View {
     private func summary(for reminder: MedicationReminderEntry) -> String {
         let repeatText: String
         if reminder.repeatType == ReminderRepeatType.weekly.rawValue {
-            let days = reminder.weekdays.sorted().map(ReminderWeekday.shortLabel(for:)).joined(separator: "·")
+            let days = reminder.weekdays.sorted().map { ReminderWeekday.shortLabel(for: $0) }.joined(separator: "·")
             repeatText = days.isEmpty ? "매주" : "매주 \(days)"
         } else {
             repeatText = "매일"
