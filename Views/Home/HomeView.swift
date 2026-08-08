@@ -10,6 +10,7 @@ struct HomeView: View {
     // 화면 대신 전날 것을 기본으로 보여준다 — 최초 진입 시 한 번만 시도하고, 그 뒤 사용자가 직접
     // 고른 날짜에는 적용하지 않는다.
     @State private var hasAutoFallenBackToPreviousDay = false
+    @State private var isShowingRecoveryScoreInfo = false
 
     init(refreshRequestID: UUID? = nil) {
         self.refreshRequestID = refreshRequestID
@@ -108,7 +109,18 @@ struct HomeView: View {
 
             if let score {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    briefingHeaderLabel("회복 지수")
+                    HStack(spacing: 4) {
+                        briefingHeaderLabel("회복 지수")
+
+                        Button {
+                            isShowingRecoveryScoreInfo = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
 
                     Text(String(score.value))
                         .font(Typography.sectionTitle.weight(.bold))
@@ -123,6 +135,11 @@ struct HomeView: View {
         .padding(.top, 20)
         .padding(.bottom, 20)
         .padding(.horizontal, 24)
+        .sheet(isPresented: $isShowingRecoveryScoreInfo) {
+            RecoveryScoreInfoView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private func briefingHeaderLabel(_ title: String) -> some View {
@@ -463,6 +480,46 @@ struct HomeView: View {
         }
     }
 
+}
+
+private struct RecoveryScoreInfoView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("회복지수는 절대적인 건강 점수가 아닙니다.")
+                    Text("최근 30일 동안의 나의 데이터를 기준으로 오늘이 평소보다 얼마나 회복되었는지를 보여주는 개인화된 지표입니다.")
+                    Text("계산 과정은 다음과 같습니다.")
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        bullet("수면, 오전, 오후로 시간을 구분합니다.")
+                        bullet("각 시간대에서 최근 30일 rMSSD 중앙값과 오늘의 중앙값을 비교합니다.")
+                        bullet("MAD(Median Absolute Deviation)를 이용하여 평소와의 차이를 계산합니다.")
+                        bullet("각 시간대의 결과를 통합하여 회복지수를 계산합니다.")
+                    }
+
+                    Text("회복지수는 다른 사람과 비교하기 위한 점수가 아니라 자신의 평소 상태와 비교하기 위한 점수입니다.")
+                }
+                .padding()
+            }
+            .navigationTitle("회복지수는 어떻게 계산되나요?")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("닫기") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("•")
+            Text(text)
+        }
+    }
 }
 
 #Preview {
