@@ -8,6 +8,18 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 NavigationLink {
+                    MedicationManagementView()
+                } label: {
+                    Label("약 등록", systemImage: "pills.fill")
+                }
+
+                NavigationLink {
+                    ReminderListView()
+                } label: {
+                    Label("알림 설정", systemImage: "bell.badge")
+                }
+
+                NavigationLink {
                     HRVGuideView()
                 } label: {
                     Label("HRV 가이드", systemImage: "book.closed")
@@ -19,9 +31,9 @@ struct SettingsView: View {
                     Label("자주 묻는 질문", systemImage: "questionmark.circle")
                 }
 
-                // 일반 사용자는 약 등록·알림 설정·문의하기만 쓰면 되고, 분석용 화면들은 연구자/관리자
-                // 대상이라 혼란만 준다 — 이 화면 자체는 사용자 요청으로 값을 바꿀 수 없는 역할이라
-                // (docs/architecture.md), 여기서 감춰도 실제 권한과 어긋나지 않는다.
+                // 일반 사용자는 약 등록·알림설정·HRV 가이드·FAQ·문의하기만 쓰면 되고, 분석용 화면들은
+                // 연구자/관리자 대상이라 혼란만 준다 — 이 화면 자체는 사용자 요청으로 값을 바꿀 수 없는
+                // 역할이라(docs/architecture.md), 여기서 감춰도 실제 권한과 어긋나지 않는다.
                 if authViewModel.usesResearcherTerminology {
                     NavigationLink {
                         AnalysisSettingsView()
@@ -40,21 +52,7 @@ struct SettingsView: View {
                     } label: {
                         Label("장기 미제 사건", systemImage: "magnifyingglass")
                     }
-                }
 
-                NavigationLink {
-                    MedicationManagementView()
-                } label: {
-                    Label("약 등록", systemImage: "pills.fill")
-                }
-
-                NavigationLink {
-                    ReminderListView()
-                } label: {
-                    Label("알림 설정", systemImage: "bell.badge")
-                }
-
-                if authViewModel.usesResearcherTerminology {
                     NavigationLink {
                         RRIntervalExportView()
                     } label: {
