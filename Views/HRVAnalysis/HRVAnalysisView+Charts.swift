@@ -211,7 +211,7 @@ extension HRVAnalysisView {
                             let ringColor: Color = switch direction {
                             case .low: .red
                             case .high: Theme.rmssdHigh
-                            case nil: .white
+                            case nil: rmssdColor
                             }
 
                             PointMark(
