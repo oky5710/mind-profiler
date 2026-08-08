@@ -166,22 +166,28 @@ extension HRVAnalysisView {
                     // 보이도록 그 지점으로 이어지는 선을 반투명하고 굵게 그린다.
                     let matchedEvent = matchedRMSSDEvent(for: point.date)
                     let isLoggedHigh = matchedEvent?.direction == RMSSDThresholdDirection.high.rawValue
+                    // 로그된 높음 지점은 채운 원이 위에 겹쳐 그려지면(뒤에 선언된 마크가 위로 올라오므로)
+                    // 선이 원 안쪽에 가려 아예 안 보인다 — 그 지점만 원을 먼저 그리고 선을 나중에(원
+                    // 위로) 다시 그려서 선이 원 바깥으로 비쳐 보이게 한다.
+                    let drawLineAbovePoint = isLoggedHigh && showRMSSDPointMarkers
 
-                    if isLoggedHigh {
-                        LineMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value),
-                            series: .value("구간", "rmssd-\(point.segment)")
-                        )
-                        .foregroundStyle(Theme.primary.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                    } else {
-                        LineMark(
-                            x: .value("시간", point.date),
-                            y: .value("rMSSD", point.value),
-                            series: .value("구간", "rmssd-\(point.segment)")
-                        )
-                        .foregroundStyle(Theme.primary)
+                    if !drawLineAbovePoint {
+                        if isLoggedHigh {
+                            LineMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value),
+                                series: .value("구간", "rmssd-\(point.segment)")
+                            )
+                            .foregroundStyle(Theme.primary.opacity(0.5))
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                        } else {
+                            LineMark(
+                                x: .value("시간", point.date),
+                                y: .value("rMSSD", point.value),
+                                series: .value("구간", "rmssd-\(point.segment)")
+                            )
+                            .foregroundStyle(Theme.primary)
+                        }
                     }
 
                     if showRMSSDPointMarkers {
@@ -240,6 +246,16 @@ extension HRVAnalysisView {
                             .symbolSize(32)
                             .foregroundStyle(.white)
                         }
+                    }
+
+                    if drawLineAbovePoint {
+                        LineMark(
+                            x: .value("시간", point.date),
+                            y: .value("rMSSD", point.value),
+                            series: .value("구간", "rmssd-\(point.segment)")
+                        )
+                        .foregroundStyle(Theme.primary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 2))
                     }
                 }
             }
