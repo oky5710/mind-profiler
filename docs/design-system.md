@@ -306,7 +306,7 @@ Typography.caption
 | `Typography.sleepStageLabel` | 12pt | Regular | 수면 단계 차트 행 라벨 전용 |
 | `Typography.sleepDate` | 17pt | Semibold | 수면 패턴 상단 날짜 전용 |
 | `Typography.bigStatValue` | 24pt | Bold | 보고서의 강조 수치(평균 수면 시간·점수 등) 전용 |
-| `Typography.splashTagline` | 21pt | Bold | 스플래시 화면 태그라인 전용 |
+| `Typography.splashTagline` | 28pt | Bold | 스플래시 화면 태그라인 전용(시스템 title1) |
 | `Typography.chartAxisLabel` | 9pt | Regular | 오늘의 패턴/보고서 차트 x축 라벨 전용(Dynamic Type 미적용) |
 
 ---
