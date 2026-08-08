@@ -439,15 +439,23 @@ struct HomeView: View {
     }
 
     private var moodPicker: some View {
-        HStack(spacing: 16) {
-            ForEach(MoodService.options, id: \.score) { option in
-                Button {
-                    Task { await viewModel.logMood(score: option.score) }
-                } label: {
-                    Text(option.emoji)
-                        .font(.system(size: 32))
+        VStack(spacing: 8) {
+            Text("오늘의 기분은?")
+                .font(Typography.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            HStack(spacing: 16) {
+                ForEach(MoodService.options, id: \.score) { option in
+                    Button {
+                        Task { await viewModel.logMood(score: option.score) }
+                    } label: {
+                        Text(option.emoji)
+                            .font(.system(size: 32))
+                    }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity)
     }
