@@ -13,6 +13,12 @@ struct SettingsView: View {
                     Label("HRV 가이드", systemImage: "book.closed")
                 }
 
+                NavigationLink {
+                    FAQView()
+                } label: {
+                    Label("자주 묻는 질문", systemImage: "questionmark.circle")
+                }
+
                 // 일반 사용자는 약 등록·알림 설정·문의하기만 쓰면 되고, 분석용 화면들은 연구자/관리자
                 // 대상이라 혼란만 준다 — 이 화면 자체는 사용자 요청으로 값을 바꿀 수 없는 역할이라
                 // (docs/architecture.md), 여기서 감춰도 실제 권한과 어긋나지 않는다.
@@ -448,6 +454,71 @@ private struct HRVGuideView: View {
         .contentMargins(.top, 10, for: .scrollContent)
         .navigationTitle("HRV 가이드")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct FAQItem: Identifiable {
+    let id = UUID()
+    let question: String
+    let answers: [String]
+}
+
+private struct FAQView: View {
+    private static let items: [FAQItem] = [
+        FAQItem(question: "HRV는 높을수록 좋은가요?", answers: [
+            "항상 그렇지는 않습니다.",
+            "평소보다 갑자기 매우 높거나 낮은 경우에는 운동, 수면, 질병 등 다양한 원인이 있을 수 있습니다.",
+        ]),
+        FAQItem(question: "하루에 여러 번 측정해도 되나요?", answers: [
+            "가능합니다.",
+            "다만 하루 중 HRV는 계속 변하기 때문에 한 번의 측정보다는 장기적인 추세를 함께 보는 것이 좋습니다.",
+        ]),
+        FAQItem(question: "다른 사람과 비교해도 되나요?", answers: [
+            "권장하지 않습니다.",
+            "나이, 성별, 건강 상태, 측정 환경 등에 따라 HRV는 크게 달라질 수 있습니다.",
+            "자신의 평소 데이터와 비교하는 것이 가장 의미 있는 방법입니다.",
+        ]),
+        FAQItem(question: "회복지수가 낮으면 몸이 나쁜 건가요?", answers: [
+            "반드시 그렇지는 않습니다.",
+            "회복지수는 최근 30일의 자신의 패턴과 비교한 상대적인 지표입니다.",
+            "며칠간의 추세와 함께 해석하는 것이 좋습니다.",
+        ]),
+    ]
+
+    // 질문마다 따로 펼침 상태를 기억해야 해서, id별로 접힘/펼침을 담는다 — 기본은 전부 접힌 상태.
+    @State private var expandedItemIDs: Set<FAQItem.ID> = []
+
+    var body: some View {
+        List {
+            ForEach(Self.items) { item in
+                DisclosureGroup(isExpanded: binding(for: item.id)) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(item.answers, id: \.self) { answer in
+                            paragraph(answer)
+                        }
+                    }
+                    .padding(.top, 4)
+                } label: {
+                    Text(item.question).font(.subheadline.bold())
+                }
+            }
+        }
+        .contentMargins(.top, 10, for: .scrollContent)
+        .navigationTitle("자주 묻는 질문")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func binding(for id: FAQItem.ID) -> Binding<Bool> {
+        Binding(
+            get: { expandedItemIDs.contains(id) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedItemIDs.insert(id)
+                } else {
+                    expandedItemIDs.remove(id)
+                }
+            }
+        )
     }
 }
 
