@@ -878,7 +878,7 @@ struct ReportView: View {
     private func lowestDayChip(label: String, value: Text, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(Typography.caption.bold())
+                .font(Typography.caption2.bold())
                 .foregroundStyle(.secondary)
             value
                 .foregroundStyle(Theme.primary600)
