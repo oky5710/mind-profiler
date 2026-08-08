@@ -88,7 +88,7 @@ private struct SplashView: View {
             .ignoresSafeArea()
 
             Text("Track your mind.\nFind the patterns.")
-                .font(.system(size: 21, weight: .bold))
+                .font(Typography.splashTagline)
                 .foregroundStyle(.white.opacity(0.9))
                 .multilineTextAlignment(.center)
                 .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)

@@ -37,6 +37,9 @@ enum Typography {
     static let sleepDate = font(size: 17, weight: .semibold, relativeTo: .body)
     // 24pt Bold — 보고서의 강조 수치(평균 수면 시간·점수 등) 전용.
     static let bigStatValue = font(size: 24, weight: .bold, relativeTo: .title)
+    // 21pt Bold — 스플래시 화면 태그라인 전용. screenTitle(18pt)을 재사용하지 않는 이유는, 그
+    // 토큰을 스플래시용으로 바꾸면 실제 화면 제목으로 쓰는 다른 모든 곳도 같이 커지기 때문이다.
+    static let splashTagline = font(size: 21, weight: .bold, relativeTo: .title3)
     // 9pt Regular — 오늘의 패턴 차트 x축 라벨 전용. 차트 안 촘촘한 라벨이라 다른 토큰과 달리
     // 스케일링 없이 고정 크기로 둔다 — 커지면 라벨이 겹치거나 잘린다.
     static let chartAxisLabel = Font.system(size: 9, weight: .regular)
